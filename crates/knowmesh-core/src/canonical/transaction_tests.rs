@@ -235,3 +235,35 @@ fn transaction_paths_do_not_follow_symlinks() {
     );
     assert!(!outside.join("new.md").exists());
 }
+
+#[test]
+fn repeated_completion_cleans_staging_left_after_an_indexed_journal() {
+    let temp = tempfile::tempdir().unwrap();
+    let writer = WorkspaceWriter::acquire(temp.path()).unwrap();
+    let id = writer
+        .prepare(vec![change("purpose.md", None, Some("new"))])
+        .unwrap();
+    writer.apply(&id).unwrap();
+    writer.mark_indexed(&id).unwrap();
+    let staging = temp.path().join(".knowmesh/staging").join(&id);
+    fs::create_dir(&staging).unwrap();
+    fs::write(staging.join("0.blob"), "new").unwrap();
+    writer.mark_indexed(&id).unwrap();
+    assert!(!staging.exists());
+}
+
+#[test]
+fn case_aliases_cannot_create_an_unrecoverable_transaction_on_windows() {
+    let temp = tempfile::tempdir().unwrap();
+    let writer = WorkspaceWriter::acquire(temp.path()).unwrap();
+    assert_eq!(
+        writer
+            .prepare(vec![
+                change("purpose.md", None, Some("one")),
+                change("PURPOSE.md", None, Some("two"))
+            ])
+            .unwrap_err()
+            .code,
+        "DUPLICATE_TRANSACTION_PATH"
+    );
+}

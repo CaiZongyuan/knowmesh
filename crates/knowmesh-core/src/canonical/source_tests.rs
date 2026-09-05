@@ -221,3 +221,31 @@ fn source_planning_is_read_only_and_manifests_survive_round_trips() {
         "UNSUPPORTED_SOURCE_VERSION"
     );
 }
+
+#[test]
+fn manifest_writer_rejects_rewriting_historical_revision_metadata() {
+    let (temp, workspace) = setup();
+    let path = temp.path().join("source.md");
+    fs::write(&path, "Original evidence.").unwrap();
+    let library = SourceLibrary::new(&workspace);
+    let mut plan = library.plan_add(&input(path, None), None).unwrap();
+    apply(&workspace, &mut plan);
+    let mut file = library.get(&plan.source.id).unwrap();
+    file.manifest.revisions[0].sha256 = crate::domain::sha256(b"different evidence");
+    assert_eq!(
+        file.render().unwrap_err().code,
+        "IMMUTABLE_REVISION_CHANGED"
+    );
+}
+
+#[test]
+fn source_enumeration_ignores_unrelated_regular_files() {
+    let (temp, workspace) = setup();
+    fs::write(temp.path().join("sources/.DS_Store"), "metadata").unwrap();
+    assert!(
+        SourceLibrary::new(&workspace)
+            .list(true)
+            .unwrap()
+            .is_empty()
+    );
+}
