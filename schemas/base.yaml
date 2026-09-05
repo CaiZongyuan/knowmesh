@@ -1,0 +1,23 @@
+id: base
+version: 1
+display_name: General Knowledge
+extends: []
+node_types:
+  Entity:
+    label: Entity
+    color: '#2563EB'
+    icon: box
+    properties: {}
+  Concept:
+    label: Concept
+    color: '#0D9488'
+    icon: lightbulb
+    properties: {}
+predicates: {}
+policies:
+  review_mode: relaxed
+  compiler_requires_evidence: true
+  synthesis_requires_citation: true
+  human_verification_required: false
+  allow_accept_all: true
+

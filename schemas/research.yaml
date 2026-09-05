@@ -1,0 +1,77 @@
+id: research
+version: 1
+display_name: Research
+extends: [base@1]
+node_types:
+  Paper:
+    label: Paper
+    color: '#2563EB'
+    icon: file-text
+    properties:
+      doi: {type: string, required: false}
+  Method:
+    label: Method
+    color: '#0D9488'
+    icon: workflow
+    properties: {}
+  Model:
+    label: Model
+    color: '#7C3AED'
+    icon: cpu
+    properties:
+      developer: {type: string, required: false}
+  Dataset:
+    label: Dataset
+    color: '#0891B2'
+    icon: database
+    properties: {}
+  Benchmark:
+    label: Benchmark
+    color: '#D97706'
+    icon: chart-column
+    properties: {}
+  Finding:
+    label: Finding
+    color: '#059669'
+    icon: check-check
+    properties: {}
+  Hypothesis:
+    label: Hypothesis
+    color: '#DB2777'
+    icon: circle-help
+    properties: {}
+  Experiment:
+    label: Experiment
+    color: '#DC2626'
+    icon: flask-conical
+    properties: {}
+  Gene:
+    label: Gene
+    color: '#65A30D'
+    icon: dna
+    properties:
+      gene_id: {type: string, required: false}
+  CellType:
+    label: Cell Type
+    color: '#9333EA'
+    icon: circle-dot
+    properties: {}
+predicates:
+  proposes: {label: proposes, source_types: [Paper], target_types: [Model, Method, Hypothesis], directed: true, evidence_required: true}
+  uses: {label: uses, source_types: [Model, Method, Experiment, Paper], target_types: [Dataset, Method, Model, Gene], directed: true, evidence_required: true}
+  extends: {label: extends, source_types: [Model, Method], target_types: [Model, Method], directed: true, evidence_required: true}
+  compared_with: {label: compared with, source_types: [Model, Method], target_types: [Model, Method], directed: false, evidence_required: true}
+  evaluated_on: {label: evaluated on, source_types: [Model, Method], target_types: [Benchmark, Dataset], directed: true, inverse: evaluates, evidence_required: true}
+  supports: {label: supports, source_types: [Paper, Finding, Experiment], target_types: [Finding, Hypothesis, Concept], directed: true, evidence_required: true}
+  contradicts: {label: contradicts, source_types: [Finding, Paper, Experiment], target_types: [Finding, Hypothesis], directed: true, evidence_required: true}
+  predicts: {label: predicts, source_types: [Model, Method], target_types: [Finding, Concept, CellType, Gene], directed: true, evidence_required: true}
+  targets: {label: targets, source_types: [Method, Experiment, Model], target_types: [Gene, CellType, Concept], directed: true, evidence_required: true}
+  affects: {label: affects, source_types: [Gene, Method, Experiment], target_types: [Gene, CellType, Concept], directed: true, evidence_required: true}
+  derived_from: {label: derived from, source_types: [Model, Dataset, Finding, Concept], target_types: [Paper, Model, Dataset, Experiment, Concept], directed: true, evidence_required: true}
+  cites: {label: cites, source_types: [Paper], target_types: [Paper], directed: true, evidence_required: true}
+policies:
+  review_mode: relaxed
+  compiler_requires_evidence: true
+  synthesis_requires_citation: true
+  human_verification_required: false
+  allow_accept_all: true

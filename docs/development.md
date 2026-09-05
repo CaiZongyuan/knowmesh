@@ -34,6 +34,17 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   an empty stdout, and the corresponding nonzero exit code.
 - `schema list` and `schema command <operation>` expose the Core operation
   registry, including input/output JSON schemas, policy, effect, and support flags.
+- `init [path] --name <name> --template research` creates a portable workspace;
+  `--dry-run` reports planned paths without creating the destination. Repeating
+  identical initialization preserves the workspace ID and existing content.
+- Workspace loading validates config versions, confines an optional Purpose to
+  the workspace, caps it at 16 KiB, and resolves model secrets only when requested.
+  The `general` template has no research Purpose. Initialization preflights
+  existing paths, including `.gitignore`, before creating canonical files.
+
+Multi-file crash recovery is still tracked by KM-023. Current initialization
+uses a writer lock and atomic individual files; interruption between those files
+can leave a partial initialization requiring recovery work.
 
 ## TDD Evidence
 
@@ -41,6 +52,7 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
 | --- | --- | --- |
 | [KM-001 / #2](https://github.com/CaiZongyuan/knowmesh/issues/2), [KM-002 / #3](https://github.com/CaiZongyuan/knowmesh/issues/3) | Commit `3da473e`: core tests fail on missing domain/error modules; all three CLI tests fail on empty output and missing validation errors | `cargo +stable test --workspace`: 8 tests pass using installed Rust 1.96.0 |
 | [KM-003 / #4](https://github.com/CaiZongyuan/knowmesh/issues/4) | Commit `d8c80d7`: registry tests fail on missing Application Core module | `cargo +stable test --workspace`: 11 tests pass, including schema discovery and unknown-operation errors |
+| [KM-010 / #6](https://github.com/CaiZongyuan/knowmesh/issues/6) | Commits `658b109`, `6465a39`: missing workspace module and CLI init; invalid ignore paths cause partial writes | `cargo +stable test --workspace --locked`: 22 tests pass, including CLI dry-run/repeatability and workspace confinement |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

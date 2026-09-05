@@ -2,6 +2,7 @@ use schemars::{JsonSchema, Schema, schema_for};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    canonical::workspace::InitReport,
     error::{AppError, AppResult, ErrorType},
     wire::API_CONTRACT_VERSION,
 };
@@ -67,7 +68,13 @@ pub fn version() -> VersionInfo {
 }
 
 pub fn descriptors() -> Vec<OperationDescriptor> {
+    let mut init = OperationDescriptor::read::<super::workspace::InitInput, InitReport>("init");
+    init.effect = EffectLevel::CanonicalWrite;
+    init.supports_dry_run = true;
+    init.supports_idempotency = true;
+    init.policy = "workspace-initialization".into();
     vec![
+        init,
         OperationDescriptor::read::<EmptyInput, VersionInfo>("version"),
         OperationDescriptor::read::<SchemaCommandInput, OperationDescriptor>("schema.command"),
         OperationDescriptor::read::<EmptyInput, Vec<OperationDescriptor>>("schema.list"),

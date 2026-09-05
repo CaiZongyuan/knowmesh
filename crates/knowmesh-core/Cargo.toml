@@ -12,6 +12,7 @@ serde_json.workspace = true
 serde_yaml.workspace = true
 secrecy.workspace = true
 fs2.workspace = true
+tempfile.workspace = true
 schemars.workspace = true
 thiserror.workspace = true
 ulid.workspace = true

@@ -6,8 +6,11 @@ use std::{
 
 use clap::{Parser, Subcommand, ValueEnum, error::ErrorKind};
 use knowmesh_core::{
-    application::operations,
-    domain::RunId,
+    application::{
+        operations,
+        workspace::{self, InitInput},
+    },
+    domain::{RunId, WorkspaceId},
     error::{AppError, ErrorType},
     wire::{Failure, Metadata, Success},
 };
@@ -42,6 +45,15 @@ enum OutputFormat {
 #[derive(Subcommand)]
 enum Command {
     Version,
+    Init {
+        path: Option<PathBuf>,
+        #[arg(long, default_value = "Knowledge Space")]
+        name: String,
+        #[arg(long, default_value = "research")]
+        template: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
     Schema {
         #[command(subcommand)]
         command: SchemaCommand,
@@ -58,6 +70,7 @@ impl Command {
     fn operation_name(&self) -> &'static str {
         match self {
             Self::Version => "version",
+            Self::Init { .. } => "init",
             Self::Schema {
                 command: SchemaCommand::List,
             } => "schema.list",
@@ -107,14 +120,13 @@ pub fn run() -> u8 {
             start,
         );
     }
-    let data = match execute(&cli.command) {
+    let (data, workspace_id) = match execute(&cli.command, cli.workspace) {
         Ok(data) => data,
         Err(error) => return fail(error, command, trace, start),
     };
-    let envelope = Success::new(
-        data,
-        Metadata::new(command, trace.clone(), elapsed_ms(start)),
-    );
+    let mut meta = Metadata::new(command, trace.clone(), elapsed_ms(start));
+    meta.workspace_id = workspace_id;
+    let envelope = Success::new(data, meta);
     let result = write_json(
         io::stdout().lock(),
         &envelope,
@@ -135,10 +147,29 @@ pub fn run() -> u8 {
     }
 }
 
-fn execute(command: &Command) -> Result<serde_json::Value, AppError> {
+fn execute(
+    command: &Command,
+    root: Option<PathBuf>,
+) -> Result<(serde_json::Value, Option<WorkspaceId>), AppError> {
     operations::describe(command.operation_name())?;
+    let mut workspace_id = None;
     let result = match command {
         Command::Version => serde_json::to_value(operations::version()),
+        Command::Init {
+            path,
+            name,
+            template,
+            dry_run,
+        } => {
+            let report = workspace::init(&InitInput {
+                path: path.clone().or(root).unwrap_or_else(|| PathBuf::from(".")),
+                name: name.clone(),
+                template: template.clone(),
+                dry_run: *dry_run,
+            })?;
+            workspace_id = Some(report.workspace_id.clone());
+            serde_json::to_value(report)
+        }
         Command::Schema {
             command: SchemaCommand::List,
         } => serde_json::to_value(operations::descriptors()),
@@ -146,7 +177,7 @@ fn execute(command: &Command) -> Result<serde_json::Value, AppError> {
             command: SchemaCommand::Command { operation },
         } => serde_json::to_value(operations::describe(operation)?),
     };
-    result.map_err(|_| {
+    result.map(|data| (data, workspace_id)).map_err(|_| {
         AppError::new(
             ErrorType::Internal,
             "ENCODE_FAILED",
