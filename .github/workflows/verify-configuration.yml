@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: '24'
           registry-url: https://registry.npmjs.org
-      - name: Verify npm identity and visible package permissions
+      - name: Verify npm identity and report package permission diagnostics
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         shell: bash

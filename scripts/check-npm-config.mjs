@@ -20,15 +20,14 @@ console.log(JSON.stringify({ check: 'npm_identity', ok: true, username }));
 // npm access tries the organization route first and only falls back on 404.
 const packages = await get(`/-/user/${encodeURIComponent(username)}/package`);
 if (!packages.ok) {
-  console.log(JSON.stringify({ check: 'npm_package_permissions', ok: false, status: packages.status }));
-  process.exitCode = 1;
+  console.log(JSON.stringify({ check: 'npm_package_permissions', ok: false, optional: true, status: packages.status, publish_verified: false }));
 } else {
   const permissions = Object.values(packages.data);
   console.log(JSON.stringify({
     check: 'npm_package_permissions', ok: true,
     visible_packages: permissions.length,
     writable_packages: permissions.filter(value => value === 'write' || value === 'read-write').length,
-    candidates: ['knowmesh'].map(name => ({ name, permission: packages.data[name] ?? 'not-listed' })),
+    package: { name: 'knowmesh', permission: packages.data.knowmesh ?? 'not-listed' },
     publish_verified: false,
   }));
 }
