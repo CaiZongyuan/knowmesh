@@ -1,4 +1,5 @@
 pub mod schema;
+pub(crate) mod transaction;
 pub mod workspace;
 
 #[cfg(test)]

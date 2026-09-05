@@ -3,15 +3,15 @@ mod config;
 pub use config::*;
 
 use std::{
-    fs::{self, OpenOptions},
-    io::{Read, Write},
+    fs,
+    io::Read,
     path::{Component, Path, PathBuf},
 };
 
-use fs2::FileExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use super::transaction::{self, FileChange, WorkspaceWriter};
 use crate::{
     domain::{WorkspaceId, sha256},
     error::{AppError, AppResult, ErrorType},
@@ -183,6 +183,9 @@ pub fn initialize(root: &Path, options: &InitOptions) -> AppResult<InitReport> {
     } else {
         std::env::current_dir().map_err(io_error)?.join(root)
     };
+    if !transaction::pending(&root)?.is_empty() {
+        return Err(transaction::recovery_required());
+    }
     if root.join("knowmesh.yaml").exists() {
         let existing = Workspace::load(&root)?;
         if existing.config.workspace.name != options.name
@@ -254,9 +257,12 @@ pub fn initialize(root: &Path, options: &InitOptions) -> AppResult<InitReport> {
     {
         return Err(outside_workspace());
     }
-    let mut ignore = match fs::read_to_string(&ignore_path) {
-        Ok(value) => value,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+    let (mut ignore, ignore_before) = match fs::read_to_string(&ignore_path) {
+        Ok(value) => {
+            let hash = sha256(value.as_bytes());
+            (value, Some(hash))
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => (String::new(), None),
         Err(error) => return Err(io_error(error)),
     };
     let update_ignore = !ignore.lines().any(|line| line == ".knowmesh/");
@@ -272,56 +278,32 @@ pub fn initialize(root: &Path, options: &InitOptions) -> AppResult<InitReport> {
     }
     if !options.dry_run {
         fs::create_dir_all(&root).map_err(io_error)?;
+        let writer = WorkspaceWriter::acquire(&root)?;
         for relative in directories {
-            let target = root.join(relative);
-            if target
-                .symlink_metadata()
-                .is_ok_and(|meta| meta.file_type().is_symlink())
-            {
-                return Err(outside_workspace());
-            }
-            fs::create_dir_all(target).map_err(io_error)?;
+            transaction::ensure_directory(&root, Path::new(relative))?;
         }
-        let lock_path = root.join(".knowmesh/locks/workspace.lock");
-        if lock_path
-            .symlink_metadata()
-            .is_ok_and(|meta| meta.file_type().is_symlink())
-        {
-            return Err(outside_workspace());
-        }
-        let lock = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(lock_path)
-            .map_err(io_error)?;
-        FileExt::try_lock_exclusive(&lock).map_err(|_| {
-            AppError::new(
-                ErrorType::Conflict,
-                "WORKSPACE_LOCKED",
-                "Another workspace writer is active.",
-            )
-            .retryable(true)
-        })?;
-        for (relative, content) in files {
-            let target = root.join(relative);
-            let mut staged =
-                tempfile::NamedTempFile::new_in(target.parent().ok_or_else(outside_workspace)?)
-                    .map_err(io_error)?;
-            staged.write_all(content.as_bytes()).map_err(io_error)?;
-            staged.as_file().sync_all().map_err(io_error)?;
-            staged
-                .persist_noclobber(target)
-                .map_err(|_| initialization_conflict())?;
-        }
+        let mut changes: Vec<_> = files
+            .into_iter()
+            .map(|(path, content)| FileChange {
+                path: path.into(),
+                before_sha256: None,
+                content: Some(content.into_bytes()),
+            })
+            .collect();
         if update_ignore {
-            let mut staged = tempfile::NamedTempFile::new_in(&root).map_err(io_error)?;
-            staged.write_all(ignore.as_bytes()).map_err(io_error)?;
-            staged.as_file().sync_all().map_err(io_error)?;
-            staged
-                .persist(ignore_path)
-                .map_err(|error| io_error(error.error))?;
+            changes.insert(
+                0,
+                FileChange {
+                    path: ".gitignore".into(),
+                    before_sha256: ignore_before,
+                    content: Some(ignore.into_bytes()),
+                },
+            );
         }
+        let id = writer.prepare(changes)?;
+        writer.apply(&id)?;
+        // Initialization creates no indexed knowledge objects.
+        writer.mark_indexed(&id)?;
     }
     Ok(InitReport {
         workspace_id: config.workspace.id,

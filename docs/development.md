@@ -49,9 +49,12 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   endpoints, and invalid properties. Pack order does not change the schema hash.
   Detailed merge and property rules live in SPEC section 7.3.
 
-Multi-file crash recovery is still tracked by KM-023. Current initialization
-uses a writer lock and atomic individual files; interruption between those files
-can leave a partial initialization requiring recovery work.
+Initialization now uses a durable file journal under `.knowmesh/transactions/`
+and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
+forward after any file replacement; external edits or staged corruption stop
+recovery and preserve its materials. Pending transactions block new writes.
+The doctor command and SQLite reconciliation/rebuild integration remain under
+KM-023, so the recovery workflow is not yet available through the CLI.
 
 ## TDD Evidence
 
@@ -61,6 +64,7 @@ can leave a partial initialization requiring recovery work.
 | [KM-003 / #4](https://github.com/CaiZongyuan/knowmesh/issues/4) | Commit `d8c80d7`: registry tests fail on missing Application Core module | `cargo +stable test --workspace`: 11 tests pass, including schema discovery and unknown-operation errors |
 | [KM-010 / #6](https://github.com/CaiZongyuan/knowmesh/issues/6) | Commits `658b109`, `6465a39`: missing workspace module and CLI init; invalid ignore paths cause partial writes | `cargo +stable test --workspace --locked`: 22 tests pass, including CLI dry-run/repeatability and workspace confinement |
 | [KM-011 / #7](https://github.com/CaiZongyuan/knowmesh/issues/7) | Commits `fb1ee40`, `cfe3307`: missing schema module, pack CLI, and clinical template | `cargo +stable test --workspace --locked`: 33 tests pass, including DAG/override errors, relation/property constraints, deterministic hash, and strict Clinical Preview |
+| [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), file transaction layer | Commits `9d021cd`, `7a151f5`: missing coordinator, changed staging installed after preflight, reserved path aliases accepted | `cargo +stable test --workspace --locked`: 40 tests pass, including interruption after each replacement, recovery conflict preservation, staging revalidation, and writer exclusion |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
