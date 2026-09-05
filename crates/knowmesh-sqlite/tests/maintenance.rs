@@ -8,9 +8,15 @@ fn a_controlled_maintenance_connection_retains_the_exclusive_guard_until_it_clos
     let access = SqliteStore::exclusive_access(&path).unwrap();
     let store = access.open_store().unwrap();
     assert_eq!(store.diagnostics().unwrap().integrity, "ok");
-    assert_eq!(access.ensure_quiescent().unwrap_err().code, "DATABASE_IN_USE");
+    assert_eq!(
+        access.ensure_quiescent().unwrap_err().code,
+        "DATABASE_IN_USE"
+    );
     drop(access);
-    assert_eq!(SqliteStore::open(&path).unwrap_err().code, "DATABASE_IN_USE");
+    assert_eq!(
+        SqliteStore::open(&path).unwrap_err().code,
+        "DATABASE_IN_USE"
+    );
     drop(store);
     let access = SqliteStore::exclusive_access(&path).unwrap();
     access.ensure_quiescent().unwrap();

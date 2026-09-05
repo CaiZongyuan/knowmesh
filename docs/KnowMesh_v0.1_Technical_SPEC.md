@@ -1094,9 +1094,13 @@ manifest 必须持久化每个目标的相对路径、操作类型、before/afte
 4. 校验 runtime 外键、运行 `PRAGMA integrity_check`；
 5. 生成规范 projection 的逻辑计数和 hash；
 6. 取得 exclusive lock 并确认 generation 未在构建期间改变；
-7. 将旧 DB 移到 `.knowmesh/backups/`；
-8. atomic rename 新 DB；
+7. checkpoint 旧 DB，并将一致的备份写入 `.knowmesh/backups/`，同步并验证备份；
+8. atomic rename 新 DB，直接替换当前路径；
 9. 保留最近 3 个 DB 备份，可配置。
+
+所有可写 SQLite 连接必须在整个连接生命周期持有独立于 DB 文件的共享连接锁。重建切换前取得独占连接锁；仍有可写连接时返回可重试的 `conflict/DATABASE_IN_USE`。受控维护连接也必须保留该锁，所有维护连接关闭后才能替换文件。只读连接可继续读取既有快照；若 SQLite checkpoint 或平台文件锁不允许切换，应保留 old/next 并报告繁忙。Server 内执行重建时，需要排空可写连接池并在切换后重新打开。
+
+Runtime 写入不一定递增 canonical generation，所以不能只靠 generation 判断运行状态是否变化。最终 runtime 复制与外键校验必须在独占连接锁内重做，避免遗漏构建期间新增的 Run/checkpoint/审核记录。备份先完成，再原子替换当前 DB，避免“先移走 old、再安装 next”留下当前路径不存在的崩溃窗口。
 
 若旧 DB 损坏到无法复制 runtime tables，默认停止并保留 next/old 两份文件。只有显式 `rebuild --discard-runtime --yes` 才可放弃这些运行状态；命令结果必须列出被放弃的表与可恢复备份路径。
 
@@ -3033,6 +3037,7 @@ v0.1 只有同时满足以下条件才可发布：
 | 来源变化后的旧结论如何处理 | 保留不可变证据，派生复核提示，通过 Proposal 更新 | 直接级联删除会丢失其他来源及历史；细粒度自动判定科学结论失效超出 v0.1 | 14.11 |
 | 研究目标与知识结构职责不同 | 可选 Purpose 与 Schema 分开；模型只读目标 | 每个目标新建 Schema 会重复类型定义；Purpose 不提供新的事实依据 | 8.7 |
 | 多 Pack 合并可能受加载顺序影响并放宽审核 | 稳定拓扑排序、仅允许祖先显式覆盖、策略按更严格约束合并 | 后载入者覆盖更灵活，但同一配置重排可能改变语义或降低审核门槛；限制性合并需要显式修改原 Pack 才能放宽策略 | 7.3 |
+| 重建期间旧连接可能继续写入旧 DB | 可写连接生命周期锁、切换前重复制 runtime、先备份再原子替换 | 只用 workspace lock/generation 无法覆盖 runtime 写入；先移走 old 会产生缺失路径窗口。连接协调和复制备份增加切换成本，但保留已确认运行状态 | 10.7 |
 | 证据有引用但上下文仍可能片面 | Core 构建有预算、去重及冲突披露的 bundle | 直接 top-k 拼接简单，但易重复、截断或单来源偏置；规则增加可测的打包开销 | 17.5 |
 
 
@@ -3042,7 +3047,7 @@ v0.1 只有同时满足以下条件才可发布：
 
 > 说明：这是逻辑基线。Migration 实现可以拆文件，但最终 schema、约束和索引语义必须等价。`${EMBEDDING_DIMENSIONS}` 由经过整数范围校验的 workspace config 在初始化时替换，不接受用户原始 SQL。
 
-实现迁移的唯一源码位于 [`crates/knowmesh-sqlite/migrations/`](../crates/knowmesh-sqlite/migrations/0001_initial.sql)。下方 SQL 保留为初始逻辑基线；后续 schema 扩展使用新迁移，不修改已应用迁移。当前 [0002](../crates/knowmesh-sqlite/migrations/0002_canonical_payloads.sql) 增加派生的 typed JSON payload 与 snapshot hash，用于保留读取契约和检查投影是否变化；它们不成为新的 System of Record。
+实现迁移的唯一源码位于 [`crates/knowmesh-sqlite/migrations/`](../crates/knowmesh-sqlite/migrations/0001_initial.sql)。下方 SQL 保留为初始逻辑基线；后续 schema 扩展使用新迁移，不修改已应用迁移。[0002](../crates/knowmesh-sqlite/migrations/0002_canonical_payloads.sql) 增加派生的 typed JSON payload 与 snapshot hash，用于保留读取契约和检查投影是否变化；[0003](../crates/knowmesh-sqlite/migrations/0003_snapshot_warnings.sql) 保存派生扫描警告，旧索引以 NULL 表示尚需补齐。这些字段不成为新的 System of Record。
 
 ```sql
 CREATE TABLE schema_migrations (

@@ -1,6 +1,7 @@
 //! SQLite projection and runtime storage adapter for KnowMesh.
 
 mod index;
+mod maintenance;
 mod migrations;
 mod reconcile;
 mod runtime;
@@ -15,15 +16,22 @@ use knowmesh_core::{
     domain::{Timestamp, WorkspaceId},
     error::{AppError, AppResult, ErrorType},
 };
+pub use maintenance::DatabaseAccess;
 use rusqlite::{Connection, ErrorCode, OpenFlags, OptionalExtension, params};
 
 #[derive(Debug)]
 pub struct SqliteStore {
     pub(crate) connection: Connection,
     path: PathBuf,
+    // Drop the connection before releasing its replacement barrier.
+    _access: Option<DatabaseAccess>,
 }
 
 impl SqliteStore {
+    pub fn exclusive_access(path: &Path) -> AppResult<DatabaseAccess> {
+        DatabaseAccess::acquire(path, true)
+    }
+
     pub fn open_read_only(path: &Path) -> AppResult<Self> {
         let connection = Connection::open_with_flags(
             path,
@@ -48,10 +56,16 @@ impl SqliteStore {
         Ok(Self {
             connection,
             path: path.to_owned(),
+            _access: None,
         })
     }
 
     pub fn open(path: &Path) -> AppResult<Self> {
+        let access = DatabaseAccess::acquire(path, false)?;
+        Self::open_with_access(path, access)
+    }
+
+    fn open_with_access(path: &Path, access: DatabaseAccess) -> AppResult<Self> {
         let mut connection = Connection::open(path).map_err(database_error)?;
         connection
             .busy_timeout(Duration::from_secs(5))
@@ -62,6 +76,7 @@ impl SqliteStore {
         Ok(Self {
             connection,
             path: path.to_owned(),
+            _access: Some(access),
         })
     }
 

@@ -103,6 +103,11 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   Proposal revision links, idempotent responses, and the audit sequence even
   after event deletion. Invalid references roll back the candidate's runtime
   copy. Physical database replacement and backup retention are still pending.
+- Writable SQLite connections retain a shared `*.sqlite3.lease` file lock until
+  the connection closes. An exclusive replacement guard rejects active writers;
+  controlled maintenance connections retain that guard until they close too.
+  Read-only diagnostics do not acquire a writable connection lease. This is
+  connection coordination for KM-023, not yet a database replacement operation.
 
 Initialization now uses a durable file journal under `.knowmesh/transactions/`
 and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
@@ -128,6 +133,7 @@ configuration itself cannot be loaded remain under KM-023.
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), [KM-051 / #31](https://github.com/CaiZongyuan/knowmesh/issues/31), Source write workflow | Commits `7360d3a`, `2075236`, `7565f76`: missing application/CLI operations and incompatible stores detected after file writes | `cargo +stable test --workspace --locked`: 86 tests pass, including preview, confirmation, duplicate import, soft removal, store preflight, and recovery before/after the database commit |
 | [KM-022 / #13](https://github.com/CaiZongyuan/knowmesh/issues/13), [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), status/doctor | Commits `c4c3b1e`, `9c63316`, `a58df05`: missing fast sync, doctor, and status commands | `cargo +stable test --workspace --locked`: 93 tests pass, including change detection, stable generations, warning migration, read-only inspection, explicit repair, last-complete status during recovery, and Schema checks with `--no-sync` |
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), runtime preservation | Commit `be10667`: missing runtime-copy operation | `cargo +stable test --workspace --locked`: 95 tests pass, including all five runtime tables, parent/child Runs, foreign-key rollback, candidate refresh, and audit sequence preservation |
+| [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), connection coordination | Commits `3865c8c`, `a4ac6b8`: missing replacement guards and controlled maintenance connections | `cargo +stable test --workspace --locked`: 98 tests pass, including multiple writers, equivalent paths, read-only inspection, and guard lifetime |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
@@ -140,6 +146,8 @@ The [Source workflow CI run](https://github.com/CaiZongyuan/knowmesh/actions/run
 passed on all three operating systems for commit `fcc9ca9`.
 The [status/doctor CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33985656293)
 passed on all three operating systems for commit `1326bc4`.
+The [runtime-copy CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33986239519)
+passed on all three operating systems for commit `70b228b`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked

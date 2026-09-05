@@ -619,6 +619,7 @@ dependencies = [
 name = "knowmesh-sqlite"
 version = "0.1.0"
 dependencies = [
+ "fs2",
  "knowmesh-core",
  "rusqlite",
  "serde",
