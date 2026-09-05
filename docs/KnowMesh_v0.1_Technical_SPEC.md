@@ -3040,6 +3040,8 @@ v0.1 只有同时满足以下条件才可发布：
 
 > 说明：这是逻辑基线。Migration 实现可以拆文件，但最终 schema、约束和索引语义必须等价。`${EMBEDDING_DIMENSIONS}` 由经过整数范围校验的 workspace config 在初始化时替换，不接受用户原始 SQL。
 
+实现迁移的唯一源码位于 [`crates/knowmesh-sqlite/migrations/`](../crates/knowmesh-sqlite/migrations/0001_initial.sql)。下方 SQL 保留为初始逻辑基线；后续 schema 扩展使用新迁移，不修改已应用迁移。当前 [0002](../crates/knowmesh-sqlite/migrations/0002_canonical_payloads.sql) 增加派生的 typed JSON payload 与 snapshot hash，用于保留读取契约和检查投影是否变化；它们不成为新的 System of Record。
+
 ```sql
 CREATE TABLE schema_migrations (
     version INTEGER PRIMARY KEY,

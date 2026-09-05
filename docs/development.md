@@ -58,6 +58,11 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   source spans distinguish markers/wiki links from code examples; lossless YAML
   edits retain unknown frontmatter and comments. Citation validation checks
   canonical Evidence IDs and never creates a missing dependency snapshot.
+- SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
+  and configures WAL/foreign keys/busy timeouts on each connection. Existing
+  stores remain readable during another connection's write transaction. Both
+  FTS indexes follow search-unit insert/update/delete through triggers; ingestion
+  and search operations are not yet wired to these projections.
 
 Initialization now uses a durable file journal under `.knowmesh/transactions/`
 and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
@@ -77,6 +82,7 @@ KM-023, so the recovery workflow is not yet available through the CLI.
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), file transaction layer | Commits `9d021cd`, `7a151f5`: missing coordinator, changed staging installed after preflight, reserved path aliases accepted | `cargo +stable test --workspace --locked`: 40 tests pass, including interruption after each replacement, recovery conflict preservation, staging revalidation, and writer exclusion |
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), Source Library | Commits `794e5a8`, `e477c9c`: missing source model/store, unrelated files break enumeration, interrupted cleanup and case aliases fail | `cargo +stable test --workspace --locked`: 51 tests pass, including all storage modes, immutable revisions, soft removal, content integrity, portable transaction paths, and repeated cleanup |
 | [KM-013 / #9](https://github.com/CaiZongyuan/knowmesh/issues/9), [KM-014 / #10](https://github.com/CaiZongyuan/knowmesh/issues/10), canonical parsers | Commits `e82d34b`, `26209a8`: missing parsers and shared Evidence rejected | `cargo +stable test --workspace --locked`: 63 tests pass, including Unicode property tests, CRLF, managed-span preservation, YAML comments, shared evidence consistency, and synthesis citations |
+| [KM-020 / #11](https://github.com/CaiZongyuan/knowmesh/issues/11), [KM-030 / #16](https://github.com/CaiZongyuan/knowmesh/issues/16), database infrastructure | Commits `6d209df`, `4caac1d`: missing store/migrations; current-store reads block behind a writer | `cargo +stable test --workspace --locked`: 69 tests pass, including migration preservation/checksums, workspace binding, WAL concurrency, and dual FTS triggers |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
