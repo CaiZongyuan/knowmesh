@@ -115,6 +115,48 @@ fn both_fts_indexes_follow_insert_update_and_delete() {
     }
 }
 
+#[test]
+fn opening_an_up_to_date_store_reads_wal_without_waiting_for_a_writer() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("index.sqlite3");
+    let id = WorkspaceId::new();
+    let store = SqliteStore::open(&path).unwrap();
+    store.bind_workspace(&id, &sha256(b"schema")).unwrap();
+    let writer = Connection::open(&path).unwrap();
+    writer
+        .execute_batch(
+            "BEGIN IMMEDIATE; UPDATE workspace_state SET indexed_generation=1 WHERE singleton=1;",
+        )
+        .unwrap();
+    let started = std::time::Instant::now();
+    let reader = SqliteStore::open(&path).unwrap();
+    reader.bind_workspace(&id, &sha256(b"schema")).unwrap();
+    assert_eq!(reader.generation().unwrap(), 0);
+    assert!(started.elapsed() < std::time::Duration::from_secs(1));
+    writer.execute_batch("ROLLBACK").unwrap();
+}
+
+#[test]
+fn a_non_knowmesh_database_is_preserved_and_rejected() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("other.sqlite3");
+    let db = Connection::open(&path).unwrap();
+    db.execute_batch(
+        "CREATE TABLE unrelated(value TEXT); INSERT INTO unrelated VALUES ('human data');",
+    )
+    .unwrap();
+    assert_eq!(
+        SqliteStore::open(&path).unwrap_err().code,
+        "MIGRATION_HISTORY_INVALID"
+    );
+    assert_eq!(
+        db.query_row("SELECT value FROM unrelated", [], |row| row
+            .get::<_, String>(0))
+            .unwrap(),
+        "human data"
+    );
+}
+
 fn count_matches(db: &Connection, table: &str, query: &str) -> i64 {
     db.query_row(
         &format!("SELECT count(*) FROM {table} WHERE {table} MATCH ?1"),
