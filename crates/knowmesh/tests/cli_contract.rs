@@ -132,3 +132,44 @@ fn init_is_discoverable_dry_runnable_and_repeatable() {
     assert_eq!(schema["data"]["supports_dry_run"], true);
     assert_eq!(schema["data"]["supports_idempotency"], true);
 }
+
+#[test]
+fn schema_pack_uses_workspace_resolution_and_reports_missing_packs() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("workspace");
+    cargo_bin_cmd!("knowmesh")
+        .arg("init")
+        .arg(&root)
+        .assert()
+        .success();
+    let output = cargo_bin_cmd!("knowmesh")
+        .current_dir(root.join("knowledge"))
+        .env_remove("KNOWMESH_WORKSPACE")
+        .args(["schema", "pack", "research"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(result["data"]["id"], "research");
+    assert_eq!(
+        result["data"]["predicates"]["evaluated_on"]["inverse"],
+        "evaluates"
+    );
+    assert!(result["meta"]["workspace_id"].is_string());
+    let missing = cargo_bin_cmd!("knowmesh")
+        .arg("--workspace")
+        .arg(&root)
+        .args(["schema", "pack", "unknown"])
+        .output()
+        .unwrap();
+    assert!(!missing.status.success());
+    assert!(missing.stdout.is_empty());
+    assert_eq!(
+        serde_json::from_slice::<Value>(&missing.stderr).unwrap()["error"]["code"],
+        "SCHEMA_PACK_NOT_FOUND"
+    );
+}

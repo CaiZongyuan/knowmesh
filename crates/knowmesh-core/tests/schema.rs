@@ -229,3 +229,40 @@ fn schema_yaml_rejects_unknown_fields_duplicate_keys_and_non_ascii_identifiers()
         assert!(result.is_err());
     }
 }
+
+#[test]
+fn clinical_template_initializes_with_strict_review_and_no_research_purpose() {
+    let temp = tempfile::tempdir().unwrap();
+    initialize(
+        temp.path(),
+        &InitOptions {
+            template: "clinical".into(),
+            ..InitOptions::default()
+        },
+    )
+    .unwrap();
+    let workspace = Workspace::load(temp.path()).unwrap();
+    assert!(workspace.purpose.is_none());
+    let schema = Schema::load(&workspace).unwrap();
+    assert!(schema.node_types.contains_key("Disease"));
+    assert!(schema.policies.human_verification_required);
+    assert!(!schema.policies.allow_accept_all);
+}
+
+#[cfg(unix)]
+#[test]
+fn custom_schema_files_cannot_escape_the_workspace() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("workspace");
+    initialize(&root, &InitOptions::default()).unwrap();
+    let outside = temp.path().join("pack.yaml");
+    fs::write(&outside, "private data").unwrap();
+    fs::remove_file(root.join("schemas/research.yaml")).unwrap();
+    std::os::unix::fs::symlink(&outside, root.join("schemas/research.yaml")).unwrap();
+    assert_eq!(
+        Schema::load(&Workspace::load(&root).unwrap())
+            .unwrap_err()
+            .code,
+        "PATH_OUTSIDE_WORKSPACE"
+    );
+}
