@@ -49,14 +49,14 @@ async function request(url, key, body) {
   return data;
 }
 
-async function check(name, run) {
+async function check(name, run, { optional = false } = {}) {
   const started = performance.now();
   try {
     const details = await run();
     console.log(JSON.stringify({ check: name, ok: true, elapsed_ms: Math.round(performance.now() - started), ...details }));
   } catch (error) {
-    process.exitCode = 1;
-    console.log(JSON.stringify({ check: name, ok: false, elapsed_ms: Math.round(performance.now() - started), error: redact(error.message) }));
+    if (!optional) process.exitCode = 1;
+    console.log(JSON.stringify({ check: name, ok: false, optional, elapsed_ms: Math.round(performance.now() - started), error: redact(error.message) }));
   }
 }
 
@@ -86,6 +86,7 @@ async function completion(extra) {
 
 await check('llm_json', () => completion({ response_format: { type: 'json_object' } }));
 await check('llm_json_schema', () => completion({
+  messages: [{ role: 'user', content: 'Return the smallest JSON object allowed by the response schema.' }],
   response_format: {
     type: 'json_schema',
     json_schema: {
@@ -97,6 +98,18 @@ await check('llm_json_schema', () => completion({
       },
     },
   },
+}), { optional: true });
+
+await check('llm_schema_in_prompt', () => completion({
+  response_format: { type: 'json_object' },
+  messages: [{
+    role: 'user',
+    content: `Return only JSON conforming to this schema: ${JSON.stringify({
+      type: 'object', additionalProperties: false,
+      properties: { ok: { type: 'boolean', const: true }, value: { type: 'integer', const: 7 } },
+      required: ['ok', 'value'],
+    })}`,
+  }],
 }));
 
 await check('embedding_batch', async () => {

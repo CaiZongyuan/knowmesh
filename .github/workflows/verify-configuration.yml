@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -23,4 +24,4 @@ jobs:
           set -euo pipefail
           test -n "$NODE_AUTH_TOKEN" || { echo 'NPM_TOKEN is missing'; exit 1; }
           npm whoami --registry=https://registry.npmjs.org
-          npm access list packages --json --registry=https://registry.npmjs.org
+          node scripts/check-npm-config.mjs
