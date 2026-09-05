@@ -1,12 +1,12 @@
-#[path = "../../../tests/support/mod.rs"]
-mod support;
 #[path = "support/runtime.rs"]
 mod runtime_support;
+#[path = "../../../tests/support/mod.rs"]
+mod support;
 
 use knowmesh_core::{canonical::snapshot::CanonicalSnapshot, ports::ProjectionStore};
 use knowmesh_sqlite::SqliteStore;
-use rusqlite::Connection;
 use runtime_support::runtime_fixture;
+use rusqlite::Connection;
 
 #[test]
 fn runtime_copy_preserves_rows_self_references_and_the_audit_sequence() {

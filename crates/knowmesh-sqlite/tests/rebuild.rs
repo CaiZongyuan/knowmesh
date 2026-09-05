@@ -362,7 +362,11 @@ fn stale_preparation_and_failed_backup_preserve_the_current_database() {
 fn backup_retention_uses_creation_time_and_preserves_unrecognized_materials() {
     let (temp, workspace) = support::fixture();
     let backend = SqliteRebuilder::new(&workspace).unwrap();
-    let input = RebuildInput { yes: true, keep_backups: 1, ..Default::default() };
+    let input = RebuildInput {
+        yes: true,
+        keep_backups: 1,
+        ..Default::default()
+    };
     rebuild::execute(&workspace, &backend, &input).unwrap();
     let previous = rebuild::execute(&workspace, &backend, &input).unwrap();
     let backups = temp.path().join(".knowmesh/backups");

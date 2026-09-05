@@ -9,6 +9,7 @@ use knowmesh_core::{
     application::{
         doctor::{self, IndexAccess, RepairInput},
         operations,
+        rebuild::{self, RebuildInput},
         schema::{self, PackInput},
         source, status, sync,
         workspace::{self, InitInput},
@@ -68,6 +69,16 @@ enum Command {
     Sync {
         #[arg(long)]
         dry_run: bool,
+    },
+    Rebuild {
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        yes: bool,
+        #[arg(long)]
+        discard_runtime: bool,
+        #[arg(long, default_value_t = 3)]
+        keep_backups: usize,
     },
     Source {
         #[command(subcommand)]
@@ -149,6 +160,7 @@ impl Command {
                 command: SchemaCommand::Pack { .. },
             } => "schema.pack",
             Self::Sync { .. } => "sync",
+            Self::Rebuild { .. } => "rebuild",
             Self::Doctor { repair: true, .. } => "doctor.repair",
             Self::Doctor { .. } => "doctor",
             Self::Source {
@@ -338,6 +350,26 @@ fn execute(
                 }
             };
             serde_json::to_value(report)
+        }
+        Command::Rebuild {
+            dry_run,
+            yes,
+            discard_runtime,
+            keep_backups,
+        } => {
+            let workspace = load_workspace(root)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            let backend = knowmesh_sqlite::SqliteRebuilder::new(&workspace)?;
+            serde_json::to_value(rebuild::execute(
+                &workspace,
+                &backend,
+                &RebuildInput {
+                    dry_run: *dry_run,
+                    yes: *yes,
+                    discard_runtime: *discard_runtime,
+                    keep_backups: *keep_backups,
+                },
+            )?)
         }
         Command::Doctor {
             repair,

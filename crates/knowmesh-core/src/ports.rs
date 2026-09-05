@@ -53,3 +53,52 @@ pub trait IndexStore: ProjectionStore {
 pub struct RuntimeCopyReport {
     pub table_counts: std::collections::BTreeMap<String, u64>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct RebuildInput {
+    pub dry_run: bool,
+    pub yes: bool,
+    pub discard_runtime: bool,
+    pub keep_backups: usize,
+}
+
+impl Default for RebuildInput {
+    fn default() -> Self {
+        Self {
+            dry_run: false,
+            yes: false,
+            discard_runtime: false,
+            keep_backups: 3,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, JsonSchema)]
+pub struct RebuildReport {
+    pub dry_run: bool,
+    pub projection: ReconcileReport,
+    pub logical_sha256: String,
+    pub runtime_table_counts: std::collections::BTreeMap<String, u64>,
+    pub discarded_runtime_tables: Vec<String>,
+    pub backup_paths: Vec<std::path::PathBuf>,
+    pub retained_candidate_paths: Vec<std::path::PathBuf>,
+    pub warnings: Vec<SnapshotWarning>,
+}
+
+pub trait RebuildCandidate: Send {
+    fn publish(self: Box<Self>, current: &CanonicalSnapshot) -> AppResult<RebuildReport>;
+}
+
+pub trait RebuildBackend: Send + Sync {
+    fn preview(
+        &self,
+        snapshot: &CanonicalSnapshot,
+        input: &RebuildInput,
+    ) -> AppResult<RebuildReport>;
+    fn prepare(
+        &self,
+        snapshot: &CanonicalSnapshot,
+        input: &RebuildInput,
+    ) -> AppResult<Box<dyn RebuildCandidate>>;
+}

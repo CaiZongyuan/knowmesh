@@ -6,20 +6,22 @@ Markdown/YAML, SQLite projections, and reviewed proposals.
 **Development status:** v0.1 is being implemented. The current executable supports
 `knowmesh init [path] --template research`, `knowmesh version`, and operation discovery with `knowmesh schema list` /
 `knowmesh schema command <operation>` / `knowmesh schema pack <id>`, plus local
-`source add`, confirmed `source remove`, `sync`, `status`, and `doctor`;
+`source add`, confirmed `source remove`, `sync`, `status`, `doctor`, and `rebuild`;
 the complete ingestion, knowledge, search, graph, proposal,
 and optional Web workflows are not released yet. The npm bootstrap package does
 not contain an executable.
 
 The Core library also provides canonical parsers, recoverable file transactions,
 and atomic SQLite projection reconciliation. Doctor supports explicit transaction
-repair; URL fetching and atomic rebuild are pending.
+repair. Rebuild preserves runtime state and backs up the old database before
+replacement; URL fetching is pending.
 
 ```bash
 cargo run -p knowmesh -- init ./my-knowledge --name "My Research"
 cargo run -p knowmesh -- version
 cargo run -p knowmesh -- --workspace ./my-knowledge sync --dry-run
 cargo run -p knowmesh -- --workspace ./my-knowledge status
+cargo run -p knowmesh -- --workspace ./my-knowledge rebuild --dry-run
 cargo test --workspace
 ```
 

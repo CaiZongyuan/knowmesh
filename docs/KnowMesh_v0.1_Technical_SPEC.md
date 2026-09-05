@@ -839,7 +839,7 @@ PRAGMA temp_store = MEMORY;
 - 使用 `rusqlite`，启用 bundled SQLite、FTS5、backup、hooks/functions 所需 feature。
 - HTTP Server 使用受限连接池；建议 4 个读连接、1 个串行写执行器。
 - `rusqlite::Connection` 不跨 async task 共享。阻塞数据库操作必须放入专用 blocking worker。
-- 所有规范文件写入、Proposal Apply、sync、rebuild 必须先取得 workspace exclusive file lock。
+- 所有规范文件写入、Proposal Apply、sync，以及 rebuild 最终切换必须先取得 workspace exclusive file lock；rebuild 可在锁外构建候选，切换前须在锁内重新校验规范文件。
 - 普通读取依赖 WAL 快照，不获取 exclusive lock。
 
 ### 9.2 表分类
@@ -1096,13 +1096,17 @@ manifest 必须持久化每个目标的相对路径、操作类型、before/afte
 6. 取得 exclusive lock 并确认 generation 未在构建期间改变；
 7. checkpoint 旧 DB，并将一致的备份写入 `.knowmesh/backups/`，同步并验证备份；
 8. atomic rename 新 DB，直接替换当前路径；
-9. 保留最近 3 个 DB 备份，可配置。
+9. 默认保留最近 3 个 DB 备份，`--keep-backups <1..20>` 可配置；依据备份 manifest 的创建时间保留，并始终保护本次备份。无法识别的恢复材料不自动删除。
+
+`rebuild --dry-run` 在内存候选库中校验规范投影与 runtime 外键，报告逻辑计数、hash、预计备份路径及显式放弃的表，不创建磁盘候选库或备份。预计路径仅属于本次预览，执行时重新生成。实际执行要求 `--yes`。构建期间规范文件改变返回 `conflict/REBUILD_CANONICAL_CHANGED`；旧索引 generation/hash 改变返回 `conflict/REBUILD_GENERATION_CHANGED`，均保留候选供检查。上一次未完成的候选移入 `.knowmesh/rebuilds/retained/<run-id>/`，不静默覆盖。
 
 所有可写 SQLite 连接必须在整个连接生命周期持有独立于 DB 文件的共享连接锁。重建切换前取得独占连接锁；仍有可写连接时返回可重试的 `conflict/DATABASE_IN_USE`。受控维护连接也必须保留该锁，所有维护连接关闭后才能替换文件。只读连接可继续读取既有快照；若 SQLite checkpoint 或平台文件锁不允许切换，应保留 old/next 并报告繁忙。Server 内执行重建时，需要排空可写连接池并在切换后重新打开。
 
 Runtime 写入不一定递增 canonical generation，所以不能只靠 generation 判断运行状态是否变化。最终 runtime 复制与外键校验必须在独占连接锁内重做，避免遗漏构建期间新增的 Run/checkpoint/审核记录。备份先完成，再原子替换当前 DB，避免“先移走 old、再安装 next”留下当前路径不存在的崩溃窗口。
 
 若旧 DB 损坏到无法复制 runtime tables，默认停止并保留 next/old 两份文件。只有显式 `rebuild --discard-runtime --yes` 才可放弃这些运行状态；命令结果必须列出被放弃的表与可恢复备份路径。
+
+`--discard-runtime` 不覆盖 workspace 身份、数据库版本或 migration checksum 错误。当前实现对旧版索引返回 `DATABASE_UPGRADE_REQUIRED`，需先由兼容版本迁移；新版本或不同 workspace 的数据库不能借此降级或重新绑定。CLI 原子重建已实现，Server 连接池排空仍随 Server 实施；验证范围见 [开发文档](development.md#verified-behavior)。
 
 ---
 

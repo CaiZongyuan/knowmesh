@@ -34,7 +34,11 @@ pub struct Purpose {
 
 impl Workspace {
     pub fn index_path(&self) -> AppResult<PathBuf> {
-        transaction::checked_path(&self.root, Path::new(".knowmesh/index.sqlite3"))
+        self.runtime_path(Path::new("index.sqlite3"))
+    }
+
+    pub fn runtime_path(&self, relative: &Path) -> AppResult<PathBuf> {
+        transaction::checked_path(&self.root, &Path::new(".knowmesh").join(relative))
     }
 
     pub fn load(root: &Path) -> AppResult<Self> {

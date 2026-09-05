@@ -101,12 +101,20 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
     repair.supports_dry_run = true;
     repair.supports_idempotency = true;
     repair.policy = "confirmed-transaction-recovery".into();
+    let mut rebuild = OperationDescriptor::read::<
+        super::rebuild::RebuildInput,
+        crate::ports::RebuildReport,
+    >("rebuild");
+    rebuild.effect = EffectLevel::DestructiveDerived;
+    rebuild.supports_dry_run = true;
+    rebuild.policy = "confirmed-index-replacement".into();
     vec![
         init,
         source_add,
         source_remove,
         sync,
         repair,
+        rebuild,
         OperationDescriptor::read::<EmptyInput, super::doctor::DoctorReport>("doctor"),
         OperationDescriptor::read::<super::status::StatusInput, super::status::StatusReport>(
             "status",

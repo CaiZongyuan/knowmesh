@@ -1,5 +1,6 @@
 pub mod doctor;
 pub mod operations;
+pub mod rebuild;
 pub mod schema;
 pub mod source;
 pub mod status;

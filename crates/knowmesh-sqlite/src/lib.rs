@@ -3,6 +3,7 @@
 mod index;
 mod maintenance;
 mod migrations;
+mod rebuild;
 mod reconcile;
 mod runtime;
 
@@ -17,6 +18,7 @@ use knowmesh_core::{
     error::{AppError, AppResult, ErrorType},
 };
 pub use maintenance::DatabaseAccess;
+pub use rebuild::SqliteRebuilder;
 use rusqlite::{Connection, ErrorCode, OpenFlags, OptionalExtension, params};
 
 #[derive(Debug)]
