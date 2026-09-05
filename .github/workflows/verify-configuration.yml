@@ -1,0 +1,26 @@
+name: Verify Configuration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  npm-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - name: Verify npm identity and visible package permissions
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$NODE_AUTH_TOKEN" || { echo 'NPM_TOKEN is missing'; exit 1; }
+          npm whoami --registry=https://registry.npmjs.org
+          npm access list packages --json --registry=https://registry.npmjs.org
