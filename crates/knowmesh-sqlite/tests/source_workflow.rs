@@ -62,7 +62,11 @@ fn source_import_preview_commit_and_recovery_share_the_same_transaction_path() {
     assert_eq!(SourceLibrary::new(&workspace).list(true).unwrap().len(), 1);
     assert_eq!(store.generation().unwrap(), 1);
     input.dry_run = false;
-    let mut interrupted = InterruptedStore { store: &mut store, baseline: snapshot.content_sha256, after_commit: false };
+    let mut interrupted = InterruptedStore {
+        store: &mut store,
+        baseline: snapshot.content_sha256,
+        after_commit: false,
+    };
     assert_eq!(
         source::add(&workspace, &mut interrupted, &input, None)
             .unwrap_err()
@@ -103,6 +107,7 @@ fn source_import_preview_commit_and_recovery_share_the_same_transaction_path() {
         &source::RemoveInput {
             source_id: source_id.clone(),
             dry_run: false,
+            yes: true,
         },
     )
     .unwrap();
@@ -126,13 +131,18 @@ fn an_external_edit_after_interruption_preserves_the_journal_and_old_index() {
         .unwrap();
     sync::synchronize(&workspace, &mut store).unwrap();
     let id = snapshot.sources[0].manifest.id.clone();
-    let mut interrupted = InterruptedStore { store: &mut store, baseline: snapshot.content_sha256, after_commit: false };
+    let mut interrupted = InterruptedStore {
+        store: &mut store,
+        baseline: snapshot.content_sha256,
+        after_commit: false,
+    };
     source::remove(
         &workspace,
         &mut interrupted,
         &source::RemoveInput {
             source_id: id,
             dry_run: false,
+            yes: true,
         },
     )
     .unwrap_err();
@@ -153,10 +163,25 @@ fn failure_after_database_commit_finishes_recovery_without_advancing_generation(
     let (temp, workspace) = support::fixture();
     let mut store = SqliteStore::open(&temp.path().join(".knowmesh/index.sqlite3")).unwrap();
     let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
-    store.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    store
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
     sync::synchronize(&workspace, &mut store).unwrap();
-    let mut interrupted = InterruptedStore { store: &mut store, baseline: snapshot.content_sha256, after_commit: true };
-    source::remove(&workspace, &mut interrupted, &source::RemoveInput { source_id: snapshot.sources[0].manifest.id.clone(), dry_run: false }).unwrap_err();
+    let mut interrupted = InterruptedStore {
+        store: &mut store,
+        baseline: snapshot.content_sha256,
+        after_commit: true,
+    };
+    source::remove(
+        &workspace,
+        &mut interrupted,
+        &source::RemoveInput {
+            source_id: snapshot.sources[0].manifest.id.clone(),
+            dry_run: false,
+            yes: true,
+        },
+    )
+    .unwrap_err();
     assert_eq!(store.generation().unwrap(), 2);
     assert!(sync::recovery_status(&workspace).unwrap().recovery_required);
     let report = sync::recover(&workspace, &mut store).unwrap();
@@ -170,9 +195,30 @@ fn an_incompatible_store_is_rejected_before_canonical_files_are_changed() {
     let (temp, workspace) = support::fixture();
     let mut store = SqliteStore::open(&temp.path().join(".knowmesh/index.sqlite3")).unwrap();
     let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
-    store.bind_workspace(&knowmesh_core::domain::WorkspaceId::new(), &snapshot.schema_hash).unwrap();
-    let input = source::RemoveInput { source_id: snapshot.sources[0].manifest.id.clone(), dry_run: false };
-    assert_eq!(source::remove(&workspace, &mut store, &input).unwrap_err().code, "WORKSPACE_ID_MISMATCH");
+    store
+        .bind_workspace(
+            &knowmesh_core::domain::WorkspaceId::new(),
+            &snapshot.schema_hash,
+        )
+        .unwrap();
+    let input = source::RemoveInput {
+        source_id: snapshot.sources[0].manifest.id.clone(),
+        dry_run: false,
+        yes: true,
+    };
+    assert_eq!(
+        source::remove(&workspace, &mut store, &input)
+            .unwrap_err()
+            .code,
+        "WORKSPACE_ID_MISMATCH"
+    );
     assert!(!sync::recovery_status(&workspace).unwrap().recovery_required);
-    assert!(SourceLibrary::new(&workspace).get(&input.source_id).unwrap().manifest.removed_at.is_none());
+    assert!(
+        SourceLibrary::new(&workspace)
+            .get(&input.source_id)
+            .unwrap()
+            .manifest
+            .removed_at
+            .is_none()
+    );
 }

@@ -52,7 +52,10 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   Historical revisions cannot be rewritten; importing an already recorded hash
   returns that revision without moving the current head. Reading content verifies
   its size and SHA-256, including referenced files. Unchanged manifests round-trip
-  byte-for-byte. Source CLI/API and the real URL fetch adapter are still pending.
+  byte-for-byte. `source add <path>` commits local managed/referenced imports;
+  `source remove <id> --yes` commits soft removal. Both support `--dry-run`
+  without creating a database. URL fetching, explicit idempotency keys, and
+  Source read commands/API are still pending.
 - Core parses and renders Node and Synthesis Markdown. Unchanged documents keep
   their exact bytes; edited claims only replace their managed content. CommonMark
   source spans distinguish markers/wiki links from code examples; lossless YAML
@@ -73,14 +76,20 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   runtime references. Deleted files remove their projections. Historical Source
   revisions cannot be rewritten. Failed validation or a database error leaves
   the previous complete projection intact.
+- `sync` performs a full canonical scan and projection update; `sync --dry-run`
+  only validates and reports files. Fast metadata-based sync and watching remain
+  under KM-022. Application Source writes first validate/reconcile the existing
+  projection, then commit their file journal and final projection under one
+  workspace lock. Core recovery completes interrupted writes before permitting
+  new syncs; repeating recovery after a database commit keeps its generation.
 
 Initialization now uses a durable file journal under `.knowmesh/transactions/`
 and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
 forward after any file replacement; external edits or staged corruption stop
 recovery and preserve its materials. Pending transactions block new writes.
-The coordinator and reconciler are not yet connected through Application Core.
-The doctor command and rebuild integration remain under KM-023, so the recovery
-workflow is not yet available through the CLI.
+The coordinator and reconciler are connected through Application Core Source
+writes and recovery. The doctor command and rebuild integration remain under
+KM-023, so repair is not yet exposed through the CLI.
 
 ## TDD Evidence
 
@@ -95,12 +104,15 @@ workflow is not yet available through the CLI.
 | [KM-013 / #9](https://github.com/CaiZongyuan/knowmesh/issues/9), [KM-014 / #10](https://github.com/CaiZongyuan/knowmesh/issues/10), canonical parsers | Commits `e82d34b`, `26209a8`: missing parsers and shared Evidence rejected | `cargo +stable test --workspace --locked`: 63 tests pass, including Unicode property tests, CRLF, managed-span preservation, YAML comments, shared evidence consistency, and synthesis citations |
 | [KM-020 / #11](https://github.com/CaiZongyuan/knowmesh/issues/11), [KM-030 / #16](https://github.com/CaiZongyuan/knowmesh/issues/16), database infrastructure | Commits `6d209df`, `4caac1d`: missing store/migrations; current-store reads block behind a writer | `cargo +stable test --workspace --locked`: 69 tests pass, including migration preservation/checksums, workspace binding, WAL concurrency, and dual FTS triggers |
 | [KM-021 / #12](https://github.com/CaiZongyuan/knowmesh/issues/12), canonical projection | Commits `59ceaa5`, `faf5d06`: missing snapshot/reconcile ports, unique-key conflicts during replacements, and stale or modified snapshots accepted | `cargo +stable test --workspace --locked`: 80 tests pass, including rebuild equivalence, deletion propagation, revision history checks, runtime reference preservation, and transaction rollback after an injected database failure |
+| [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), [KM-051 / #31](https://github.com/CaiZongyuan/knowmesh/issues/31), Source write workflow | Commits `7360d3a`, `2075236`, `7565f76`: missing application/CLI operations and incompatible stores detected after file writes | `cargo +stable test --workspace --locked`: 86 tests pass, including preview, confirmation, duplicate import, soft removal, store preflight, and recovery before/after the database commit |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
 and Windows for commit `77fc2ec`.
 The [workspace CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33978958983)
 also passed on all three operating systems for commit `2c2ca76`.
+The [projection CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33984019917)
+passed on all three operating systems for commit `d352ac9`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked

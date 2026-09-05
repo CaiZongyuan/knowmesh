@@ -9,9 +9,11 @@ use knowmesh_core::{
     application::{
         operations,
         schema::{self, PackInput},
+        source, sync,
         workspace::{self, InitInput},
     },
-    domain::{RunId, WorkspaceId},
+    canonical::{source::ImportInput, workspace::Workspace},
+    domain::{RunId, SourceId, StorageMode, WorkspaceId},
     error::{AppError, ErrorType},
     wire::{Failure, Metadata, Success},
 };
@@ -59,6 +61,57 @@ enum Command {
         #[command(subcommand)]
         command: SchemaCommand,
     },
+    Sync {
+        #[arg(long)]
+        dry_run: bool,
+    },
+    Source {
+        #[command(subcommand)]
+        command: SourceCommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum SourceCommand {
+    Add {
+        path: PathBuf,
+        #[arg(long)]
+        source_id: Option<SourceId>,
+        #[arg(long, value_enum)]
+        storage: Option<StorageArg>,
+        #[arg(long)]
+        title: Option<String>,
+        #[arg(long, default_value = "document")]
+        kind: String,
+        #[arg(long = "tag")]
+        tags: Vec<String>,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    Remove {
+        source_id: SourceId,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        yes: bool,
+    },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum StorageArg {
+    Managed,
+    Referenced,
+    SnapshotUrl,
+}
+
+impl From<StorageArg> for StorageMode {
+    fn from(value: StorageArg) -> Self {
+        match value {
+            StorageArg::Managed => Self::Managed,
+            StorageArg::Referenced => Self::Referenced,
+            StorageArg::SnapshotUrl => Self::SnapshotUrl,
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -82,6 +135,13 @@ impl Command {
             Self::Schema {
                 command: SchemaCommand::Pack { .. },
             } => "schema.pack",
+            Self::Sync { .. } => "sync",
+            Self::Source {
+                command: SourceCommand::Add { .. },
+            } => "source.add",
+            Self::Source {
+                command: SourceCommand::Remove { .. },
+            } => "source.remove",
         }
     }
 }
@@ -184,17 +244,75 @@ fn execute(
         Command::Schema {
             command: SchemaCommand::Pack { id },
         } => {
-            let environment = std::env::var_os("KNOWMESH_WORKSPACE").map(PathBuf::from);
-            let cwd = std::env::current_dir().map_err(|_| {
-                AppError::new(
-                    ErrorType::Io,
-                    "CURRENT_DIRECTORY_UNAVAILABLE",
-                    "Cannot resolve the current directory.",
-                )
-            })?;
-            let workspace = workspace::load(root.as_deref(), environment.as_deref(), &cwd)?;
+            let workspace = load_workspace(root)?;
             workspace_id = Some(workspace.config.workspace.id.clone());
             serde_json::to_value(schema::pack(&workspace, &PackInput { id: id.clone() })?)
+        }
+        Command::Sync { dry_run } => {
+            let workspace = load_workspace(root)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            let report = if *dry_run {
+                sync::preview(&workspace)?
+            } else {
+                sync::synchronize(&workspace, &mut crate::runtime::open_store(&workspace)?)?
+            };
+            serde_json::to_value(report)
+        }
+        Command::Source { command } => {
+            let workspace = load_workspace(root)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            let report = match command {
+                SourceCommand::Add {
+                    path,
+                    source_id,
+                    storage,
+                    title,
+                    kind,
+                    tags,
+                    dry_run,
+                } => {
+                    let input = ImportInput {
+                        path: path.clone(),
+                        source_id: source_id.clone(),
+                        storage: storage.map(Into::into),
+                        title: title.clone(),
+                        kind: kind.clone(),
+                        tags: tags.clone(),
+                        dry_run: *dry_run,
+                    };
+                    if *dry_run {
+                        source::preview_add(&workspace, &input, None)?
+                    } else {
+                        source::add(
+                            &workspace,
+                            &mut crate::runtime::open_store(&workspace)?,
+                            &input,
+                            None,
+                        )?
+                    }
+                }
+                SourceCommand::Remove {
+                    source_id,
+                    dry_run,
+                    yes,
+                } => {
+                    let input = source::RemoveInput {
+                        source_id: source_id.clone(),
+                        dry_run: *dry_run,
+                        yes: *yes,
+                    };
+                    if *dry_run {
+                        source::preview_remove(&workspace, &input)?
+                    } else {
+                        source::remove(
+                            &workspace,
+                            &mut crate::runtime::open_store(&workspace)?,
+                            &input,
+                        )?
+                    }
+                }
+            };
+            serde_json::to_value(report)
         }
     };
     result.map(|data| (data, workspace_id)).map_err(|_| {
@@ -204,6 +322,18 @@ fn execute(
             "Could not encode the operation result.",
         )
     })
+}
+
+fn load_workspace(root: Option<PathBuf>) -> Result<Workspace, AppError> {
+    let environment = std::env::var_os("KNOWMESH_WORKSPACE").map(PathBuf::from);
+    let cwd = std::env::current_dir().map_err(|_| {
+        AppError::new(
+            ErrorType::Io,
+            "CURRENT_DIRECTORY_UNAVAILABLE",
+            "Cannot resolve the current directory.",
+        )
+    })?;
+    workspace::load(root.as_deref(), environment.as_deref(), &cwd)
 }
 
 fn fail(error: AppError, command: &str, trace: RunId, start: Instant) -> u8 {

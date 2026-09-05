@@ -73,8 +73,31 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
     init.supports_dry_run = true;
     init.supports_idempotency = true;
     init.policy = "workspace-initialization".into();
+    let mut source_add = OperationDescriptor::read::<
+        crate::canonical::source::ImportInput,
+        super::source::SourceWriteReport,
+    >("source.add");
+    source_add.effect = EffectLevel::CanonicalWrite;
+    source_add.supports_dry_run = true;
+    source_add.policy = "source-library".into();
+    let mut source_remove = OperationDescriptor::read::<
+        super::source::RemoveInput,
+        super::source::SourceWriteReport,
+    >("source.remove");
+    source_remove.effect = EffectLevel::CanonicalWrite;
+    source_remove.supports_dry_run = true;
+    source_remove.policy = "confirmed-soft-removal".into();
+    let mut sync =
+        OperationDescriptor::read::<super::sync::SyncInput, super::sync::SyncReport>("sync");
+    sync.effect = EffectLevel::DerivedWrite;
+    sync.supports_dry_run = true;
+    sync.supports_idempotency = true;
+    sync.policy = "canonical-projection".into();
     vec![
         init,
+        source_add,
+        source_remove,
+        sync,
         OperationDescriptor::read::<EmptyInput, VersionInfo>("version"),
         OperationDescriptor::read::<SchemaCommandInput, OperationDescriptor>("schema.command"),
         OperationDescriptor::read::<EmptyInput, Vec<OperationDescriptor>>("schema.list"),

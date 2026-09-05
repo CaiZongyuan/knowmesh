@@ -33,6 +33,10 @@ pub struct Purpose {
 }
 
 impl Workspace {
+    pub fn index_path(&self) -> AppResult<PathBuf> {
+        transaction::checked_path(&self.root, Path::new(".knowmesh/index.sqlite3"))
+    }
+
     pub fn load(root: &Path) -> AppResult<Self> {
         let root = root.canonicalize().map_err(|_| workspace_not_found())?;
         let config =
