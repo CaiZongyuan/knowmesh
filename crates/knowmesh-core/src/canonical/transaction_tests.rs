@@ -156,8 +156,42 @@ fn staged_corruption_and_manifest_traversal_cannot_replace_canonical_content() {
 }
 
 #[test]
+fn staging_is_revalidated_at_each_replacement() {
+    let temp = tempfile::tempdir().unwrap();
+    let writer = WorkspaceWriter::acquire(temp.path()).unwrap();
+    let id = writer
+        .prepare(vec![
+            change("first.md", None, Some("first")),
+            change("second.md", None, Some("second")),
+        ])
+        .unwrap();
+    let result = writer.apply_observed(&id, |count| {
+        if count == 1 {
+            fs::write(
+                temp.path()
+                    .join(".knowmesh/staging")
+                    .join(&id)
+                    .join("1.blob"),
+                "tampered",
+            )
+            .unwrap();
+        }
+        Ok(())
+    });
+    assert_eq!(result.unwrap_err().code, "TRANSACTION_STAGING_CORRUPT");
+    assert!(!temp.path().join("second.md").exists());
+}
+
+#[test]
 fn reserved_and_escaping_paths_and_repeated_targets_are_rejected() {
-    for path in ["../outside", ".git/config", ".knowmesh/index.sqlite3"] {
+    for path in [
+        "../outside",
+        ".git/config",
+        ".GIT/config",
+        ".git./config",
+        ".knowmesh/index.sqlite3",
+        "file.md:stream",
+    ] {
         let temp = tempfile::tempdir().unwrap();
         let writer = WorkspaceWriter::acquire(temp.path()).unwrap();
         assert_eq!(
