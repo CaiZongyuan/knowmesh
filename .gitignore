@@ -1,2 +1,8 @@
 .env
 references/
+target/
+node_modules/
+dist/
+playwright-report/
+test-results/
+.knowmesh/
