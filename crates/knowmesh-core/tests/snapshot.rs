@@ -6,6 +6,28 @@ use std::fs;
 use knowmesh_core::canonical::snapshot::CanonicalSnapshot;
 
 #[test]
+fn snapshot_rejects_a_stale_workspace_configuration_or_purpose() {
+    let (temp, workspace) = support::fixture();
+    let path = temp.path().join("knowmesh.yaml");
+    let original = fs::read_to_string(&path).unwrap();
+    fs::write(&path, original.replace("Knowledge Space", "Renamed Space")).unwrap();
+    assert_eq!(CanonicalSnapshot::scan(&workspace).unwrap_err().code, "CANONICAL_FILE_CONFLICT");
+    fs::write(path, original).unwrap();
+    let path = temp.path().join(workspace.config.workspace.purpose.as_ref().unwrap());
+    let original = fs::read_to_string(&path).unwrap();
+    fs::write(path, original.replace("Virtual cell models", "Other models")).unwrap();
+    assert_eq!(CanonicalSnapshot::scan(&workspace).unwrap_err().code, "CANONICAL_FILE_CONFLICT");
+}
+
+#[test]
+fn modified_projection_payload_cannot_reuse_the_original_snapshot_digest() {
+    let (_temp, workspace) = support::fixture();
+    let mut snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    snapshot.nodes[0].summary = "Mutated after parsing".into();
+    assert_eq!(snapshot.validate().unwrap_err().code, "SNAPSHOT_DIGEST_MISMATCH");
+}
+
+#[test]
 fn complete_snapshot_preserves_identity_evidence_and_dependency_graph() {
     let (_temp, workspace) = support::fixture();
     let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();

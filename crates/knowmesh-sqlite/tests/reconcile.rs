@@ -6,6 +6,51 @@ use knowmesh_sqlite::SqliteStore;
 use rusqlite::Connection;
 
 #[test]
+fn reconcile_accepts_path_swaps_and_replacement_of_an_active_claim() {
+    let (temp, workspace) = support::fixture();
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let mut store = SqliteStore::open(&temp.path().join(".knowmesh/index.sqlite3")).unwrap();
+    store.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    store.reconcile(&snapshot).unwrap();
+    let model_path = temp.path().join("knowledge/nodes/model-a.md");
+    let dataset_path = temp.path().join("knowledge/nodes/dataset-b.md");
+    let model = std::fs::read_to_string(&model_path).unwrap();
+    let dataset = std::fs::read_to_string(&dataset_path).unwrap();
+    let old_claim = snapshot.claims[0].claim.assertion.id.to_string();
+    let new_claim = knowmesh_core::domain::ClaimId::new().to_string();
+    std::fs::write(&dataset_path, model.replace(&old_claim, &new_claim)).unwrap();
+    std::fs::write(&model_path, dataset).unwrap();
+    let next = CanonicalSnapshot::scan(&workspace).unwrap();
+    assert_eq!(store.reconcile(&next).unwrap().generation, 2);
+    let mut rebuilt = SqliteStore::open(&temp.path().join(".knowmesh/rebuilt.sqlite3")).unwrap();
+    rebuilt.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    rebuilt.reconcile(&next).unwrap();
+    assert_eq!(store.logical_snapshot().unwrap(), rebuilt.logical_snapshot().unwrap());
+}
+
+#[test]
+fn reconciliation_rejects_rewritten_history_even_when_the_blob_matches() {
+    let (temp, workspace) = support::fixture();
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let mut store = SqliteStore::open(&temp.path().join(".knowmesh/index.sqlite3")).unwrap();
+    store.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    store.reconcile(&snapshot).unwrap();
+    let before = store.logical_snapshot().unwrap();
+    let mut source = snapshot.sources[0].manifest.clone();
+    let manifest_path = temp.path().join(&snapshot.sources[0].manifest_path);
+    let revised = "Rewritten historical evidence.";
+    let revision = &mut source.revisions[0];
+    revision.sha256 = knowmesh_core::domain::sha256(revised.as_bytes());
+    revision.byte_size = revised.len() as u64;
+    std::fs::write(manifest_path.parent().unwrap().join(&revision.path), revised).unwrap();
+    std::fs::write(manifest_path, serde_yaml::to_string(&source).unwrap()).unwrap();
+    let next = CanonicalSnapshot::scan(&workspace).unwrap();
+    assert_eq!(store.reconcile(&next).unwrap_err().code, "IMMUTABLE_REVISION_CHANGED");
+    assert_eq!(store.logical_snapshot().unwrap(), before);
+    assert_eq!(store.generation().unwrap(), 1);
+}
+
+#[test]
 fn reconcile_is_atomic_idempotent_and_rebuilds_the_same_logical_projection() {
     let (temp, workspace) = support::fixture();
     let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
