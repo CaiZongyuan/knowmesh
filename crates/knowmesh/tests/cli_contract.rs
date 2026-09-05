@@ -3,17 +3,36 @@ use serde_json::Value;
 
 #[test]
 fn schema_commands_expose_the_same_application_catalog() {
-    let output = cargo_bin_cmd!("knowmesh").args(["schema", "command", "version"]).output().unwrap();
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let output = cargo_bin_cmd!("knowmesh")
+        .args(["schema", "command", "version"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     let value: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(value["meta"]["command"], "schema.command");
     assert_eq!(value["data"]["name"], "version");
     assert_eq!(value["data"]["effect"], "read");
-    assert_eq!(value["data"]["output_schema"]["properties"]["version"]["type"], "string");
-    let list = cargo_bin_cmd!("knowmesh").args(["schema", "list"]).output().unwrap();
+    assert_eq!(
+        value["data"]["output_schema"]["properties"]["version"]["type"],
+        "string"
+    );
+    let list = cargo_bin_cmd!("knowmesh")
+        .args(["schema", "list"])
+        .output()
+        .unwrap();
     assert!(list.status.success());
     let list: Value = serde_json::from_slice(&list.stdout).unwrap();
-    assert!(list["data"].as_array().unwrap().iter().any(|op| op["name"] == "schema.command"));
+    assert!(
+        list["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|op| op["name"] == "schema.command")
+    );
 }
 
 #[test]

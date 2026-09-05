@@ -6,9 +6,10 @@ use std::{
 
 use clap::{Parser, Subcommand, ValueEnum, error::ErrorKind};
 use knowmesh_core::{
+    application::operations,
     domain::RunId,
     error::{AppError, ErrorType},
-    wire::{API_CONTRACT_VERSION, Failure, Metadata, Success},
+    wire::{Failure, Metadata, Success},
 };
 use serde::Serialize;
 
@@ -41,12 +42,30 @@ enum OutputFormat {
 #[derive(Subcommand)]
 enum Command {
     Version,
+    Schema {
+        #[command(subcommand)]
+        command: SchemaCommand,
+    },
 }
 
-#[derive(Serialize)]
-struct VersionInfo {
-    version: &'static str,
-    api_contract_version: &'static str,
+#[derive(Subcommand)]
+enum SchemaCommand {
+    List,
+    Command { operation: String },
+}
+
+impl Command {
+    fn operation_name(&self) -> &'static str {
+        match self {
+            Self::Version => "version",
+            Self::Schema {
+                command: SchemaCommand::List,
+            } => "schema.list",
+            Self::Schema {
+                command: SchemaCommand::Command { .. },
+            } => "schema.command",
+        }
+    }
 }
 
 pub fn run() -> u8 {
@@ -73,9 +92,7 @@ pub fn run() -> u8 {
         }
     };
     let trace = cli.trace_id.unwrap_or(trace);
-    let command = match cli.command {
-        Command::Version => "version",
-    };
+    let command = cli.command.operation_name();
     if !matches!(cli.format, OutputFormat::Json | OutputFormat::Pretty) {
         return fail(
             AppError::new(
@@ -90,9 +107,9 @@ pub fn run() -> u8 {
             start,
         );
     }
-    let data = VersionInfo {
-        version: env!("CARGO_PKG_VERSION"),
-        api_contract_version: API_CONTRACT_VERSION,
+    let data = match execute(&cli.command) {
+        Ok(data) => data,
+        Err(error) => return fail(error, command, trace, start),
     };
     let envelope = Success::new(
         data,
@@ -116,6 +133,26 @@ pub fn run() -> u8 {
             start,
         ),
     }
+}
+
+fn execute(command: &Command) -> Result<serde_json::Value, AppError> {
+    operations::describe(command.operation_name())?;
+    let result = match command {
+        Command::Version => serde_json::to_value(operations::version()),
+        Command::Schema {
+            command: SchemaCommand::List,
+        } => serde_json::to_value(operations::descriptors()),
+        Command::Schema {
+            command: SchemaCommand::Command { operation },
+        } => serde_json::to_value(operations::describe(operation)?),
+    };
+    result.map_err(|_| {
+        AppError::new(
+            ErrorType::Internal,
+            "ENCODE_FAILED",
+            "Could not encode the operation result.",
+        )
+    })
 }
 
 fn fail(error: AppError, command: &str, trace: RunId, start: Instant) -> u8 {

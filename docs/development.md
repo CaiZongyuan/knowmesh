@@ -32,14 +32,20 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
 - `version` works outside a workspace and emits one JSON value on stdout.
 - Invalid CLI arguments and unsupported formats produce typed JSON on stderr,
   an empty stdout, and the corresponding nonzero exit code.
+- `schema list` and `schema command <operation>` expose the Core operation
+  registry, including input/output JSON schemas, policy, effect, and support flags.
 
 ## TDD Evidence
 
 | Issues | Red Evidence | Green Verification |
 | --- | --- | --- |
 | [KM-001 / #2](https://github.com/CaiZongyuan/knowmesh/issues/2), [KM-002 / #3](https://github.com/CaiZongyuan/knowmesh/issues/3) | Commit `3da473e`: core tests fail on missing domain/error modules; all three CLI tests fail on empty output and missing validation errors | `cargo +stable test --workspace`: 8 tests pass using installed Rust 1.96.0 |
+| [KM-003 / #4](https://github.com/CaiZongyuan/knowmesh/issues/4) | Commit `d8c80d7`: registry tests fail on missing Application Core module | `cargo +stable test --workspace`: 11 tests pass, including schema discovery and unknown-operation errors |
+
+The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
+passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
+and Windows for commit `77fc2ec`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked
 by their implementation issues.
-

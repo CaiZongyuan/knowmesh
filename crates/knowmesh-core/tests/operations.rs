@@ -16,7 +16,10 @@ fn operation_catalog_has_unique_names_and_structured_contracts() {
     assert_eq!(version.effect, EffectLevel::Read);
     assert!(!version.supports_dry_run);
     assert!(!version.supports_idempotency);
-    assert_eq!(version.output_schema.as_value()["properties"]["version"]["type"], "string");
+    assert_eq!(
+        version.output_schema.as_value()["properties"]["version"]["type"],
+        "string"
+    );
     assert!(names.contains("schema.command"));
     assert!(names.contains("schema.list"));
 }
@@ -28,4 +31,3 @@ fn unknown_operations_have_a_stable_typed_error() {
     assert_eq!(error.code, "OPERATION_NOT_FOUND");
     assert!(error.hint.is_some());
 }
-

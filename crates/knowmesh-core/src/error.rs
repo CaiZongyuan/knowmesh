@@ -33,7 +33,7 @@ pub struct AppError {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub param: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub details: Option<Value>,
+    pub details: Option<Box<Value>>,
 }
 
 impl AppError {
@@ -58,7 +58,7 @@ impl AppError {
         self
     }
     pub fn with_details(mut self, details: Value) -> Self {
-        self.details = Some(details);
+        self.details = Some(Box::new(details));
         self
     }
     pub fn retryable(mut self, retryable: bool) -> Self {
