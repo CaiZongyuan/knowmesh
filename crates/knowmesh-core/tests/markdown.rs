@@ -169,6 +169,73 @@ fn synthesis_citations_are_validated_without_inventing_dependency_snapshots() {
     }
 }
 
+#[test]
+fn evidence_can_be_shared_between_assertions_only_when_its_content_is_identical() {
+    use knowmesh_core::domain::{
+        Evidence, EvidenceStance, EvidenceStatus, ExtractionMethod, Locator,
+    };
+    let mut document = NodeDocument::parse(&node("Notes.")).unwrap();
+    let quote = "Verified source quote.";
+    let evidence = Evidence {
+        id: EvidenceId::new(),
+        source_revision_id: SourceRevisionId::new(),
+        stance: EvidenceStance::Supports,
+        quote: quote.into(),
+        quote_sha256: sha256(quote.as_bytes()),
+        locator: Locator {
+            paragraph: Some(1),
+            ..Locator::default()
+        },
+        extraction_method: ExtractionMethod::Parser,
+        confidence: 1.0,
+    };
+    document.claims[0].evidence.push(evidence.clone());
+    document.claims[0].evidence_status = EvidenceStatus::Supported;
+    let mut second = document.claims[0].clone();
+    second.id = ClaimId::new();
+    second.statement = "Another supported statement.".into();
+    document.claims.push(second);
+    let parsed = NodeDocument::parse(&document.render().unwrap()).unwrap();
+    assert_eq!(
+        parsed.claims[0].evidence[0].id,
+        parsed.claims[1].evidence[0].id
+    );
+    document.claims[1].evidence[0].quote = "Different source quote.".into();
+    document.claims[1].evidence[0].quote_sha256 =
+        sha256(document.claims[1].evidence[0].quote.as_bytes());
+    assert_eq!(document.render().unwrap_err().code, "EVIDENCE_ID_CONFLICT");
+}
+
+#[test]
+fn assertion_hashes_ignore_layout_but_detect_semantic_changes() {
+    let document = NodeDocument::parse(&node("Notes.")).unwrap();
+    let before = document.claims[0]
+        .semantic_hash(&document.metadata.id)
+        .unwrap();
+    let mut claim = document.claims[0].clone();
+    claim.statement = "Original\n  statement.".into();
+    assert_eq!(claim.semantic_hash(&document.metadata.id).unwrap(), before);
+    claim.statement = "A changed statement.".into();
+    assert_ne!(claim.semantic_hash(&document.metadata.id).unwrap(), before);
+}
+
+#[test]
+fn crlf_metadata_updates_preserve_human_sections_and_comments() {
+    let original = node("Human text.").replace('\n', "\r\n");
+    let mut document = NodeDocument::parse(&original).unwrap();
+    document.metadata.name = "Changed".into();
+    let updated = document.render().unwrap();
+    assert!(updated.contains("x-owner: 'Human' # Preserve this exact line\r\n"));
+    assert_eq!(
+        updated.split("---\r\n\r\n").nth(1),
+        original.split("---\r\n\r\n").nth(1)
+    );
+    assert_eq!(
+        NodeDocument::parse(&updated).unwrap().metadata.name,
+        "Changed"
+    );
+}
+
 proptest! {
     #[test]
     fn arbitrary_user_notes_survive_round_trips(notes in "[^\\p{C}<`]{0,256}") {
