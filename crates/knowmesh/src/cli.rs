@@ -376,8 +376,6 @@ fn execute(
             dry_run,
             yes,
         } => {
-            let workspace = load_workspace(root)?;
-            workspace_id = Some(workspace.config.workspace.id.clone());
             let input = RepairInput {
                 dry_run: *dry_run,
                 yes: *yes,
@@ -385,25 +383,21 @@ fn execute(
             if *repair {
                 doctor::validate_repair(&input)?;
             }
-            let report = if *repair && !*dry_run {
-                doctor::repair(
-                    &workspace,
-                    &mut crate::runtime::open_store(&workspace)?,
-                    &input,
-                )?
-            } else {
-                let store = crate::runtime::inspect_store(&workspace);
-                let access = match &store {
-                    Ok(Some(store)) => IndexAccess::Ready(store),
-                    Ok(None) => IndexAccess::Missing,
-                    Err(error) => IndexAccess::Failed(error.clone()),
-                };
-                if *dry_run {
-                    doctor::preview_repair(&workspace, access)?
-                } else {
-                    doctor::inspect(&workspace, access)?
-                }
+            let root = workspace_root(root, true)?;
+            let store = crate::runtime::inspect_store_at(&root);
+            let access = match &store {
+                Ok(Some(store)) => IndexAccess::Ready(store),
+                Ok(None) => IndexAccess::Missing,
+                Err(error) => IndexAccess::Failed(error.clone()),
             };
+            let report = if *repair {
+                doctor::repair_root(&root, access, &input, |workspace| {
+                    Ok(Box::new(crate::runtime::open_store(workspace)?))
+                })?
+            } else {
+                doctor::inspect_root(&root, access)?
+            };
+            workspace_id = report.workspace_id.clone();
             serde_json::to_value(report)
         }
     };
@@ -417,6 +411,10 @@ fn execute(
 }
 
 fn load_workspace(root: Option<PathBuf>) -> Result<Workspace, AppError> {
+    Workspace::load(&workspace_root(root, false)?)
+}
+
+fn workspace_root(root: Option<PathBuf>, recovery: bool) -> Result<PathBuf, AppError> {
     let environment = std::env::var_os("KNOWMESH_WORKSPACE").map(PathBuf::from);
     let cwd = std::env::current_dir().map_err(|_| {
         AppError::new(
@@ -425,7 +423,12 @@ fn load_workspace(root: Option<PathBuf>) -> Result<Workspace, AppError> {
             "Cannot resolve the current directory.",
         )
     })?;
-    workspace::load(root.as_deref(), environment.as_deref(), &cwd)
+    let resolve = if recovery {
+        doctor::resolve_root
+    } else {
+        knowmesh_core::canonical::workspace::resolve_workspace
+    };
+    resolve(root.as_deref(), environment.as_deref(), &cwd)
 }
 
 fn fail(error: AppError, command: &str, trace: RunId, start: Instant) -> u8 {

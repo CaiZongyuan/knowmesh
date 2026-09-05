@@ -1084,6 +1084,8 @@ manifest 必须持久化每个目标的相对路径、操作类型、before/afte
 
 若在第 5 步的任意两个文件替换之间崩溃，恢复者必须先获取 workspace lock，逐文件比较 hash：已为 after 的跳过，仍为 before 的从 staging 前滚，其他内容视为外部修改并返回 `conflict/TRANSACTION_RECOVERY_CONFLICT`，保留全部恢复材料。创建文件以“不存在”为 before。尚未完成的事务恢复前，新的 Apply/sync/rebuild 必须停止；只读查询可返回上一次完整索引快照并标明 `recovery_required=true`。所有文件均达到 after 后才能 reconcile 并标记完成；不得把中间混合状态索引为成功。
 
+`doctor` 的 workspace 定位除 `knowmesh.yaml` 外也识别 `.knowmesh/transactions/`，保持显式路径、环境变量、父目录的优先级，因此初始化尚未写入配置时也可诊断。配置无法加载时报告 `workspace_id: null` 和原始配置错误，不生成新的 workspace ID。`doctor --repair --dry-run` 校验整个待恢复日志的 before/after 与 staging hash；`--yes` 在 workspace lock 内复查，从日志中待安装的配置读取身份，与已有可读 DB 核对后才前滚。配置、Schema、规范投影全部验证且索引提交成功后才能完成日志。没有对应日志的外部损坏不会被猜测修复；已有 DB 的读取/版本错误会阻止待恢复文件写入。
+
 ### 10.7 Rebuild
 
 `rebuild` 不原地清空当前数据库：

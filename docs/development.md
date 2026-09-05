@@ -98,6 +98,13 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   `doctor --repair --yes` rolls forward pending transactions and synchronizes
   the index. Corrupt databases and invalid journals are preserved for explicit
   recovery; this command does not discard runtime state or modify Git.
+- Doctor also resolves workspaces by their transaction directory when configuration
+  is missing or invalid. Diagnostics retain the configuration error and use a null
+  workspace ID until loading succeeds. Repair preview checks every target/staged
+  hash. Confirmed repair checks the intended configuration against an existing
+  readable database, rolls forward under the workspace lock, and completes the
+  journal only after canonical validation and index commit. Unjournaled external
+  damage is preserved; database read/version errors block pending file writes.
 - The SQLite rebuild helper copies all five runtime tables from one read
   transaction into a separate candidate. It preserves self-referencing Runs,
   Proposal revision links, idempotent responses, and the audit sequence even
@@ -127,8 +134,9 @@ and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
 forward after any file replacement; external edits or staged corruption stop
 recovery and preserve its materials. Pending transactions block new writes.
 The coordinator and reconciler are connected through Application Core Source
-writes and CLI doctor repair. Recovery when the workspace configuration itself
-cannot be loaded remains under KM-023.
+writes and CLI doctor repair, including interrupted initialization before
+configuration exists. Server integration and freshness verification remain under
+KM-023 and their owning implementation issues.
 
 ## TDD Evidence
 
@@ -148,6 +156,7 @@ cannot be loaded remains under KM-023.
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), runtime preservation | Commit `be10667`: missing runtime-copy operation | `cargo +stable test --workspace --locked`: 95 tests pass, including all five runtime tables, parent/child Runs, foreign-key rollback, candidate refresh, and audit sequence preservation |
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), connection coordination | Commits `3865c8c`, `a4ac6b8`: missing replacement guards and controlled maintenance connections | `cargo +stable test --workspace --locked`: 98 tests pass, including multiple writers, equivalent paths, read-only inspection, and guard lifetime |
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), atomic rebuild | Commits `8f13e4e`, `80eca4d`, `6f71b8d`: missing rebuild, CLI/preview validation gaps, and backup ordering deletes the latest backup | `cargo +stable test --workspace --locked`: 109 tests pass, including runtime recopy, corrupt-database preservation/discard, generation conflicts, failed-backup retry, retention, and simulated interruption at four replacement boundaries |
+| [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), initialization recovery | Commit `42db30e`: doctor cannot reach recovery without a loadable configuration | `cargo +stable test --workspace --locked`: 113 tests pass, including every initialization file boundary, invalid configuration, environment/ancestor resolution, staging corruption, external conflicts, identity checks, and repeated repair |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
@@ -164,6 +173,8 @@ The [runtime-copy CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/3
 passed on all three operating systems for commit `70b228b`.
 The [connection-guard CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33998288373)
 passed on all three operating systems for commit `6ef5f2f`.
+The [atomic-rebuild CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33999413554)
+passed on all three operating systems for commit `18d6232`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked

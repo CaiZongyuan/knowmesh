@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -107,7 +107,11 @@ fn scan_and_reconcile(
 }
 
 pub fn recovery_status(workspace: &Workspace) -> AppResult<RecoveryReport> {
-    let transactions = pending(&workspace.root)?
+    recovery_status_at(&workspace.root)
+}
+
+pub(super) fn recovery_status_at(root: &Path) -> AppResult<RecoveryReport> {
+    let transactions = pending(root)?
         .into_iter()
         .map(|tx| RecoveryTransaction {
             id: tx.id,

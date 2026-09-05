@@ -187,22 +187,7 @@ impl WorkspaceWriter {
         if manifest.state == TransactionState::Indexed {
             return Ok(manifest);
         }
-        // Verify the entire journal before changing any remaining files.
-        for (index, change) in manifest.changes.iter().enumerate() {
-            let actual = file_hash(&checked_path(&self.root, &change.path)?)?;
-            if actual != change.before_sha256 && actual != change.after_sha256 {
-                return Err(recovery_conflict());
-            }
-            if let Some(expected) = &change.after_sha256
-                && file_hash(&self.staged_path(id, index)?)?.as_ref() != Some(expected)
-            {
-                return Err(error(
-                    ErrorType::Conflict,
-                    "TRANSACTION_STAGING_CORRUPT",
-                    "Staged content is missing or does not match the transaction hash.",
-                ));
-            }
-        }
+        verify_recovery(&self.root, &manifest)?;
         let mut count = 0;
         for (index, change) in manifest.changes.iter().enumerate() {
             let target = checked_path(&self.root, &change.path)?;
@@ -276,12 +261,7 @@ impl WorkspaceWriter {
     }
 
     fn staged_path(&self, id: &str, index: usize) -> AppResult<PathBuf> {
-        checked_path(
-            &self.root,
-            &PathBuf::from(".knowmesh/staging")
-                .join(id)
-                .join(format!("{index}.blob")),
-        )
+        staged_path(&self.root, id, index)
     }
 
     fn save_manifest(&self, manifest: &TransactionManifest) -> AppResult<()> {
@@ -301,6 +281,56 @@ impl WorkspaceWriter {
         file.persist(path).map_err(|err| io_error(err.error))?;
         sync_directory(&directory)
     }
+}
+
+pub(crate) fn verify_recovery(root: &Path, manifest: &TransactionManifest) -> AppResult<()> {
+    // Verify every target and staged hash before any remaining file is changed.
+    for (index, change) in manifest.changes.iter().enumerate() {
+        let actual = file_hash(&checked_path(root, &change.path)?)?;
+        if actual != change.before_sha256 && actual != change.after_sha256 {
+            return Err(recovery_conflict());
+        }
+        if let Some(expected) = &change.after_sha256
+            && file_hash(&staged_path(root, &manifest.id, index)?)?.as_ref() != Some(expected)
+        {
+            return Err(error(
+                ErrorType::Conflict,
+                "TRANSACTION_STAGING_CORRUPT",
+                "Staged content is missing or does not match the transaction hash.",
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn recovery_content(
+    root: &Path,
+    manifest: &TransactionManifest,
+    relative: &Path,
+    max_bytes: u64,
+) -> AppResult<Vec<u8>> {
+    let path = match manifest
+        .changes
+        .iter()
+        .enumerate()
+        .find(|(_, change)| change.path == relative)
+    {
+        Some((index, change)) if change.after_sha256.is_some() => {
+            staged_path(root, &manifest.id, index)?
+        }
+        Some(_) => return Err(recovery_conflict()),
+        None => checked_path(root, relative)?,
+    };
+    super::workspace::read_bounded(&path, max_bytes)
+}
+
+fn staged_path(root: &Path, id: &str, index: usize) -> AppResult<PathBuf> {
+    checked_path(
+        root,
+        &PathBuf::from(".knowmesh/staging")
+            .join(id)
+            .join(format!("{index}.blob")),
+    )
 }
 
 pub(crate) fn pending(root: &Path) -> AppResult<Vec<TransactionManifest>> {

@@ -44,7 +44,7 @@ pub struct GitStatus {
 
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct DoctorReport {
-    pub workspace_id: WorkspaceId,
+    pub workspace_id: Option<WorkspaceId>,
     pub healthy: bool,
     pub dry_run: bool,
     pub database: Option<DatabaseDiagnostics>,
@@ -57,8 +57,16 @@ pub struct DoctorReport {
 }
 
 pub fn inspect(workspace: &Workspace, access: IndexAccess<'_>) -> AppResult<DoctorReport> {
-    let mut issues = Vec::new();
-    let recovery = match sync::recovery_status(workspace) {
+    inspect_context(&workspace.root, Some(workspace), access, vec![])
+}
+
+fn inspect_context(
+    root: &Path,
+    workspace: Option<&Workspace>,
+    access: IndexAccess<'_>,
+    mut issues: Vec<DiagnosticIssue>,
+) -> AppResult<DoctorReport> {
+    let recovery = match sync::recovery_status_at(root) {
         Ok(status) => {
             if status.recovery_required {
                 issues.push(issue(
@@ -67,6 +75,9 @@ pub fn inspect(workspace: &Workspace, access: IndexAccess<'_>) -> AppResult<Doct
                     "A file transaction requires recovery.",
                     "Review `doctor --repair --dry-run`, then use `doctor --repair --yes`.",
                 ));
+                if let Err(error) = recovery::preflight(root, &access) {
+                    issues.push(from_error(error));
+                }
             }
             Some(status)
         }
@@ -101,7 +112,11 @@ pub fn inspect(workspace: &Workspace, access: IndexAccess<'_>) -> AppResult<Doct
                 Err(error) => issues.push(from_error(error)),
             }
             match store.projection_state() {
-                Ok(value) if value.workspace_id == workspace.config.workspace.id => {
+                Ok(value)
+                    if workspace.is_none_or(|workspace| {
+                        value.workspace_id == workspace.config.workspace.id
+                    }) =>
+                {
                     state = Some(value)
                 }
                 Ok(_) => issues.push(issue(
@@ -118,6 +133,7 @@ pub fn inspect(workspace: &Workspace, access: IndexAccess<'_>) -> AppResult<Doct
     if recovery
         .as_ref()
         .is_some_and(|status| !status.recovery_required)
+        && let Some(workspace) = workspace
     {
         match CanonicalSnapshot::scan(workspace) {
             Ok(snapshot) => {
@@ -148,7 +164,7 @@ pub fn inspect(workspace: &Workspace, access: IndexAccess<'_>) -> AppResult<Doct
             Err(error) => issues.push(from_error(error)),
         }
     }
-    let git = match git_status(&workspace.root) {
+    let git = match git_status(root) {
         Ok(status) => {
             if !status.repository {
                 issues.push(issue(
@@ -185,7 +201,7 @@ pub fn inspect(workspace: &Workspace, access: IndexAccess<'_>) -> AppResult<Doct
         }
     };
     Ok(DoctorReport {
-        workspace_id: workspace.config.workspace.id.clone(),
+        workspace_id: workspace.map(|workspace| workspace.config.workspace.id.clone()),
         healthy: issues.is_empty(),
         dry_run: false,
         database,
@@ -296,3 +312,6 @@ fn from_error(error: AppError) -> DiagnosticIssue {
         hint: error.hint,
     }
 }
+mod recovery;
+
+pub use recovery::{inspect_root, repair_root, resolve_root};

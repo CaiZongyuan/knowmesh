@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use knowmesh_core::{
     canonical::{schema::Schema, workspace::Workspace},
     error::{AppError, AppResult, ErrorType},
@@ -11,8 +13,8 @@ pub fn open_store(workspace: &Workspace) -> AppResult<SqliteStore> {
     Ok(store)
 }
 
-pub fn inspect_store(workspace: &Workspace) -> AppResult<Option<SqliteStore>> {
-    let path = workspace.index_path()?;
+pub fn inspect_store_at(root: &Path) -> AppResult<Option<SqliteStore>> {
+    let path = knowmesh_core::canonical::workspace::runtime_path(root, Path::new("index.sqlite3"))?;
     if !path.try_exists().map_err(|_| {
         AppError::new(
             ErrorType::Io,

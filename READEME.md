@@ -13,7 +13,8 @@ not contain an executable.
 
 The Core library also provides canonical parsers, recoverable file transactions,
 and atomic SQLite projection reconciliation. Doctor supports explicit transaction
-repair. Rebuild preserves runtime state and backs up the old database before
+repair, including interrupted initialization with missing configuration.
+Rebuild preserves runtime state and backs up the old database before
 replacement; URL fetching is pending.
 
 ```bash

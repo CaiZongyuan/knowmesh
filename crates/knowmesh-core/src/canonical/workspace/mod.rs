@@ -38,7 +38,7 @@ impl Workspace {
     }
 
     pub fn runtime_path(&self, relative: &Path) -> AppResult<PathBuf> {
-        transaction::checked_path(&self.root, &Path::new(".knowmesh").join(relative))
+        runtime_path(&self.root, relative)
     }
 
     pub fn load(root: &Path) -> AppResult<Self> {
@@ -113,19 +113,36 @@ pub fn resolve_workspace(
     environment: Option<&Path>,
     cwd: &Path,
 ) -> AppResult<PathBuf> {
+    resolve_workspace_inner(explicit, environment, cwd, false)
+}
+
+pub fn runtime_path(root: &Path, relative: &Path) -> AppResult<PathBuf> {
+    transaction::checked_path(root, &Path::new(".knowmesh").join(relative))
+}
+
+pub(crate) fn resolve_workspace_inner(
+    explicit: Option<&Path>,
+    environment: Option<&Path>,
+    cwd: &Path,
+    allow_recovery: bool,
+) -> AppResult<PathBuf> {
+    let recognized = |path: &Path| {
+        path.join("knowmesh.yaml").is_file()
+            || (allow_recovery && path.join(".knowmesh/transactions").is_dir())
+    };
     if let Some(path) = explicit.or(environment) {
         let path = if path.is_absolute() {
             path.to_owned()
         } else {
             cwd.join(path)
         };
-        if !path.join("knowmesh.yaml").is_file() {
+        if !recognized(&path) {
             return Err(workspace_not_found());
         }
         return path.canonicalize().map_err(|_| workspace_not_found());
     }
     cwd.ancestors()
-        .find(|path| path.join("knowmesh.yaml").is_file())
+        .find(|path| recognized(path))
         .ok_or_else(workspace_not_found)?
         .canonicalize()
         .map_err(|_| workspace_not_found())
