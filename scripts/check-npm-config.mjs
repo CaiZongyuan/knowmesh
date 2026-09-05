@@ -28,7 +28,7 @@ if (!packages.ok) {
     check: 'npm_package_permissions', ok: true,
     visible_packages: permissions.length,
     writable_packages: permissions.filter(value => value === 'write' || value === 'read-write').length,
-    candidates: ['@knowmesh/cli', `@${username}/cli`].map(name => ({ name, permission: packages.data[name] ?? 'not-listed' })),
+    candidates: ['knowmesh'].map(name => ({ name, permission: packages.data[name] ?? 'not-listed' })),
     publish_verified: false,
   }));
 }

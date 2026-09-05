@@ -1,0 +1,24 @@
+{
+  "name": "knowmesh",
+  "version": "0.0.0-bootstrap.0",
+  "description": "KnowMesh project initialization release. CLI binaries are not included yet.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CaiZongyuan/knowmesh.git",
+    "directory": "packages/npm-cli"
+  },
+  "homepage": "https://github.com/CaiZongyuan/knowmesh",
+  "bugs": {
+    "url": "https://github.com/CaiZongyuan/knowmesh/issues"
+  },
+  "files": [
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "bootstrap"
+  }
+}
