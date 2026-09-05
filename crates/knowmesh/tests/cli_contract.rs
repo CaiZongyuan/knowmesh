@@ -4,7 +4,11 @@ use serde_json::Value;
 #[test]
 fn version_is_one_json_value_without_a_workspace_or_web() {
     let temp = tempfile::tempdir().unwrap();
-    let output = cargo_bin_cmd!("knowmesh").current_dir(temp.path()).arg("version").output().unwrap();
+    let output = cargo_bin_cmd!("knowmesh")
+        .current_dir(temp.path())
+        .arg("version")
+        .output()
+        .unwrap();
     assert!(output.status.success());
     assert!(output.stderr.is_empty());
     let value: Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -18,7 +22,10 @@ fn version_is_one_json_value_without_a_workspace_or_web() {
 
 #[test]
 fn unknown_commands_use_typed_stderr_and_leave_stdout_empty() {
-    let output = cargo_bin_cmd!("knowmesh").arg("not-a-command").output().unwrap();
+    let output = cargo_bin_cmd!("knowmesh")
+        .arg("not-a-command")
+        .output()
+        .unwrap();
     assert_eq!(output.status.code(), Some(2));
     assert!(output.stdout.is_empty());
     let value: Value = serde_json::from_slice(&output.stderr).unwrap();
@@ -30,10 +37,12 @@ fn unknown_commands_use_typed_stderr_and_leave_stdout_empty() {
 
 #[test]
 fn unsupported_output_formats_fail_instead_of_silently_changing_the_contract() {
-    let output = cargo_bin_cmd!("knowmesh").args(["version", "--format", "csv"]).output().unwrap();
+    let output = cargo_bin_cmd!("knowmesh")
+        .args(["version", "--format", "csv"])
+        .output()
+        .unwrap();
     assert_eq!(output.status.code(), Some(2));
     assert!(output.stdout.is_empty());
     let value: Value = serde_json::from_slice(&output.stderr).unwrap();
     assert_eq!(value["error"]["code"], "UNSUPPORTED_FORMAT");
 }
-

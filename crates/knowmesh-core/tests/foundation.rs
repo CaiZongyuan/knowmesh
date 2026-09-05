@@ -16,7 +16,12 @@ fn ids_are_stable_typed_strings_across_json_round_trips() {
 
 #[test]
 fn ids_reject_invalid_prefix_payload_and_ulid_overflow() {
-    for invalid in ["kn_", "kn_NOT_A_ULID", "kn_ZZZZZZZZZZZZZZZZZZZZZZZZZZ", "src_01ARZ3NDEKTSV4RRFFQ69G5FAV"] {
+    for invalid in [
+        "kn_",
+        "kn_NOT_A_ULID",
+        "kn_ZZZZZZZZZZZZZZZZZZZZZZZZZZ",
+        "src_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    ] {
         assert!(invalid.parse::<NodeId>().is_err(), "accepted {invalid}");
         assert!(serde_json::from_value::<NodeId>(serde_json::json!(invalid)).is_err());
     }
@@ -33,7 +38,10 @@ proptest! {
 
 #[test]
 fn hashes_and_timestamps_have_canonical_wire_formats() {
-    assert_eq!(sha256(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    assert_eq!(
+        sha256(b"abc"),
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
     let time: Timestamp = "2026-09-05T23:00:00+08:00".parse().unwrap();
     assert_eq!(time.to_string(), "2026-09-05T15:00:00Z");
     assert!("not-a-time".parse::<Timestamp>().is_err());
@@ -42,21 +50,30 @@ fn hashes_and_timestamps_have_canonical_wire_formats() {
 
 #[test]
 fn error_contract_preserves_machine_fields_and_exit_mapping() {
-    let error = AppError::new(ErrorType::Conflict, "STALE_PROPOSAL", "The proposal is stale.")
-        .with_hint("Create a new proposal.")
-        .with_param("proposal_id")
-        .with_details(serde_json::json!({"expected_generation": 3}))
-        .retryable(false);
+    let error = AppError::new(
+        ErrorType::Conflict,
+        "STALE_PROPOSAL",
+        "The proposal is stale.",
+    )
+    .with_hint("Create a new proposal.")
+    .with_param("proposal_id")
+    .with_details(serde_json::json!({"expected_generation": 3}))
+    .retryable(false);
     assert_eq!(error.exit_code(), 7);
-    assert_eq!(serde_json::to_value(&error).unwrap(), serde_json::json!({
-        "type": "conflict",
-        "code": "STALE_PROPOSAL",
-        "message": "The proposal is stale.",
-        "hint": "Create a new proposal.",
-        "retryable": false,
-        "param": "proposal_id",
-        "details": {"expected_generation": 3}
-    }));
-    assert_eq!(AppError::new(ErrorType::Cancelled, "RUN_CANCELLED", "Cancelled.").exit_code(), 130);
+    assert_eq!(
+        serde_json::to_value(&error).unwrap(),
+        serde_json::json!({
+            "type": "conflict",
+            "code": "STALE_PROPOSAL",
+            "message": "The proposal is stale.",
+            "hint": "Create a new proposal.",
+            "retryable": false,
+            "param": "proposal_id",
+            "details": {"expected_generation": 3}
+        })
+    );
+    assert_eq!(
+        AppError::new(ErrorType::Cancelled, "RUN_CANCELLED", "Cancelled.").exit_code(),
+        130
+    );
 }
-
