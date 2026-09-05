@@ -27,6 +27,7 @@ tempfile = "3"
 proptest = "1"
 assert_cmd = "2"
 regex = "1"
+url = { version = "2", features = ["serde"] }
 
 [workspace.lints.clippy]
 all = "warn"

@@ -1,4 +1,5 @@
 pub mod schema;
+pub mod source;
 pub(crate) mod transaction;
 pub mod workspace;
 

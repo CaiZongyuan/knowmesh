@@ -48,6 +48,11 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
 - Schema validation rejects cycles, ambiguous overrides, undefined relation
   endpoints, and invalid properties. Pack order does not change the schema hash.
   Detailed merge and property rules live in SPEC section 7.3.
+- Core Source Library plans managed/referenced/snapshot imports and soft removal.
+  Historical revisions cannot be rewritten; importing an already recorded hash
+  returns that revision without moving the current head. Reading content verifies
+  its size and SHA-256, including referenced files. Unchanged manifests round-trip
+  byte-for-byte. Source CLI/API and the real URL fetch adapter are still pending.
 
 Initialization now uses a durable file journal under `.knowmesh/transactions/`
 and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
@@ -65,6 +70,7 @@ KM-023, so the recovery workflow is not yet available through the CLI.
 | [KM-010 / #6](https://github.com/CaiZongyuan/knowmesh/issues/6) | Commits `658b109`, `6465a39`: missing workspace module and CLI init; invalid ignore paths cause partial writes | `cargo +stable test --workspace --locked`: 22 tests pass, including CLI dry-run/repeatability and workspace confinement |
 | [KM-011 / #7](https://github.com/CaiZongyuan/knowmesh/issues/7) | Commits `fb1ee40`, `cfe3307`: missing schema module, pack CLI, and clinical template | `cargo +stable test --workspace --locked`: 33 tests pass, including DAG/override errors, relation/property constraints, deterministic hash, and strict Clinical Preview |
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), file transaction layer | Commits `9d021cd`, `7a151f5`: missing coordinator, changed staging installed after preflight, reserved path aliases accepted | `cargo +stable test --workspace --locked`: 40 tests pass, including interruption after each replacement, recovery conflict preservation, staging revalidation, and writer exclusion |
+| [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), Source Library | Commits `794e5a8`, `e477c9c`: missing source model/store, unrelated files break enumeration, interrupted cleanup and case aliases fail | `cargo +stable test --workspace --locked`: 51 tests pass, including all storage modes, immutable revisions, soft removal, content integrity, portable transaction paths, and repeated cleanup |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

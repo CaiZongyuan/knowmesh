@@ -113,7 +113,7 @@ impl WorkspaceWriter {
         let mut paths = BTreeSet::new();
         for change in &changes {
             validate_canonical_path(&change.path)?;
-            if !paths.insert(change.path.clone()) {
+            if !paths.insert(path_key(&change.path)) {
                 return Err(error(
                     ErrorType::Validation,
                     "DUPLICATE_TRANSACTION_PATH",
@@ -255,24 +255,23 @@ impl WorkspaceWriter {
 
     pub fn mark_indexed(&self, id: &str) -> AppResult<()> {
         let mut manifest = load_manifest(&self.root, id)?;
-        if manifest.state == TransactionState::Indexed {
-            return Ok(());
-        }
-        if manifest.state != TransactionState::CanonicalCommitted {
-            return Err(recovery_required());
-        }
-        for change in &manifest.changes {
-            if file_hash(&checked_path(&self.root, &change.path)?)? != change.after_sha256 {
-                return Err(recovery_conflict());
+        if manifest.state != TransactionState::Indexed {
+            if manifest.state != TransactionState::CanonicalCommitted {
+                return Err(recovery_required());
             }
+            for change in &manifest.changes {
+                if file_hash(&checked_path(&self.root, &change.path)?)? != change.after_sha256 {
+                    return Err(recovery_conflict());
+                }
+            }
+            manifest.state = TransactionState::Indexed;
+            self.save_manifest(&manifest)?;
         }
-        manifest.state = TransactionState::Indexed;
-        self.save_manifest(&manifest)?;
         let staging = checked_path(&self.root, &PathBuf::from(".knowmesh/staging").join(id))?;
         if staging.exists() {
             fs::remove_dir_all(&staging).map_err(io_error)?;
+            sync_directory(staging.parent().ok_or_else(invalid_path)?)?;
         }
-        sync_directory(staging.parent().ok_or_else(invalid_path)?)?;
         Ok(())
     }
 
@@ -364,7 +363,7 @@ fn load_manifest(root: &Path, id: &str) -> AppResult<TransactionManifest> {
         {
             return Err(invalid_journal());
         }
-        if !paths.insert(&change.path)
+        if !paths.insert(path_key(&change.path))
             || change
                 .before_sha256
                 .as_ref()
@@ -463,6 +462,13 @@ fn validate_canonical_path(path: &Path) -> AppResult<()> {
         return Err(invalid_path());
     }
     Ok(())
+}
+
+fn path_key(path: &Path) -> String {
+    path.components()
+        .map(|c| c.as_os_str().to_string_lossy().to_lowercase())
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 #[cfg(unix)]

@@ -626,6 +626,8 @@ revisions:
 
 `revisions` 只允许追加。`current_revision_id` 可以切换，但历史 revision 不得被无提示覆盖或删除。
 
+`snapshot-url` revision 另存 `url` 字段，记录经网络适配器校验后的最终 HTTP(S) URL；不接受内嵌用户名或密码。`referenced` revision 的 `path` 是规范化绝对路径，读取时重新校验长度和 SHA-256，外部文件变化返回 `SOURCE_REVISION_CHANGED`。受管快照使用相对于来源目录的 `revisions/<revision_id>/original.<ext>` 路径，不允许指向其他 revision 或越过来源目录。
+
 `source.remove` 默认只在 manifest 写入可选 `removed_at`（RFC 3339 UTC），保留原始快照与所有引用；rebuild 必须保留此移除状态。除历史/显式 ID 查询外，来源列表及新 compile 默认排除已移除来源；影响分析和历史证据定位仍可用。引用中的 Source/Revision 不得物理删除；断言与综述只能通过独立 Proposal 更新。
 
 ### 8.3 Node Markdown
