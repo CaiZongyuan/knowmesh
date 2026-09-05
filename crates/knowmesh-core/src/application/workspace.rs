@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -7,6 +7,14 @@ use crate::{
     canonical::workspace::{self, InitOptions, InitReport},
     error::AppResult,
 };
+
+pub fn load(
+    explicit: Option<&Path>,
+    environment: Option<&Path>,
+    cwd: &Path,
+) -> AppResult<workspace::Workspace> {
+    workspace::Workspace::load(&workspace::resolve_workspace(explicit, environment, cwd)?)
+}
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

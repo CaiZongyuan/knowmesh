@@ -8,6 +8,7 @@ use clap::{Parser, Subcommand, ValueEnum, error::ErrorKind};
 use knowmesh_core::{
     application::{
         operations,
+        schema::{self, PackInput},
         workspace::{self, InitInput},
     },
     domain::{RunId, WorkspaceId},
@@ -64,6 +65,7 @@ enum Command {
 enum SchemaCommand {
     List,
     Command { operation: String },
+    Pack { id: String },
 }
 
 impl Command {
@@ -77,6 +79,9 @@ impl Command {
             Self::Schema {
                 command: SchemaCommand::Command { .. },
             } => "schema.command",
+            Self::Schema {
+                command: SchemaCommand::Pack { .. },
+            } => "schema.pack",
         }
     }
 }
@@ -176,6 +181,21 @@ fn execute(
         Command::Schema {
             command: SchemaCommand::Command { operation },
         } => serde_json::to_value(operations::describe(operation)?),
+        Command::Schema {
+            command: SchemaCommand::Pack { id },
+        } => {
+            let environment = std::env::var_os("KNOWMESH_WORKSPACE").map(PathBuf::from);
+            let cwd = std::env::current_dir().map_err(|_| {
+                AppError::new(
+                    ErrorType::Io,
+                    "CURRENT_DIRECTORY_UNAVAILABLE",
+                    "Cannot resolve the current directory.",
+                )
+            })?;
+            let workspace = workspace::load(root.as_deref(), environment.as_deref(), &cwd)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            serde_json::to_value(schema::pack(&workspace, &PackInput { id: id.clone() })?)
+        }
     };
     result.map(|data| (data, workspace_id)).map_err(|_| {
         AppError::new(

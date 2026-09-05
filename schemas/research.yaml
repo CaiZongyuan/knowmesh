@@ -57,18 +57,18 @@ node_types:
     icon: circle-dot
     properties: {}
 predicates:
-  proposes: {label: proposes, source_types: [Paper], target_types: [Model, Method, Hypothesis], directed: true, evidence_required: true}
-  uses: {label: uses, source_types: [Model, Method, Experiment, Paper], target_types: [Dataset, Method, Model, Gene], directed: true, evidence_required: true}
-  extends: {label: extends, source_types: [Model, Method], target_types: [Model, Method], directed: true, evidence_required: true}
-  compared_with: {label: compared with, source_types: [Model, Method], target_types: [Model, Method], directed: false, evidence_required: true}
+  proposes: {label: proposes, source_types: [Paper], target_types: [Model, Method, Hypothesis], directed: true, inverse: proposed_by, evidence_required: true}
+  uses: {label: uses, source_types: [Model, Method, Experiment, Paper], target_types: [Dataset, Method, Model, Gene], directed: true, inverse: used_by, evidence_required: true}
+  extends: {label: extends, source_types: [Model, Method], target_types: [Model, Method], directed: true, inverse: extended_by, evidence_required: true}
+  compared_with: {label: compared with, source_types: [Model, Method], target_types: [Model, Method], directed: false, inverse: compared_with, evidence_required: true}
   evaluated_on: {label: evaluated on, source_types: [Model, Method], target_types: [Benchmark, Dataset], directed: true, inverse: evaluates, evidence_required: true}
-  supports: {label: supports, source_types: [Paper, Finding, Experiment], target_types: [Finding, Hypothesis, Concept], directed: true, evidence_required: true}
-  contradicts: {label: contradicts, source_types: [Finding, Paper, Experiment], target_types: [Finding, Hypothesis], directed: true, evidence_required: true}
-  predicts: {label: predicts, source_types: [Model, Method], target_types: [Finding, Concept, CellType, Gene], directed: true, evidence_required: true}
-  targets: {label: targets, source_types: [Method, Experiment, Model], target_types: [Gene, CellType, Concept], directed: true, evidence_required: true}
-  affects: {label: affects, source_types: [Gene, Method, Experiment], target_types: [Gene, CellType, Concept], directed: true, evidence_required: true}
-  derived_from: {label: derived from, source_types: [Model, Dataset, Finding, Concept], target_types: [Paper, Model, Dataset, Experiment, Concept], directed: true, evidence_required: true}
-  cites: {label: cites, source_types: [Paper], target_types: [Paper], directed: true, evidence_required: true}
+  supports: {label: supports, source_types: [Paper, Finding, Experiment], target_types: [Finding, Hypothesis, Concept], directed: true, inverse: supported_by, evidence_required: true}
+  contradicts: {label: contradicts, source_types: [Finding, Paper, Experiment], target_types: [Finding, Hypothesis], directed: true, inverse: contradicted_by, evidence_required: true}
+  predicts: {label: predicts, source_types: [Model, Method], target_types: [Finding, Concept, CellType, Gene], directed: true, inverse: predicted_by, evidence_required: true}
+  targets: {label: targets, source_types: [Method, Experiment, Model], target_types: [Gene, CellType, Concept], directed: true, inverse: targeted_by, evidence_required: true}
+  affects: {label: affects, source_types: [Gene, Method, Experiment], target_types: [Gene, CellType, Concept], directed: true, inverse: affected_by, evidence_required: true}
+  derived_from: {label: derived from, source_types: [Model, Dataset, Finding, Concept], target_types: [Paper, Model, Dataset, Experiment, Concept], directed: true, inverse: origin_of, evidence_required: true}
+  cites: {label: cites, source_types: [Paper], target_types: [Paper], directed: true, inverse: cited_by, evidence_required: true}
 policies:
   review_mode: relaxed
   compiler_requires_evidence: true

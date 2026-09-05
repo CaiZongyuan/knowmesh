@@ -1,0 +1,35 @@
+id: clinical
+version: 1
+display_name: Clinical Preview
+extends: [base@1]
+node_types:
+  Disease: {label: Disease, color: '#DC2626', icon: activity}
+  Subtype: {label: Subtype, color: '#E11D48', icon: layers}
+  Symptom: {label: Symptom, color: '#D97706', icon: thermometer}
+  Finding: {label: Finding, color: '#059669', icon: check-check}
+  Test: {label: Test, color: '#0891B2', icon: test-tube}
+  Drug: {label: Drug, color: '#2563EB', icon: pill}
+  Treatment: {label: Treatment, color: '#0D9488', icon: heart-pulse}
+  Recommendation: {label: Recommendation, color: '#4F46E5', icon: list-checks}
+  Guideline: {label: Guideline, color: '#64748B', icon: book-open}
+  Contraindication: {label: Contraindication, color: '#BE123C', icon: ban}
+  Population: {label: Population, color: '#7C3AED', icon: users}
+  Outcome: {label: Outcome, color: '#16A34A', icon: chart-line}
+predicates:
+  has_symptom: {label: Has symptom, source_types: [Disease, Subtype], target_types: [Symptom], directed: true, inverse: symptom_of, evidence_required: true}
+  diagnosed_by: {label: Diagnosed by, source_types: [Disease, Subtype], target_types: [Test], directed: true, inverse: diagnoses, evidence_required: true}
+  has_finding: {label: Has finding, source_types: [Disease, Subtype, Test], target_types: [Finding], directed: true, inverse: finding_of, evidence_required: true}
+  treated_by: {label: Treated by, source_types: [Disease, Subtype], target_types: [Drug, Treatment], directed: true, inverse: treats, evidence_required: true}
+  recommends: {label: Recommends, source_types: [Guideline, Recommendation], target_types: [Test, Drug, Treatment], directed: true, inverse: recommended_by, evidence_required: true}
+  contraindicated_for: {label: Contraindicated for, source_types: [Drug, Treatment, Test], target_types: [Disease, Subtype, Population, Contraindication], directed: true, inverse: null, evidence_required: true}
+  applies_to: {label: Applies to, source_types: [Guideline, Recommendation, Treatment], target_types: [Disease, Subtype, Population], directed: true, inverse: null, evidence_required: true}
+  supported_by: {label: Supported by, source_types: [Recommendation, Treatment], target_types: [Finding, Outcome, Guideline], directed: true, inverse: supports, evidence_required: true}
+  conflicts_with: {label: Conflicts with, source_types: [Guideline, Recommendation], target_types: [Guideline, Recommendation], directed: false, inverse: conflicts_with, evidence_required: true}
+  supersedes: {label: Supersedes, source_types: [Guideline, Recommendation], target_types: [Guideline, Recommendation], directed: true, inverse: superseded_by, evidence_required: true}
+policies:
+  review_mode: strict
+  compiler_requires_evidence: true
+  synthesis_requires_citation: true
+  human_verification_required: true
+  allow_accept_all: false
+  allow_direct_apply: false

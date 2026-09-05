@@ -2,7 +2,7 @@
 
 基于 Rust CLI、规范 Markdown/YAML、SQLite 派生索引与 Proposal 审核的本地知识工作空间。
 
-**开发状态：** v0.1 正在实现。目前支持 `knowmesh init [path] --template research`、`knowmesh version`、`knowmesh schema list` 和 `knowmesh schema command <operation>`；完整导入、知识、搜索、图谱、Proposal 和可选 Web 工作流尚未发布。npm 初始化包不包含可执行程序。
+**开发状态：** v0.1 正在实现。目前支持 `knowmesh init [path] --template research`、`knowmesh version`、`knowmesh schema list`、`knowmesh schema command <operation>` 和 `knowmesh schema pack <id>`；完整导入、知识、搜索、图谱、Proposal 和可选 Web 工作流尚未发布。npm 初始化包不包含可执行程序。
 
 ```bash
 cargo run -p knowmesh -- init ./my-knowledge --name "My Research" --dry-run

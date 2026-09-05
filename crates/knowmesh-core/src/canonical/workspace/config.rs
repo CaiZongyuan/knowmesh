@@ -217,10 +217,10 @@ impl Default for ServerSettings {
 
 impl WorkspaceConfig {
     pub fn research(name: String, template: String) -> Self {
-        let packs = if template == "research" {
+        let packs = if ["research", "clinical"].contains(&template.as_str()) {
             vec![
                 "./schemas/base.yaml".into(),
-                "./schemas/research.yaml".into(),
+                format!("./schemas/{template}.yaml"),
             ]
         } else {
             vec!["./schemas/base.yaml".into()]

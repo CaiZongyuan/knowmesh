@@ -170,12 +170,12 @@ pub struct InitReport {
 
 pub fn initialize(root: &Path, options: &InitOptions) -> AppResult<InitReport> {
     if options.name.trim().is_empty()
-        || !["research", "general"].contains(&options.template.as_str())
+        || !["research", "general", "clinical"].contains(&options.template.as_str())
     {
         return Err(AppError::new(
             ErrorType::Validation,
             "INVALID_INIT_OPTIONS",
-            "Choose a name and the research or general template.",
+            "Choose a name and the research, general, or clinical preview template.",
         ));
     }
     let root = if root.is_absolute() {
@@ -207,6 +207,12 @@ pub fn initialize(root: &Path, options: &InitOptions) -> AppResult<InitReport> {
         files.push((
             "schemas/research.yaml",
             include_str!("../../../../../schemas/research.yaml").to_owned(),
+        ));
+    }
+    if options.template == "clinical" {
+        files.push((
+            "schemas/clinical.yaml",
+            include_str!("../../../../../schemas/clinical.yaml").to_owned(),
         ));
     }
     files.push((
@@ -325,7 +331,7 @@ pub fn initialize(root: &Path, options: &InitOptions) -> AppResult<InitReport> {
     })
 }
 
-fn read_bounded(path: &Path, max: u64) -> AppResult<Vec<u8>> {
+pub(crate) fn read_bounded(path: &Path, max: u64) -> AppResult<Vec<u8>> {
     let file = fs::File::open(path).map_err(io_error)?;
     let mut bytes = Vec::new();
     file.take(max + 1)

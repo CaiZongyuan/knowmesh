@@ -78,6 +78,9 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
         OperationDescriptor::read::<EmptyInput, VersionInfo>("version"),
         OperationDescriptor::read::<SchemaCommandInput, OperationDescriptor>("schema.command"),
         OperationDescriptor::read::<EmptyInput, Vec<OperationDescriptor>>("schema.list"),
+        OperationDescriptor::read::<super::schema::PackInput, crate::canonical::schema::SchemaPack>(
+            "schema.pack",
+        ),
     ]
 }
 
