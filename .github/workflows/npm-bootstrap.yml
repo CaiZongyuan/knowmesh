@@ -2,6 +2,11 @@ name: Initialize npm Package
 
 on:
   workflow_dispatch:
+    inputs:
+      cleanup_only:
+        description: Only remove the initialization release from the latest tag
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,7 +32,16 @@ jobs:
           node --input-type=module -e 'import fs from "node:fs"; import assert from "node:assert/strict"; const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); assert.equal(pkg.name, "knowmesh"); assert.equal(pkg.version, "0.0.0-bootstrap.0"); assert.equal(pkg.publishConfig.tag, "bootstrap"); assert.deepEqual(fs.readFileSync("LICENSE"), fs.readFileSync("../../LICENSE"));'
           npm pack --dry-run
       - name: Publish initialization release
+        if: ${{ !inputs.cleanup_only }}
         working-directory: packages/npm-cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --tag bootstrap --access public --provenance --ignore-scripts
+      - name: Keep initialization release off the latest tag
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          latest_version="$(npm view knowmesh dist-tags.latest --registry=https://registry.npmjs.org)"
+          if [ "$latest_version" = '0.0.0-bootstrap.0' ]; then
+            npm dist-tag rm knowmesh latest --registry=https://registry.npmjs.org
+          fi
