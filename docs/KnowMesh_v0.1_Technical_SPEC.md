@@ -1782,6 +1782,8 @@ Claim/Relation/Synthesis 的读取与 Search 输出增加派生字段 `freshness
 - 缺少快照、依赖缺失或当前索引未完整同步时为 `unknown`，不得显示“已是最新”。`current` 只表示已记录依赖未发生上述变化，不保证科学真实性或外部世界没有新研究。
 - 多来源对象任一已使用依赖变化就提示复核，但同时返回仍有效的其他 Evidence。状态完全从规范数据派生，删除 DB 后可重建，不覆盖人工 `reviewed` 或 assertion 生命周期。
 
+判定结果保留所有已记录的 `evidence_ids`，另用 `current_evidence_ids` 表示当前完整索引中未移除且 revision 仍为 head 的证据。索引未完整同步时后者为空。`freshness_reasons` 按 code 汇总、去重并稳定排序，附相关 `dependency_ids`；`unknown` 的优先级高于 `needs_review`，但已知变化原因仍保留。Core 判定规则已实现；SQLite/命令接入进度见 [开发文档](development.md#verified-behavior)。
+
 Ask 必须披露使用到的 `needs_review/unknown` 依赖。更新 Synthesis 时重新 Ask，并通过 `synthesis.propose` 创建新综述；v0.1 保留旧综述，不自动覆盖其正文或生成时依赖快照。
 
 ---

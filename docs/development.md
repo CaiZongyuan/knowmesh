@@ -128,6 +128,12 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   The flag cannot override workspace identity, migration checksum, or database
   version errors. Older databases currently require migration before rebuild;
   `sync` applies recognized migrations. Server connection draining is still pending.
+- Core freshness evaluation compares Source heads, removal state, and recorded
+  assertion hashes. It preserves all Evidence IDs, identifies evidence from
+  current sources separately, and derives deterministic reasons. Missing snapshots,
+  missing dependencies, or incomplete synchronization produce `unknown`, even if
+  another dependency has changed. Incomplete indexes cannot mark individual
+  Evidence as current. SQLite impact pagination and command integration are pending.
 
 Initialization now uses a durable file journal under `.knowmesh/transactions/`
 and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
@@ -157,6 +163,7 @@ KM-023 and their owning implementation issues.
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), connection coordination | Commits `3865c8c`, `a4ac6b8`: missing replacement guards and controlled maintenance connections | `cargo +stable test --workspace --locked`: 98 tests pass, including multiple writers, equivalent paths, read-only inspection, and guard lifetime |
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), atomic rebuild | Commits `8f13e4e`, `80eca4d`, `6f71b8d`: missing rebuild, CLI/preview validation gaps, and backup ordering deletes the latest backup | `cargo +stable test --workspace --locked`: 109 tests pass, including runtime recopy, corrupt-database preservation/discard, generation conflicts, failed-backup retry, retention, and simulated interruption at four replacement boundaries |
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), initialization recovery | Commit `42db30e`: doctor cannot reach recovery without a loadable configuration | `cargo +stable test --workspace --locked`: 113 tests pass, including every initialization file boundary, invalid configuration, environment/ancestor resolution, staging corruption, external conflicts, identity checks, and repeated repair |
+| [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), freshness rules | Commits `5b4190e`, `4e35f48`: missing freshness evaluation and incomplete indexes mark evidence as current | `cargo +stable test --workspace --locked`: 118 tests pass, including independent evidence preservation, snapshot/hash comparison, missing dependencies, deterministic reasons, and incomplete-index precedence |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
@@ -175,6 +182,8 @@ The [connection-guard CI run](https://github.com/CaiZongyuan/knowmesh/actions/ru
 passed on all three operating systems for commit `6ef5f2f`.
 The [atomic-rebuild CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33999413554)
 passed on all three operating systems for commit `18d6232`.
+The [initialization-recovery CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33999792619)
+passed on all three operating systems for commit `c97d2da`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked
