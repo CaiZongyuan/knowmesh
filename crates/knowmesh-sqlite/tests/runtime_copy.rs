@@ -7,7 +7,8 @@ use rusqlite::{Connection, params};
 
 fn runtime_fixture(path: &std::path::Path, revision_id: &str) {
     let db = Connection::open(path).unwrap();
-    db.execute_batch("PRAGMA foreign_keys=ON; BEGIN; PRAGMA defer_foreign_keys=ON;").unwrap();
+    db.execute_batch("PRAGMA foreign_keys=ON; BEGIN; PRAGMA defer_foreign_keys=ON;")
+        .unwrap();
     for (id, parent) in [("child", Some("parent")), ("parent", None)] {
         db.execute("INSERT INTO operation_runs(id,parent_run_id,operation,surface,actor,status,input_json,input_digest,created_at,updated_at) VALUES(?1,?2,'compile','cli','fixture','queued','{}','input','2026-09-05T00:00:00Z','2026-09-05T00:00:00Z')", params![id, parent]).unwrap();
     }
@@ -16,7 +17,8 @@ fn runtime_fixture(path: &std::path::Path, revision_id: &str) {
     db.execute("INSERT INTO idempotency_keys(key,operation,input_hash,run_id,state,response_json,status_code,created_at) VALUES('fixture-key','compile','input','child','completed','{\"output\":\"proposal\"}',200,'2026-09-05T00:00:00Z')", []).unwrap();
     db.execute("INSERT INTO audit_events(event_id,run_id,event_type,actor,created_at) VALUES('event','child','run.finished','fixture','2026-09-05T00:00:00Z')", []).unwrap();
     db.execute("INSERT INTO audit_events(seq,event_id,event_type,actor,created_at) VALUES(90,'deleted-event','fixture','fixture','2026-09-05T00:00:00Z')", []).unwrap();
-    db.execute("DELETE FROM audit_events WHERE seq=90", []).unwrap();
+    db.execute("DELETE FROM audit_events WHERE seq=90", [])
+        .unwrap();
     db.execute_batch("COMMIT;").unwrap();
 }
 
@@ -26,33 +28,84 @@ fn runtime_copy_preserves_rows_self_references_and_the_audit_sequence() {
     let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
     let path = temp.path().join(".knowmesh/index.sqlite3");
     let mut source = SqliteStore::open(&path).unwrap();
-    source.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    source
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
     source.reconcile(&snapshot).unwrap();
-    runtime_fixture(&path, snapshot.sources[0].manifest.current_revision_id.as_str());
+    runtime_fixture(
+        &path,
+        snapshot.sources[0].manifest.current_revision_id.as_str(),
+    );
     let next_path = temp.path().join(".knowmesh/index.next.sqlite3");
     let mut next = SqliteStore::open(&next_path).unwrap();
-    next.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    next.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
     next.reconcile(&snapshot).unwrap();
     let report = next.copy_runtime_from(&source).unwrap();
     assert_eq!(report.table_counts["operation_runs"], 2);
-    for table in ["proposals", "proposal_items", "idempotency_keys", "audit_events"] {
+    for table in [
+        "proposals",
+        "proposal_items",
+        "idempotency_keys",
+        "audit_events",
+    ] {
         assert_eq!(report.table_counts[table], 1);
     }
     assert_eq!(next.diagnostics().unwrap().foreign_key_violations, 0);
-    assert_eq!(next.logical_snapshot().unwrap(), source.logical_snapshot().unwrap());
+    assert_eq!(
+        next.logical_snapshot().unwrap(),
+        source.logical_snapshot().unwrap()
+    );
     let db = Connection::open(&next_path).unwrap();
-    assert_eq!(db.query_row("SELECT parent_run_id FROM operation_runs WHERE id='child'", [], |r| r.get::<_, String>(0)).unwrap(), "parent");
-    assert_eq!(db.query_row("SELECT source_revision_id FROM proposals", [], |r| r.get::<_, String>(0)).unwrap(), snapshot.sources[0].manifest.current_revision_id.to_string());
-    assert_eq!(db.query_row("SELECT response_json FROM idempotency_keys", [], |r| r.get::<_, String>(0)).unwrap(), "{\"output\":\"proposal\"}");
+    assert_eq!(
+        db.query_row(
+            "SELECT parent_run_id FROM operation_runs WHERE id='child'",
+            [],
+            |r| r.get::<_, String>(0)
+        )
+        .unwrap(),
+        "parent"
+    );
+    assert_eq!(
+        db.query_row("SELECT source_revision_id FROM proposals", [], |r| r
+            .get::<_, String>(0))
+            .unwrap(),
+        snapshot.sources[0].manifest.current_revision_id.to_string()
+    );
+    assert_eq!(
+        db.query_row("SELECT response_json FROM idempotency_keys", [], |r| r
+            .get::<_, String>(
+            0
+        ))
+        .unwrap(),
+        "{\"output\":\"proposal\"}"
+    );
     db.execute("INSERT INTO audit_events(event_id,event_type,actor,created_at) VALUES('new-event','fixture','fixture','2026-09-05T00:00:00Z')", []).unwrap();
     assert!(db.last_insert_rowid() > 90);
     // Refreshing the candidate uses the current runtime snapshot, without duplication.
     let db = Connection::open(&path).unwrap();
-    db.execute("UPDATE operation_runs SET status='cancelled' WHERE id='child'", []).unwrap();
+    db.execute(
+        "UPDATE operation_runs SET status='cancelled' WHERE id='child'",
+        [],
+    )
+    .unwrap();
     next.copy_runtime_from(&source).unwrap();
     let db = Connection::open(next_path).unwrap();
-    assert_eq!(db.query_row("SELECT status FROM operation_runs WHERE id='child'", [], |r| r.get::<_, String>(0)).unwrap(), "cancelled");
-    assert_eq!(db.query_row("SELECT count(*) FROM operation_runs", [], |r| r.get::<_, i64>(0)).unwrap(), 2);
+    assert_eq!(
+        db.query_row(
+            "SELECT status FROM operation_runs WHERE id='child'",
+            [],
+            |r| r.get::<_, String>(0)
+        )
+        .unwrap(),
+        "cancelled"
+    );
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM operation_runs", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
 }
 
 #[test]
@@ -61,9 +114,14 @@ fn missing_runtime_references_stop_copy_without_changing_either_database() {
     let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
     let path = temp.path().join(".knowmesh/index.sqlite3");
     let mut source = SqliteStore::open(&path).unwrap();
-    source.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    source
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
     source.reconcile(&snapshot).unwrap();
-    runtime_fixture(&path, snapshot.sources[0].manifest.current_revision_id.as_str());
+    runtime_fixture(
+        &path,
+        snapshot.sources[0].manifest.current_revision_id.as_str(),
+    );
     for file in &snapshot.files {
         if ["source", "source_blob", "node", "synthesis"].contains(&file.kind.as_str()) {
             std::fs::remove_file(temp.path().join(&file.path)).unwrap();
@@ -72,9 +130,27 @@ fn missing_runtime_references_stop_copy_without_changing_either_database() {
     let empty = CanonicalSnapshot::scan(&workspace).unwrap();
     let next_path = temp.path().join(".knowmesh/index.next.sqlite3");
     let mut next = SqliteStore::open(&next_path).unwrap();
-    next.bind_workspace(&workspace.config.workspace.id, &empty.schema_hash).unwrap();
+    next.bind_workspace(&workspace.config.workspace.id, &empty.schema_hash)
+        .unwrap();
     next.reconcile(&empty).unwrap();
-    assert_eq!(next.copy_runtime_from(&source).unwrap_err().code, "RUNTIME_REFERENCE_MISSING");
-    assert_eq!(Connection::open(next_path).unwrap().query_row("SELECT count(*) FROM operation_runs", [], |r| r.get::<_, i64>(0)).unwrap(), 0);
-    assert_eq!(Connection::open(path).unwrap().query_row("SELECT count(*) FROM operation_runs", [], |r| r.get::<_, i64>(0)).unwrap(), 2);
+    assert_eq!(
+        next.copy_runtime_from(&source).unwrap_err().code,
+        "RUNTIME_REFERENCE_MISSING"
+    );
+    assert_eq!(
+        Connection::open(next_path)
+            .unwrap()
+            .query_row("SELECT count(*) FROM operation_runs", [], |r| r
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        Connection::open(path)
+            .unwrap()
+            .query_row("SELECT count(*) FROM operation_runs", [], |r| r
+                .get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
 }

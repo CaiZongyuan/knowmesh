@@ -261,6 +261,10 @@ impl ProjectionStore for SqliteStore {
 
 impl SqliteStore {
     pub fn logical_snapshot(&self) -> AppResult<Value> {
+        let tx = self
+            .connection
+            .unchecked_transaction()
+            .map_err(database_error)?;
         let mut output = serde_json::Map::new();
         for table in [
             "sources",
@@ -270,8 +274,7 @@ impl SqliteStore {
             "evidence",
             "syntheses",
         ] {
-            let mut statement = self
-                .connection
+            let mut statement = tx
                 .prepare(&format!("SELECT canonical_json FROM {table} ORDER BY id"))
                 .map_err(database_error)?;
             let rows = statement

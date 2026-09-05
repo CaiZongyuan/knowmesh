@@ -3,6 +3,7 @@
 mod index;
 mod migrations;
 mod reconcile;
+mod runtime;
 
 use std::{
     path::{Path, PathBuf},

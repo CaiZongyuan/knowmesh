@@ -48,3 +48,8 @@ pub trait IndexStore: ProjectionStore {
     fn projection_state(&self) -> AppResult<ProjectionState>;
     fn diagnostics(&self) -> AppResult<DatabaseDiagnostics>;
 }
+
+#[derive(Debug, Serialize, JsonSchema)]
+pub struct RuntimeCopyReport {
+    pub table_counts: std::collections::BTreeMap<String, u64>,
+}
