@@ -1,8 +1,10 @@
 mod ids;
+mod knowledge;
 mod source;
 mod timestamp;
 
 pub use ids::*;
+pub use knowledge::*;
 pub use source::*;
 pub use timestamp::Timestamp;
 

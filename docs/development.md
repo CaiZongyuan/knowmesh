@@ -53,6 +53,11 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   returns that revision without moving the current head. Reading content verifies
   its size and SHA-256, including referenced files. Unchanged manifests round-trip
   byte-for-byte. Source CLI/API and the real URL fetch adapter are still pending.
+- Core parses and renders Node and Synthesis Markdown. Unchanged documents keep
+  their exact bytes; edited claims only replace their managed content. CommonMark
+  source spans distinguish markers/wiki links from code examples; lossless YAML
+  edits retain unknown frontmatter and comments. Citation validation checks
+  canonical Evidence IDs and never creates a missing dependency snapshot.
 
 Initialization now uses a durable file journal under `.knowmesh/transactions/`
 and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
@@ -71,6 +76,7 @@ KM-023, so the recovery workflow is not yet available through the CLI.
 | [KM-011 / #7](https://github.com/CaiZongyuan/knowmesh/issues/7) | Commits `fb1ee40`, `cfe3307`: missing schema module, pack CLI, and clinical template | `cargo +stable test --workspace --locked`: 33 tests pass, including DAG/override errors, relation/property constraints, deterministic hash, and strict Clinical Preview |
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), file transaction layer | Commits `9d021cd`, `7a151f5`: missing coordinator, changed staging installed after preflight, reserved path aliases accepted | `cargo +stable test --workspace --locked`: 40 tests pass, including interruption after each replacement, recovery conflict preservation, staging revalidation, and writer exclusion |
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), Source Library | Commits `794e5a8`, `e477c9c`: missing source model/store, unrelated files break enumeration, interrupted cleanup and case aliases fail | `cargo +stable test --workspace --locked`: 51 tests pass, including all storage modes, immutable revisions, soft removal, content integrity, portable transaction paths, and repeated cleanup |
+| [KM-013 / #9](https://github.com/CaiZongyuan/knowmesh/issues/9), [KM-014 / #10](https://github.com/CaiZongyuan/knowmesh/issues/10), canonical parsers | Commits `e82d34b`, `26209a8`: missing parsers and shared Evidence rejected | `cargo +stable test --workspace --locked`: 63 tests pass, including Unicode property tests, CRLF, managed-span preservation, YAML comments, shared evidence consistency, and synthesis citations |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

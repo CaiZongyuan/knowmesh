@@ -28,6 +28,8 @@ proptest = "1"
 assert_cmd = "2"
 regex = "1"
 url = { version = "2", features = ["serde"] }
+pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
+yaml-edit = { version = "0.3", default-features = false }
 
 [workspace.lints.clippy]
 all = "warn"

@@ -405,6 +405,8 @@ Evidence 必须绑定不可变 `source_revision_id`，并包含：
 - `extraction_method`: `parser | model | human`
 - `confidence`: 定位置信度，不代表医学/科学真实性
 
+同一 Evidence 可被多条 Claim/Relation 引用；规范文件中重复内嵌同一 `id` 时，全部字段必须一致，否则返回 `EVIDENCE_ID_CONFLICT`。单条 assertion 内不得重复列出同一 Evidence ID。
+
 若 `quote` 无法在该 revision 的规范化提取文本中匹配，Compiler 项必须进入 `invalid_evidence` warning，不得进入可 Apply 项。
 
 ### 6.6 状态机
@@ -723,6 +725,8 @@ items:
 - 未发生语义变化时，parse → render 必须 byte-identical。
 - 更新 managed block 时必须使用稳定排序：`id` 升序；不得每次重排整个文件。
 - 检测到重复/缺失 marker 时停止写入并返回 `INVALID_MANAGED_BLOCK`。
+- marker 由 CommonMark HTML 节点识别；代码示例中的 marker 文本不参与受管区域定位。渲染器按内容选择足够长的代码围栏，避免摘录中的反引号截断 YAML 块。
+- 更新 frontmatter 只替换发生变化的字段，保留未知字段与注释；完成编辑后必须重新解析并核对目标语义。
 
 ### 8.4 Node Link
 
