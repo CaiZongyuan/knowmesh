@@ -119,6 +119,9 @@ pub struct ClaimRecord {
 }
 
 impl ClaimRecord {
+    pub fn normalized_hash(&self) -> AppResult<String> {
+        semantic_hash(&(super::normalize_name(&self.statement), &self.qualifiers))
+    }
     pub fn validate(&self) -> AppResult<()> {
         if self.statement.trim().is_empty() || self.statement.len() > 16 * 1024 {
             return Err(knowledge_error(

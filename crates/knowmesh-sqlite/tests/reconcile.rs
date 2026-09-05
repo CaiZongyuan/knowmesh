@@ -6,11 +6,104 @@ use knowmesh_sqlite::SqliteStore;
 use rusqlite::Connection;
 
 #[test]
+fn removing_canonical_files_removes_all_their_projection_and_search_rows() {
+    let (temp, workspace) = support::fixture();
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let path = temp.path().join(".knowmesh/index.sqlite3");
+    let mut store = SqliteStore::open(&path).unwrap();
+    store
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
+    store.reconcile(&snapshot).unwrap();
+    for file in &snapshot.files {
+        if ["node", "synthesis", "source", "source_blob"].contains(&file.kind.as_str()) {
+            std::fs::remove_file(temp.path().join(&file.path)).unwrap();
+        }
+    }
+    let next = CanonicalSnapshot::scan(&workspace).unwrap();
+    let result = store.reconcile(&next).unwrap();
+    assert_eq!(result.generation, 2);
+    for rows in store
+        .logical_snapshot()
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .values()
+    {
+        assert!(rows.as_array().unwrap().is_empty());
+    }
+    let db = Connection::open(path).unwrap();
+    for table in [
+        "search_units",
+        "source_revisions",
+        "node_mentions",
+        "node_aliases",
+        "synthesis_evidence",
+    ] {
+        assert_eq!(
+            db.query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r
+                .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+    }
+}
+
+#[test]
+fn a_database_failure_rolls_back_paths_hashes_and_associations_together() {
+    let (temp, workspace) = support::fixture();
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let path = temp.path().join(".knowmesh/index.sqlite3");
+    let mut store = SqliteStore::open(&path).unwrap();
+    store
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
+    store.reconcile(&snapshot).unwrap();
+    let before = store.logical_snapshot().unwrap();
+    let db = Connection::open(path).unwrap();
+    db.execute_batch("CREATE TRIGGER reject_node BEFORE INSERT ON nodes BEGIN SELECT RAISE(ABORT, 'injected failure'); END;").unwrap();
+    let model = temp.path().join("knowledge/nodes/model-a.md");
+    let text = std::fs::read_to_string(&model).unwrap();
+    std::fs::write(
+        model,
+        text.replace("A fictional model.", "Changed summary."),
+    )
+    .unwrap();
+    let next = CanonicalSnapshot::scan(&workspace).unwrap();
+    assert!(store.reconcile(&next).is_err());
+    assert_eq!(store.generation().unwrap(), 1);
+    assert_eq!(store.logical_snapshot().unwrap(), before);
+    assert_eq!(
+        db.query_row(
+            "SELECT count(*) FROM nodes WHERE instr(canonical_path,char(0))>0",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0
+    );
+    assert_eq!(
+        db.query_row("SELECT normalized_hash FROM claims", [], |r| r
+            .get::<_, String>(0))
+            .unwrap(),
+        snapshot.claims[0].normalized_hash
+    );
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM claim_evidence", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+}
+
+#[test]
 fn reconcile_accepts_path_swaps_and_replacement_of_an_active_claim() {
     let (temp, workspace) = support::fixture();
     let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
     let mut store = SqliteStore::open(&temp.path().join(".knowmesh/index.sqlite3")).unwrap();
-    store.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    store
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
     store.reconcile(&snapshot).unwrap();
     let model_path = temp.path().join("knowledge/nodes/model-a.md");
     let dataset_path = temp.path().join("knowledge/nodes/dataset-b.md");
@@ -23,9 +116,14 @@ fn reconcile_accepts_path_swaps_and_replacement_of_an_active_claim() {
     let next = CanonicalSnapshot::scan(&workspace).unwrap();
     assert_eq!(store.reconcile(&next).unwrap().generation, 2);
     let mut rebuilt = SqliteStore::open(&temp.path().join(".knowmesh/rebuilt.sqlite3")).unwrap();
-    rebuilt.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    rebuilt
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
     rebuilt.reconcile(&next).unwrap();
-    assert_eq!(store.logical_snapshot().unwrap(), rebuilt.logical_snapshot().unwrap());
+    assert_eq!(
+        store.logical_snapshot().unwrap(),
+        rebuilt.logical_snapshot().unwrap()
+    );
 }
 
 #[test]
@@ -33,7 +131,9 @@ fn reconciliation_rejects_rewritten_history_even_when_the_blob_matches() {
     let (temp, workspace) = support::fixture();
     let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
     let mut store = SqliteStore::open(&temp.path().join(".knowmesh/index.sqlite3")).unwrap();
-    store.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    store
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
     store.reconcile(&snapshot).unwrap();
     let before = store.logical_snapshot().unwrap();
     let mut source = snapshot.sources[0].manifest.clone();
@@ -42,10 +142,17 @@ fn reconciliation_rejects_rewritten_history_even_when_the_blob_matches() {
     let revision = &mut source.revisions[0];
     revision.sha256 = knowmesh_core::domain::sha256(revised.as_bytes());
     revision.byte_size = revised.len() as u64;
-    std::fs::write(manifest_path.parent().unwrap().join(&revision.path), revised).unwrap();
+    std::fs::write(
+        manifest_path.parent().unwrap().join(&revision.path),
+        revised,
+    )
+    .unwrap();
     std::fs::write(manifest_path, serde_yaml::to_string(&source).unwrap()).unwrap();
     let next = CanonicalSnapshot::scan(&workspace).unwrap();
-    assert_eq!(store.reconcile(&next).unwrap_err().code, "IMMUTABLE_REVISION_CHANGED");
+    assert_eq!(
+        store.reconcile(&next).unwrap_err().code,
+        "IMMUTABLE_REVISION_CHANGED"
+    );
     assert_eq!(store.logical_snapshot().unwrap(), before);
     assert_eq!(store.generation().unwrap(), 1);
 }

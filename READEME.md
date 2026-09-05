@@ -10,6 +10,9 @@ the complete ingestion, knowledge, search, graph, proposal,
 and optional Web workflows are not released yet. The npm bootstrap package does
 not contain an executable.
 
+The Core library also provides canonical parsers, recoverable file transactions,
+and atomic SQLite projection reconciliation; their command workflows are in progress.
+
 ```bash
 cargo run -p knowmesh -- init ./my-knowledge --name "My Research" --dry-run
 cargo run -p knowmesh -- version

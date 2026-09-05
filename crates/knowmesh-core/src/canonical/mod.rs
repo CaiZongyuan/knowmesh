@@ -1,6 +1,7 @@
 mod markdown;
 pub mod node;
 pub mod schema;
+pub mod snapshot;
 pub mod source;
 pub mod synthesis;
 pub(crate) mod transaction;

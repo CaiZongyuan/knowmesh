@@ -1,6 +1,7 @@
 //! SQLite projection and runtime storage adapter for KnowMesh.
 
 mod migrations;
+mod reconcile;
 
 use std::{
     path::{Path, PathBuf},
