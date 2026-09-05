@@ -80,3 +80,55 @@ fn unsupported_output_formats_fail_instead_of_silently_changing_the_contract() {
     let value: Value = serde_json::from_slice(&output.stderr).unwrap();
     assert_eq!(value["error"]["code"], "UNSUPPORTED_FORMAT");
 }
+
+#[test]
+fn init_is_discoverable_dry_runnable_and_repeatable() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("workspace");
+    let planned = cargo_bin_cmd!("knowmesh")
+        .arg("init")
+        .arg(&root)
+        .args(["--name", "Research", "--dry-run"])
+        .output()
+        .unwrap();
+    assert!(
+        planned.status.success(),
+        "{}",
+        String::from_utf8_lossy(&planned.stderr)
+    );
+    let planned: Value = serde_json::from_slice(&planned.stdout).unwrap();
+    assert_eq!(planned["data"]["dry_run"], true);
+    assert!(!root.exists());
+    let first = cargo_bin_cmd!("knowmesh")
+        .arg("init")
+        .arg(&root)
+        .args(["--name", "Research"])
+        .output()
+        .unwrap();
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    let first: Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_eq!(first["meta"]["workspace_id"], first["data"]["workspace_id"]);
+    let again = cargo_bin_cmd!("knowmesh")
+        .arg("init")
+        .arg(&root)
+        .args(["--name", "Research"])
+        .output()
+        .unwrap();
+    assert!(again.status.success());
+    let again: Value = serde_json::from_slice(&again.stdout).unwrap();
+    assert_eq!(first["data"]["workspace_id"], again["data"]["workspace_id"]);
+    assert_eq!(again["data"]["created_paths"], serde_json::json!([]));
+    let schema = cargo_bin_cmd!("knowmesh")
+        .args(["schema", "command", "init"])
+        .output()
+        .unwrap();
+    assert!(schema.status.success());
+    let schema: Value = serde_json::from_slice(&schema.stdout).unwrap();
+    assert_eq!(schema["data"]["effect"], "canonical-write");
+    assert_eq!(schema["data"]["supports_dry_run"], true);
+    assert_eq!(schema["data"]["supports_idempotency"], true);
+}
