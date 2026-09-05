@@ -1,9 +1,9 @@
 # KnowMesh v0.1 技术规格（Technical SPEC）
 
 > 状态：Implementation Ready Draft  
-> 文档版本：0.1.1（产品目标 v0.1）  
+> 文档版本：0.1.2（产品目标 v0.1）\
 > 日期：2026-09-05  
-> 本次修订：CLI/Core 与 Web 独立构建、分发和升级；Web 为可选安装组件  
+> 本次修订：补齐检索评分、任务恢复、分阶段缓存、来源影响分析、研究目标、证据打包与工程门禁；加入固定版本源码参考\
 > 面向：产品负责人、架构师、Rust/前端/Agent 工程师、测试工程师  
 > 首个验证主题：Virtual Cell / AI4S 科研知识空间
 
@@ -12,6 +12,8 @@
 ## 0. 文档目的与规范用语
 
 本文档是 KnowMesh v0.1 的实现基线。开发者应能据此建立仓库、拆分 Issue、实现核心能力并完成验收，而不需要重新决定产品边界或基础架构。
+
+本文描述目标规格，不表示功能已经实现。参考源码的适用范围、固定版本和许可证见[附录 D](#附录-d参考实现与官方资料)；参考项目的行为不得覆盖本文的系统不变量。
 
 文中的规范词含义如下：
 
@@ -231,6 +233,7 @@ flowchart TD
 ```text
 my-knowledge-space/
 ├── knowmesh.yaml
+├── purpose.md                 # 可选研究目标；research 模板生成初始文件
 ├── schemas/
 │   ├── base.yaml
 │   └── research.yaml
@@ -271,10 +274,10 @@ my-knowledge-space/
 
 | 类别 | 内容 | 权威性 | 是否可重建 |
 |---|---|---|---|
-| FS-canonical | `knowmesh.yaml`、Schema Pack、Source manifest、受管原始快照、Node Markdown、Synthesis Markdown | 权威 | 否，必须备份/Git 管理 |
+| FS-canonical | `knowmesh.yaml`、可选 `purpose.md`、Schema Pack、Source manifest、受管原始快照、Node Markdown、Synthesis Markdown | 权威 | 否，必须备份/Git 管理 |
 | FS-derived | 提取文本、标准化中间文件、embedding cache | 非权威 | 是 |
 | DB-derived | Node/Claim/Relation/Evidence/Chunk/Search/Graph 索引 | 非权威 | 是 |
-| DB-runtime | Proposal、Run、幂等键、本地审计事件 | 运行状态 | 不能从 Markdown 重建；rebuild 必须尽力保留 |
+| DB-runtime | Proposal、Run（含输入、checkpoint、最终结果）、幂等键、本地审计事件 | 运行状态 | 不能从 Markdown 重建；rebuild 必须尽力保留 |
 
 **重要区别：** “SQLite 是派生索引”不代表其中每张表都由 Markdown 重建。Proposal/Run 是明确列出的运行态例外，但它们不能成为 accepted knowledge 的唯一载体。
 
@@ -287,6 +290,8 @@ v0.1 支持：
 - `snapshot-url`：下载单个 HTTP(S) 资源作为不可变快照；不递归抓取链接。
 
 每次内容 hash 改变必须创建新的 `SourceRevision`，不得原地覆盖旧 revision。
+
+向已有来源追加内容使用 `source add <path-or-url> --source-id <id>`，HTTP `source.add` 的同名 Input 字段为可选 `source_id`。必须校验来源存在且未 soft-remove，并沿用其 storage mode；新 hash 追加 revision 并切换 current revision，已登记的 hash 返回既有 revision 而不隐式切换 head。不传 source_id 时按新来源导入，不能凭相似文件名自动认定为同一论文版本。
 
 ### 5.4 ID、时间与哈希
 
@@ -543,6 +548,7 @@ workspace:
   name: Virtual Cell Research
   default_language: zh-CN
   template: research
+  purpose: ./purpose.md
 
 schema:
   packs:
@@ -582,6 +588,8 @@ server:
 
 配置中 `${ENV_NAME}` 只表示读取环境变量。CLI 不得把解析后的密钥写回文件、日志或错误详情。
 
+`workspace.purpose` 可省略；若指定，必须指向 workspace 内可读的文件，否则返回 configuration error。内容和使用边界见 [8.7 节](#87-workspace-研究目标)。
+
 ### 8.2 `source.yaml`
 
 ```yaml
@@ -611,6 +619,8 @@ revisions:
 ```
 
 `revisions` 只允许追加。`current_revision_id` 可以切换，但历史 revision 不得被无提示覆盖或删除。
+
+`source.remove` 默认只在 manifest 写入可选 `removed_at`（RFC 3339 UTC），保留原始快照与所有引用；rebuild 必须保留此移除状态。除历史/显式 ID 查询外，来源列表及新 compile 默认排除已移除来源；影响分析和历史证据定位仍可用。引用中的 Source/Revision 不得物理删除；断言与综述只能通过独立 Proposal 更新。
 
 ### 8.3 Node Markdown
 
@@ -735,6 +745,15 @@ related_nodes:
   - kn_01K4SCGPT...
 evidence_ids:
   - evd_01K4...
+dependency_snapshot:
+  version: 1
+  assertions:
+    - kind: claim
+      id: clm_01K4...
+      semantic_sha256: 0123456789abcdef...
+  source_heads:
+    - source_id: src_01K4...
+      revision_id: rev_01K4...
 ---
 
 # Perturbation model comparison
@@ -752,12 +771,42 @@ STATE focuses on ... [@evd_01K4...]
 
 引用语法使用 `[@evidence_id]`。渲染器根据 Evidence 生成脚注卡片，规范文件中不把易变的 `[1]` 序号作为身份。
 
+新生成 Synthesis 的 `dependency_snapshot` 必须保存回答实际使用的 Claim/Relation 的语义 hash，以及引用来源在生成时的 current revision；具体失效判断见 [14.11 节](#1411-来源更新与影响分析)。该快照在 `synthesis.propose` 时从 Ask run 复制，Apply 时不得用最新索引静默改写。仅标题、排版或文件路径变化不改变 assertion 的语义 hash。Parser 允许读取没有快照的人工/旧文件，但其 freshness 必须为 `unknown`。
+
 ### 8.6 Round-trip 与格式迁移
 
 - 每种规范格式都必须有独立 `version`。
 - Parser 必须拒绝高于当前支持版本的文件，不得按旧结构猜测。
 - Migration 必须是显式命令：`knowmesh migrate --to <version> --dry-run`。
 - Migration 必须先产生文件 Patch 预览；执行前自动复制受影响文件到 `.knowmesh/backups/<timestamp>/`。
+
+### 8.7 Workspace 研究目标
+
+Schema Pack 定义知识结构与策略；可选 `purpose.md` 定义 workspace 的研究范围、核心问题和比较维度。`init --template research` 生成以下结构，由用户通过文件编辑维护；v0.1 的 Compiler、Ask 和 Web 只读，不自动修改研究目标。
+
+```markdown
+---
+version: 1
+kind: workspace_purpose
+---
+
+# Research Purpose
+
+## Scope
+Virtual cell models for perturbation prediction.
+
+## Key Questions
+How do STATE and existing models generalize across cell types?
+
+## Comparison Dimensions
+Training data, perturbation coverage, evaluation splits, and data leakage.
+```
+
+- 除 `version/kind` 外，正文为普通 Markdown，不要求用户维护额外结构化对象；最大 16 KiB，超限返回 validation error，不静默截断。
+- Compiler/Ask 将内容作为单独的目标上下文，并记录文件 SHA-256；未配置时记录空值，全部工作流仍可用。
+- 目标只影响抽取重点及 Ask 检索规划，不作为 Evidence、事实来源或真实性判断。通用 `search` 保持显式 query/filter 语义，不隐式按 Purpose 过滤。
+- 不得因研究目标偏向某个假设而排除矛盾证据；来源中的指令不得改写 Purpose 或系统策略。
+- Purpose 变化使依赖它的模型阶段缓存失效，不触发后台模型调用，不自动修改已接受知识。新生成的 Proposal 仍需正常审核。
 
 ---
 
@@ -1019,6 +1068,10 @@ Canonical write 不是单一 SQLite 事务，必须使用可恢复文件事务�
 
 若第 6 步后进程崩溃，规范文件仍是权威。`doctor` 必须发现未完成 manifest，并建议/执行重新 reconcile。不得尝试把规范文件回滚到 SQLite 的旧状态。
 
+manifest 必须持久化每个目标的相对路径、操作类型、before/after hash 和可验证的 staged 内容；manifest 状态变更也采用 atomic write，并同步文件及支持该能力的平台目录。`prepared` 必须在第一个目标替换前可靠落盘。
+
+若在第 5 步的任意两个文件替换之间崩溃，恢复者必须先获取 workspace lock，逐文件比较 hash：已为 after 的跳过，仍为 before 的从 staging 前滚，其他内容视为外部修改并返回 `conflict/TRANSACTION_RECOVERY_CONFLICT`，保留全部恢复材料。创建文件以“不存在”为 before。尚未完成的事务恢复前，新的 Apply/sync/rebuild 必须停止；只读查询可返回上一次完整索引快照并标明 `recovery_required=true`。所有文件均达到 after 后才能 reconcile 并标记完成；不得把中间混合状态索引为成功。
+
 ### 10.7 Rebuild
 
 `rebuild` 不原地清空当前数据库：
@@ -1082,15 +1135,22 @@ knowmesh
 ├── status
 ├── sync
 ├── source
-│   ├── add <path-or-url>
+│   ├── add <path-or-url> [--source-id <id>]
 │   ├── list
 │   ├── get <source-id>
 │   ├── content <source-id-or-revision-id>
+│   ├── impact <source-id>
 │   └── remove <source-id>
 ├── compile
 │   └── source <source-id>
 ├── search <query>
 ├── ask <question>
+├── run
+│   ├── list
+│   ├── get <run-id>
+│   ├── pause <run-id>
+│   ├── cancel <run-id>
+│   └── resume <run-id>
 ├── node
 │   ├── get <node-id-or-name>
 │   ├── list
@@ -1140,11 +1200,15 @@ knowmesh
 | Operation | 关键输入 | 关键输出 | Effect | Dry-run | Idempotency |
 |---|---|---|---|---:|---:|
 | `init` | path、template、name | workspace metadata、created paths | canonical-write | 是 | 是 |
-| `source.add` | path/url、storage、metadata | Source、Revision、warnings | canonical-write | 是 | 是 |
+| `source.add` | path/url、可选 source_id、storage、metadata | Source、Revision、warnings | canonical-write | 是 | 是 |
 | `source.remove` | source id、mode | affected files/assertions | canonical-write | 是 | 是 |
+| `source.impact` | source id、revision/filter、cursor | affected assertions/syntheses、reasons、generation | read | 不适用 | 不适用 |
 | `source.compile` | source id、profile | Proposal、warnings、run | runtime-write | 否 | 是 |
 | `knowledge.search` | query、filters、limit | categorized hits、capabilities | read | 不适用 | 不适用 |
 | `knowledge.ask` | question、filters、budget | answer、citations、gaps、run | runtime-write | 不适用 | 是 |
+| `run.get/list` | run id/status、cursor | Run 状态、进度、错误、可执行恢复动作 | read | 不适用 | 不适用 |
+| `run.pause/cancel` | run id | Run、control request | runtime-write | 不适用 | 是 |
+| `run.resume` | run id | Run 与最终 output refs | runtime-write | 否 | 是 |
 | `graph.neighbors` | node、depth、filters | bounded Subgraph | read | 不适用 | 不适用 |
 | `graph.path` | from、to、direction、max depth | zero or more paths | read | 不适用 | 不适用 |
 | `relation.get/list` | relation/node/filter | typed relations、evidence refs | read | 不适用 | 不适用 |
@@ -1227,6 +1291,9 @@ knowmesh
 | `conflict` | 7 | `STALE_PROPOSAL`、`WORKSPACE_LOCKED` |
 | `model` | 8 | `STRUCTURED_OUTPUT_INVALID`、`CONTEXT_LIMIT` |
 | `confirmation` | 10 | `CONFIRMATION_REQUIRED` |
+| `cancelled` | 130 | `RUN_CANCELLED`（CLI Ctrl-C） |
+
+恢复相关 code：`conflict/RUN_ALREADY_ACTIVE`、`conflict/RUN_INPUT_CHANGED`、`conflict/TRANSACTION_RECOVERY_CONFLICT`、`validation/RUN_NOT_RESUMABLE`、`policy/RUN_BUDGET_EXHAUSTED`；具体条件见 [20.4 节](#204-operationrun)。
 
 ### 11.9 输入规则
 
@@ -1243,6 +1310,7 @@ knowmesh
 - `--dry-run` 返回精确的目标文件、before/after hash、数据库影响计数和 policy warning，不修改规范文件。
 - canonical/runtime write 命令接受 `--idempotency-key <string>`。
 - 同 key + 同 operation + 同 input hash：返回首次结果。
+- 长任务的 key 必须在首次模型调用前绑定唯一 run，重复请求读取该 run 的当前状态及已提交结果；显式恢复后仍指向同一 run，不启动第二个任务。此类 key 以 Run 为准，不能返回恢复前已过时的终态缓存。`run.resume` 是对该 run 的显式恢复，不是重新提交 compile/ask。
 - 同 key + 不同 input hash：返回 `conflict/IDEMPOTENCY_KEY_REUSED`。
 - `proposal.apply` 的幂等记录不得短期过期；重复 Apply 返回原 applied result。
 
@@ -1251,6 +1319,7 @@ knowmesh
 - 所有 list/search 命令使用 opaque cursor，不暴露 offset 语义。
 - 默认 `limit=20`，最大 `limit=100`。
 - cursor 至少编码 sort key、record id、query fingerprint；改变 query/filter 后旧 cursor 返回 `CURSOR_QUERY_MISMATCH`。
+- Search cursor 还必须绑定 indexed generation、排名配置和实际参与通道；任一变化返回 `conflict/CURSOR_STALE`，由调用者重新开始查询，避免翻页时重排或重复。
 
 ### 11.12 Raw 输出例外
 
@@ -1440,6 +1509,25 @@ pub struct ParsedSource {
 - Chunk ID 基于 owner revision + ordinal + content hash；Chunk 是派生数据，重建可变化。
 - Evidence locator 不得依赖 Chunk ID。
 
+### 13.6 分阶段缓存与失效
+
+缓存属于 FS-derived；缓存命中不能代替 Schema/Evidence 校验、Proposal 审核或 Apply 冲突检查。键由版本化结构的规范 JSON 序列化后计算 SHA-256，不拼接含义不明的字符串；不包含密钥。各阶段必须至少覆盖以下依赖：
+
+| 阶段 | 缓存键依赖 |
+|---|---|
+| Parse/Normalize | source revision 与 blob hash、parser/normalizer 名称、版本、配置 |
+| Chunk | 解析产物 hash、chunker/tokenizer 版本及参数 |
+| Candidate Extract | revision、实际输入 blocks/hash、prompt/schema/Purpose hash、provider/model/profile 与 sampling 参数 |
+| Entity Resolution/Dedup/Conflict | 候选 hash、检索 query/filter、索引 generation、实际知识上下文 hash、规则版本及模型配置 |
+| Embedding | 实际发送文本的 hash、provider/model/dimensions、预处理及 embedding profile config hash |
+
+- 缓存 manifest 记录产物路径、hash、阶段版本与依赖摘要；命中前验证产物存在、hash 正确且可解析。缺失、损坏或版本不支持即 miss；失败或取消的半成品不得标记为完成。
+- 文件缓存通过临时文件 + atomic rename 写入，checkpoint 仅引用已持久化的完整产物。恢复发现产物丢失时，从最早缺失阶段重算，遵守原 run 的累计预算。
+- 修改 prompt、schema、Purpose 或 provider 配置必须使相应阶段失效；不受影响的解析或 embedding 可复用。v0.1 可保守使用 indexed generation 使知识相关阶段失效，不要求实现细粒度依赖缓存。
+- Embedding 复用不使用 chunk ordinal、文件名或 locator 作为身份。若标题等上下文实际发送给 provider，它们必须计入文本 hash；返回向量必须校验维度、有限值和 profile 一致性。
+- 跨 revision 复用相同输入的向量时，为新 Chunk/Search Unit 建立独立索引映射。Evidence 仍须在新 revision 上重新定位、校验并生成身份，不能沿用旧 revision 的 quote/offset 绑定。
+- 缓存丢失可导致重新调用 provider；不能保证远端请求仅计费一次。成功 checkpoint 的复用保证和恢复限制见 [20.4 节](#204-operationrun)。
+
 ---
 
 ## 14. Knowledge Compiler
@@ -1463,7 +1551,7 @@ flowchart TD
     I --> J["Canonical Apply"]
 ```
 
-每阶段写入 `operation_runs` checkpoint。失败重试从最近完整 checkpoint 开始，不重复已完成且 input/config hash 相同的模型调用。
+每阶段写入 `operation_runs` checkpoint。失败重试从最近完整且产物可验证的 checkpoint 开始；缓存规则见 [13.6 节](#136-分阶段缓存与失效)，任务状态与恢复契约见 [20.4 节](#204-operationrun)。Compiler 的并发解析/模型调用可以按配置执行，Proposal 持久化必须校验 run attempt；只有显式 Apply 才进入串行 canonical write。
 
 ### 14.3 Compiler Input
 
@@ -1486,6 +1574,8 @@ flowchart TD
 - `entities`：只抽实体及 mentions；
 - `assertions`：在已有/解析后的实体上抽 Claim/Relation；
 - `refresh`：针对新 revision 比较更新。
+
+`source.compile` 接受可选 `source_revision_id`；CLI 为 `--revision <id>`，省略时在创建 run 的事务中解析并固定 current revision。`refresh` 的比较范围与影响报告见 [14.11 节](#1411-来源更新与影响分析)。
 
 ### 14.4 模型结构化输出
 
@@ -1647,6 +1737,29 @@ crates/knowmesh-core/prompts/synthesis-v1.md
 
 每个 run 保存 prompt id、prompt sha256、model id、provider、sampling parameters、schema hash、token usage 与可用 cost。
 
+### 14.11 来源更新与影响分析
+
+来源更新必须区分“历史证据仍可定位”和“当前结论需要复核”。新 revision、切换 current revision 或 soft-remove 都不得自动删除旧 Evidence、撤回 Claim/Relation 或改写 Synthesis。
+
+依赖路径为 `SourceRevision → Evidence → Claim/Relation → Synthesis`，另包含 Synthesis 对 Evidence 的直接引用。使用现有外键关联及 Synthesis 的 `dependency_snapshot` 重建依赖，不把影响关系只保存在 runtime tables。
+
+`source.impact` / `knowmesh source impact <source-id> [--revision <revision-id>]` 必须：
+
+1. 默认检查来源全部 revision；显式 revision 必须属于该来源。返回匹配 Evidence、Claim、Relation、Synthesis 的数量及按 `(kind,id)` 稳定排序的分页 `items`。
+2. 每个 item 包含对象 ID、受影响 dependency IDs、`reasons`；结果包含 indexed generation。大影响面分页返回，不要求一次加载全部图。
+3. 仅报告已知引用与依赖，不把“受影响”解释为结论错误；其他独立来源的支持证据必须保留。`source.remove --dry-run` 复用同一影响分析。
+
+`knowmesh compile source <source-id> --mode refresh` 的输入固定目标 revision，并比较该来源历史 Evidence 关联的已接受 assertions；完全相同的主张可建议追加新 Evidence，改变或矛盾的主张生成显式 Proposal item。不能仅因新版本没有再次提及旧主张就自动 retract；无法对应的旧主张只进入复核 warning。Proposal Apply 继续检查 base generation 与 before hash。
+
+Claim/Relation/Synthesis 的读取与 Search 输出增加派生字段 `freshness: current | needs_review | unknown` 及 `freshness_reasons`：
+
+- `source_revision_behind`：所用 Evidence 的 revision 不再是该来源 current revision；`source_removed`：来源已 soft-remove。二者产生 `needs_review`，不改变 Evidence 的定位有效性。
+- Synthesis 还比较 `dependency_snapshot` 的 source heads 及 assertion 语义 hash；变化产生 `dependency_changed`。语义 hash 覆盖陈述/关系端点、qualifiers、lifecycle/evidence status、证据绑定及其内容，不含时间戳、路径或排版。
+- 缺少快照、依赖缺失或当前索引未完整同步时为 `unknown`，不得显示“已是最新”。`current` 只表示已记录依赖未发生上述变化，不保证科学真实性或外部世界没有新研究。
+- 多来源对象任一已使用依赖变化就提示复核，但同时返回仍有效的其他 Evidence。状态完全从规范数据派生，删除 DB 后可重建，不覆盖人工 `reviewed` 或 assertion 生命周期。
+
+Ask 必须披露使用到的 `needs_review/unknown` 依赖。更新 Synthesis 时重新 Ask，并通过 `synthesis.propose` 创建新综述；v0.1 保留旧综述，不自动覆盖其正文或生成时依赖快照。
+
 ---
 
 ## 15. Hybrid Search
@@ -1674,7 +1787,8 @@ flowchart TD
     W --> R["Weighted RRF"]
     T --> R
     V --> R
-    R --> B["Exact / Type Boost"]
+    R --> Z["Normalize by Channel Bound"]
+    Z --> B["Exact ID Tier / Bounded Boost"]
     B --> O["Categorized Results + Explain"]
 ```
 
@@ -1683,7 +1797,7 @@ flowchart TD
 不同通道分数不可直接相加。v0.1 使用 Weighted Reciprocal Rank Fusion：
 
 \[
-score(d)=\sum_{c \in channels}\frac{w_c}{k+rank_c(d)}
+raw(d)=\sum_{c \in channels(d)}\frac{w_c}{k+rank_c(d)}
 \]
 
 默认：
@@ -1693,13 +1807,23 @@ score(d)=\sum_{c \in channels}\frac{w_c}{k+rank_c(d)}
 - trigram FTS `w=0.8`
 - vector `w=1.0`
 
-然后应用有界 boost：
+`rank` 从 1 开始；未命中的通道贡献 0。每个通道先应用相同 filters，再获取独立候选集；默认每通道 100 条，配置最大 500 条，融合前按 `unit_id` 在通道内去重，不先截成用户请求的最终 limit。
 
-- exact ID：直接置顶；
+令 `C` 为本次实际成功执行的启用通道，包含成功但无命中的通道，不含关闭、不适用或失败的通道。必须先按固定理论上界归一化：
+
+\[
+B=\sum_{c \in C}\frac{w_c}{k+1},\qquad normalized(d)=raw(d)/B
+\]
+
+`k >= 1`，权重必须为有限正数；`B=0` 时无融合结果，不做除法。`normalized` 在 `[0,1]`。使用理论上界而非当前候选最大值，使相同通道内的分数不随候选页截断变化。然后应用有界 boost：
+
+- exact ID：通过直接 lookup 纳入候选，仍遵守 filters；用独立排序 tier 置顶，不伪造 RRF 分数；
 - exact canonical name：`+0.05`；
 - exact alias：`+0.04`；
 - title prefix：`+0.02`；
 - boost 总和最多 `0.08`，防止覆盖所有检索信号。
+
+`final_score = normalized + min(boost_sum, 0.08)`，范围为 `[0,1.08]`；同分按 `unit_id` 升序。精确 ID tier 高于此分数排序。不得把上述加分直接加到 raw RRF：默认三通道 raw 最高约 `0.0459`，直接加 `0.05` 会压过整个融合分数。通道降级后重新计算 B，并报告实际通道；分页一致性遵守 11.11 节。
 
 权重必须配置化并通过 retrieval eval 调整；不得凭单个 demo 随意修改默认值。
 
@@ -1745,7 +1869,7 @@ score(d)=\sum_{c \in channels}\frac{w_c}{k+rank_c(d)}
 }
 ```
 
-单个 hit 的 `explain` 至少包含 channel ranks、exact match、boost、最终 score；不得暴露原始 embedding。
+单个 hit 的 `explain` 至少包含 channel ranks/weights、raw RRF、normalization bound B、normalized score、exact ID tier、各项 boost、最终 score 和降级原因；不得暴露原始 embedding。知识对象同时按 14.11 节返回 freshness 信息。
 
 ### 15.6 安全与限制
 
@@ -1798,6 +1922,8 @@ Graph API 必须允许：
 
 v0.1 不做全局 community detection、PageRank 或图嵌入作为核心验收。若前端需要布局，使用 Graphology/ForceAtlas2 Web Worker；布局坐标是 UI cache，不写入规范知识。
 
+来源重叠、共同邻居、Adamic-Adar 或类型亲和分数只能作为后续“相关节点推荐”的候选信号，不得生成 accepted Relation、伪装成 Evidence 或改变 path 的证据语义。v0.1 不增加 recommendation edge kind；若后续引入，必须独立标记并经 retrieval eval 证明价值。
+
 ---
 
 ## 17. Ask 与 Synthesis
@@ -1838,7 +1964,16 @@ Question
   "inferences": [],
   "retrieval": {
     "query_variants": [],
-    "hit_ids": []
+    "hit_ids": [],
+    "bundle": {
+      "evidence_ids": [],
+      "source_counts": [],
+      "omitted": [],
+      "warnings": [],
+      "token_count": 0,
+      "token_count_estimated": false,
+      "truncated": false
+    }
   }
 }
 ```
@@ -1858,11 +1993,27 @@ Question
 
 - `--max-sources`
 - `--max-evidence`
+- `--max-source-share`
 - `--max-tokens`
 - `--max-cost`
 - `--timeout`
 
 超过预算返回部分结果时，`meta.partial=true` 并说明停止原因。
+
+`--max-tokens` 和 `--max-cost` 是该 run 所有模型调用及重试的累计上限，恢复不清零。每次调用还须满足 provider 的 context window，扣除 system prompt、Schema、Purpose、问题和预留输出后，剩余输入预算才可用于 evidence bundle。预算无法容纳必要引用时返回知识缺口或 partial，不截坏引用来凑长度。
+
+### 17.5 Evidence Bundle 组装
+
+Evidence bundle 由 Core 确定性构建，不让模型自行选择引用 ID。默认 `max_sources=12`、`max_evidence=30`，均为正整数且最大 100；`max_source_share=0.5`，有效范围 `(0,1]`，限制按 Source 聚合后的证据数量占比。规则如下：
+
+1. 从已过滤的检索命中解析 Claim/Relation 及其 Evidence；命中 Synthesis 时回溯原始 Evidence，不把生成的综述当成新的一手证据。v0.1 未有可用 Evidence 的原始 Chunk 只能供搜索和编译，不能直接伪造 `evd_*` 进入回答。
+2. 按 revision、定位区间和 quote hash 去除重复输入。同 revision 的重叠上下文只发送一次，但保留所有涉及的 Evidence IDs、各自完整 quote/locator 与 assertion 关联；不同 Source/Revision 不合并证据身份，也不把多个镜像宣称为独立研究。
+3. 对命中的 conflict group，补取本次 filters 内双方的证据，并优先为双方各保留一条可用 Evidence；仍遵守 sources/evidence/token/cost 硬上限。无法完整纳入时，在 `conflicts` 和 bundle `omitted` 中记录缺少的一方及 `filtered_out | unavailable | budget`，回答不得给出已解决争议的结论。
+4. 再按检索排名、Evidence ID 稳定选取候选，优先满足来源占比。单来源问题、来源不足或保留冲突双方需要突破占比时可放宽，并记录 `source_share_relaxed` 与原因；占比为软目标，不填入低相关证据凑数。
+5. 每条引用保留完整 quote，并可扩展同页/同 section 的相邻段落、表头或 caption。裁剪只作用于附加上下文，优先沿段落/行边界；必须在模型输入和 bundle 条目中标记 `truncated_start/truncated_end`。完整 quote 放不下时省略整条，记录原因。
+6. bundle manifest 至少保存最终 Evidence IDs、Source 计数、使用的 assertion 语义 hash/source heads、上下文 hash 与截断标记、token 估计、去重映射及省略原因。quote/上下文保存在受限本地 run 产物中，不写普通日志。该 manifest 是生成引用校验及 Synthesis 依赖快照的依据。
+
+引用 ID validator 仅接受最终 bundle 中实际送入模型的 Evidence IDs；被预算移除的 ID 即使存在数据库中也必须拒绝。`freshness` 警告随 evidence bundle 传入并在回答中披露；合法 ID 和精确 quote 只证明可追溯，回答是否被证据支持仍须按 22.6 节评测。
 
 ---
 
@@ -1887,10 +2038,16 @@ Question
 | GET | `/api/v1/sources` | `source.list` |
 | POST | `/api/v1/sources` | `source.add`；remote path 禁止 |
 | GET | `/api/v1/sources/{id}` | `source.get` |
+| GET | `/api/v1/sources/{id}/impact` | `source.impact`；revision/filter/cursor 为 query 参数 |
 | DELETE | `/api/v1/sources/{id}` | `source.remove` |
 | POST | `/api/v1/sources/{id}/compile` | `source.compile` |
 | POST | `/api/v1/search` | `knowledge.search` |
 | POST | `/api/v1/ask` | `knowledge.ask` |
+| GET | `/api/v1/runs` | `run.list` |
+| GET | `/api/v1/runs/{id}` | `run.get` |
+| POST | `/api/v1/runs/{id}/pause` | `run.pause` |
+| POST | `/api/v1/runs/{id}/cancel` | `run.cancel` |
+| POST | `/api/v1/runs/{id}/resume` | `run.resume` |
 | GET | `/api/v1/nodes` | `node.list` |
 | GET | `/api/v1/nodes/{id}` | `node.get` |
 | GET | `/api/v1/nodes/{id}/claims` | `claim.list` |
@@ -1910,6 +2067,8 @@ Question
 | GET | `/api/v1/syntheses/{id}` | `synthesis.get` |
 | GET | `/api/v1/schema/commands/{name}` | operation schema |
 | GET | `/api/v1/schema/packs/{id}` | schema pack |
+
+HTTP compile/ask/resume 在 run 已持久化并被本进程执行器接纳后返回 `202` 与 Run DTO，客户端轮询 `run.get` 取得终态及 output refs；浏览器关闭或断开连接不等于取消。显式 pause/cancel 返回 `200` 和最新 Run DTO，`control_action` 表示请求已登记，不能把尚在运行的任务报告为已停止。CLI 默认前台等待，详见 20.4 节。结果读取、输入 Schema 与状态规则在两个 Adapter 中相同。
 
 ### 18.3 本地安全
 
@@ -2018,6 +2177,7 @@ Graph 是核心工作区，Ask 是命令栏，不是占据中心的聊天产品�
 - 节点颜色/图标来自 Schema Pack；
 - edge 样式区分 accepted、uncertain、conflicting；
 - 相机位置和临时布局只存浏览器；
+- 按 workspace ID + node ID 缓存坐标；增量展开保留已有节点位置，不随机重排整个图。布局请求携带 graph generation/request ID，丢弃迟到的 Worker 结果；离开页面时释放 Worker/Sigma 资源；
 - URL 可分享当前 root、filters、selected id，不序列化整个图。
 
 ### 19.6 Node Inspector
@@ -2074,7 +2234,9 @@ Last updated
 - extraction status/warnings；
 - 解析内容预览与 page/section 导航；
 - 编译历史；
+- 当前 run 的阶段、进度、暂停/取消/恢复动作及累计预算；界面状态以 `run.get` 为准，刷新浏览器不重提任务；
 - 由该来源支持的 nodes/claims/relations；
+- 新 revision 或移除来源的分页影响清单；Claim/Relation/Synthesis 展示 freshness 原因，并保留原 revision 的证据入口；
 - “Compile to proposal” 操作。
 
 ### 19.9 Proposal Review 页面
@@ -2251,6 +2413,39 @@ v0.1 至少考虑：
 - typed error；
 - parent run id。
 
+v0.1 的可恢复长任务仅为 `source.compile` 和 `knowledge.ask`；不引入独立 daemon、分布式队列或多 workspace 调度。`run.pause/cancel/resume` 对其他 Operation 返回 `validation/RUN_NOT_RESUMABLE`；Apply/rebuild 的中断由文件事务恢复协议处理。
+
+#### 20.4.1 状态与执行所有权
+
+```text
+queued → running → succeeded | partial | failed
+           ├──→ paused
+           ├──→ cancelled
+           └──→ interrupted
+paused | interrupted | cancelled | failed(retryable) → queued   [explicit resume]
+```
+
+- Run DTO 还包含 `control_action: pause | cancel | null`、单调递增 `attempt`、`owner_active`、stage/progress、checkpoint、累计 usage/budget、output refs、typed error 和 `allowed_actions`；list 返回有界摘要，get 返回状态及已有最终结果。
+- 每个 run 的执行者必须持有 `.knowmesh/locks/run-<id>.lock` 的 OS 文件锁，并在 SQLite transaction 中以状态比较更新领取任务、递增 attempt。其他执行者返回 `conflict/RUN_ALREADY_ACTIVE`。不在模型调用期间持有 workspace canonical write lock。
+- checkpoint、usage 和最终 Proposal/Answer 的发布必须比较当前 attempt/status/control action。已暂停/取消/被新 attempt 取代的请求即使迟到成功，也不得发布结果；仍应记录已知计费用量。
+- 执行器启动或显式 `run.resume` 时，只有成功取得原 run 文件锁并复查数据库，才能将遗留 `running` 改为 `interrupted`。遗留 queued/interrupted 任务不因 `serve` 重启或 Web 刷新而自动消耗模型预算，等待显式 resume；无存活执行者的 queued/running 也可请求 resume，由领取事务完成恢复判定。`run.get/list` 只返回状态和执行者失联提示，不写入恢复状态。
+
+#### 20.4.2 控制、恢复与幂等
+
+- `run.pause/cancel` 在 SQLite 中登记请求。执行者在阶段边界及模型调用期间检查请求，并尝试中止网络调用；响应确认停止后才设置 `paused/cancelled`。对尚未领取的 queued 任务可直接停止；重复控制请求不得重复副作用，cancel 优先于 pause。
+- CLI `compile source`、`ask`、`run resume` 默认前台执行并只输出一个最终 JSON envelope；受控暂停/取消返回对应 Run 状态而非伪造结果。Ctrl-C 要求持久化 cancelled checkpoint，stdout 为空，以 `cancelled/RUN_CANCELLED` error envelope 写 stderr，退出码 130，并在 details 中提供已启动的 run ID。强制终止来不及落盘时按 interrupted 恢复。
+- `run.resume` 保持原 run ID，从最近完整 checkpoint 继续并递增 attempt；只有 `allowed_actions` 包含 resume 时可执行。成功/partial 终态不恢复，需新建任务；失败仅在错误标为 retryable 时可恢复。
+- 创建 run 时必须持久化可重放 Input DTO、固定 Source Revision、prompt/schema/Purpose/config hash；每个模型阶段调用前持久化实际用到的知识快照。密钥只记录环境变量引用，恢复时重新解析，不持久化 secret；输入及模型产物作为本地敏感 runtime 数据保存。
+- 恢复前重新验证上述依赖。原输入、版本或知识快照已不可用/不一致时返回 `conflict/RUN_INPUT_CHANGED`，保留旧 run 并提示新建任务；不得用新配置静默重跑旧 run。允许密钥轮换，只要 provider/profile 语义未变。
+- 幂等键在模型调用前原子绑定 run；同 key 重试只能观察同一 run。发布最终 Proposal/Answer、output refs 与成功 checkpoint 必须在同一 runtime transaction 提交。恢复发现最终输出已提交时直接返回，不重复创建 Proposal。
+
+#### 20.4.3 重试与预算
+
+- 默认仅对临时网络错误、408、429、5xx 重试，单个逻辑模型调用最多额外 2 次；使用有上限的指数退避和 jitter，429 遵守 `Retry-After`，超出剩余 timeout/budget 则停止。鉴权、无效输入、Schema/policy 错误不得盲目重试；structured-output repair 遵守 14.4 节的独立上限，并同样消耗总预算。
+- 重试计数、累计 tokens/cost 及剩余执行 timeout 随 checkpoint 持久化，暂停等待时间不计执行 timeout。resume 不清零，也不通过新 attempt 绕过重试上限；预算不足返回 `policy/RUN_BUDGET_EXHAUSTED`。
+- 请求发送前按输入及最大输出预留预算；成功后用实际 usage 结算。无法确定取消/超时请求是否计费时保留该预留量并标记 `usage_uncertain`。设置 max-cost 而模型价格未知时，要求配置价格或返回 configuration error，不能声称费用上限得到保证。
+- v0.1 不保证远端 provider 只执行或计费一次；进程可能在收到结果但尚未写 checkpoint 时崩溃。必须保证本地成功产物可验证时不重复调用、结果发布幂等、取消后的迟到结果不能写入知识。
+
 ### 20.5 Controlled evolution
 
 v0.1 不自动改 Prompt/Skill。改进流程必须是：
@@ -2351,6 +2546,8 @@ CI 必须：
 6. 比较 Node/Claim/Relation/Evidence/Synthesis 的 ID、内容、关系和 hash；
 7. 忽略 rowid、运行时间、缓存和 runtime tables。
 
+该测试还必须覆盖 soft-removed Source、Synthesis dependency snapshot 和派生 freshness：重建前后影响清单、原因与语义 hash 一致。runtime 数据另测可读旧 DB 的保留流程，不把重新生成的 Run 当作无损恢复。
+
 ### 22.3 Markdown round-trip
 
 每个 fixture：
@@ -2390,6 +2587,8 @@ v0.1 release gate：Compiler 自动生成且进入 Proposal 的 assertion，Evid
 
 比较 word-only、trigram-only、vector-only、hybrid 的 MRR、Recall@5/10、nDCG@10 与 latency。
 
+排名回归必须覆盖 raw/normalized/boost 的尺度、rank 从 1 开始、空/失败通道、单通道降级、精确 ID 与 filters、alias/prefix boost、候选池截断和 cursor stale。评测报告同时保留无 boost 基线；不得仅以某个名称查询被置顶证明混合检索质量。
+
 ### 22.6 Answer eval
 
 至少 10 个真实研究问题，人工评价：
@@ -2403,6 +2602,8 @@ v0.1 release gate：Compiler 自动生成且进入 Proposal 的 assertion，Evid
 
 未经 evidence ID validator 的模型输出不得进入最终回答。
 
+Evidence bundle fixtures 必须包含：同 revision 重叠片段、多来源相同摘录、单来源问题、互相矛盾的证据、表格边界截断、已过期依赖、只有原始 Chunk 无 Evidence，以及预算无法同时容纳冲突双方。断言最终引用均实际进入模型输入、省略原因可见、原始 quote 未被裁剪，并人工检查回答是否遗漏限制条件。
+
 ### 22.7 前端 E2E
 
 Playwright 必须覆盖：
@@ -2414,7 +2615,10 @@ Playwright 必须覆盖：
 - Proposal 逐项 review；
 - stale Proposal 被阻止；
 - Apply 后 Query cache 正确失效；
-- Ask 结果保存为 Synthesis Proposal。
+- Ask 结果保存为 Synthesis Proposal；
+- 关闭并重新打开页面后能读取同一 run，暂停/取消/恢复不重复提交 compile；
+- 来源新 revision 的影响清单和旧综述 freshness 提示可见；
+- 图谱增量展开保留已有坐标，迟到 Worker 结果不覆盖当前图。
 
 ### 22.8 分发与可选 Web 验收
 
@@ -2425,6 +2629,16 @@ Playwright 必须覆盖：
 - **可选 UI：** 单独解压 Web 包，`serve --web-dir` 完成兼容性检查后可通过 Web E2E；停止托管并移除 Web 后普通 CLI 仍然工作。
 - **错误处理：** 非法目录、资源缺失、API 版本不兼容、断线重连都有明确状态；API/静态资源 404 不被 SPA fallback 覆盖。
 - **独立升级：** 同 API 兼容范围内分别升级 Web 和后端可用；不兼容 Web 被阻止，CLI 不受影响；程序卸载/升级不改动规范知识文件。
+
+### 22.9 架构门禁与故障恢复
+
+- **写入边界：** Rust 模块可见性优先限制 canonical writer 与 projection mutator；Compiler 不持有 canonical 写能力，CLI/HTTP 不持有数据库连接。CI 检查 crate 依赖方向及未经登记的写入口；static guard 只是补充，不以正则扫描代替事务与重建测试。
+- **文件事务：** 在 manifest prepared 前后、每个目标 rename 后、canonical_committed 后、DB commit 后注入进程退出。覆盖多文件更新、创建、磁盘写失败、外部编辑冲突；恢复可重复执行，完整前滚或明确冲突，不能静默生成混合知识快照。
+- **任务恢复：** fake provider 覆盖暂停、取消、强制退出、迟到成功、同时 resume、输出提交后响应丢失、同幂等键重试、依赖变化和预算耗尽。断言单 run 只有一个有效 attempt，Proposal/Answer 只发布一次，控制请求和累计计费预留可恢复。
+- **缓存失效：** 输入不变但产物删除/损坏必须 miss；prompt/schema/Purpose/model/知识 generation 改变只复用依赖仍匹配的阶段；位置变化而实际 embedding 输入不变可复用，profile 或输入变化不得复用。
+- **来源刷新：** 两来源支持同一主张、论文新版本、旧版本未再提及、soft-remove、assertion retract/supersede 和 Synthesis 快照缺失均有 fixtures；只生成候选变更，不自动删除旧知识，rebuild 后仍能定位历史证据。
+
+这些检查属于现有 Unit/Integration/Contract/E2E 层，不新增独立测试平台。参考源码与测试入口见附录 D；测试用虚构或公开 fixture，不调用生产模型服务来制造故障。
 
 ---
 
@@ -2459,10 +2673,10 @@ Playwright 必须覆盖：
 | M1 Canonical | Workspace、Schema、Source/Node parser/writer | M0 | round-trip 与 invariant fixtures 通过 |
 | M2 SQLite | migrations、projection、sync/rebuild/doctor | M1 | 删除 DB 可无损重建 |
 | M3 Retrieval | FTS、中文 fallback、graph、optional vector | M2 | retrieval/perf baseline 达标 |
-| M4 Compiler | parser、model adapter、evidence verify、Proposal | M1–M3 | 标注集 locator validity 100% |
+| M4 Compiler | parser、model adapter、evidence verify、Proposal、可恢复 Run、refresh | M1–M3 | 标注集 locator validity 100%；中断/恢复与缓存失效 fixtures 通过 |
 | M5 CLI/Skills | 完整 command contract、embedded skills、loader | M2–M4 | Claude/Codex shell smoke tasks 通过 |
 | M6 HTTP/Web | OpenAPI client、Graph/Wiki/Search/Proposal UI | M3–M5 | Playwright 核心流通过 |
-| M7 Ask/Synthesis | evidence-backed answer 与保存闭环 | M3–M5 | CLI dogfooding 验收问题通过；Web 调用同一用例 |
+| M7 Ask/Synthesis | evidence bundle、依赖快照与保存闭环 | M3–M5 | CLI dogfooding 及证据预算/冲突 fixtures 通过；Web 调用同一用例 |
 | M8a Backend Release | 后端原生/npm 包、embedded Skills、docs、bench | M1–M5、M7 | headless 分发验收通过，无 Web 构建依赖 |
 | M8b Web Release | 独立静态资源包、manifest、兼容性与安装文档 | M6–M7、M8a | 可选 Web 安装及独立升级验收通过 |
 
@@ -2494,12 +2708,18 @@ Playwright 必须覆盖：
 - `schema command` 可读取 descriptor。
 - **DoD：** 未注册公共 handler 在 CI 中失败。
 
+#### KM-004：建立架构与写入边界门禁
+
+- Rust 可见性、crate 依赖检查、canonical/projection 写入口约束，遵守 22.9 节。
+- **DoD：** 故意加入 Compiler 直接写知识或 Adapter 直连数据库的 fixture 时检查失败；正常 reconcile/migration 可通过。
+
 ### Epic B — Canonical Workspace
 
 #### KM-010：实现 workspace init/config/load
 
 - `knowmesh init --template research`。
 - workspace resolution 与 env interpolation/redaction。
+- 加载可选 Purpose，research 模板生成初始文件；覆盖缺失、超限、版本和 workspace 路径边界。
 - **DoD：** 错误目录不自动初始化；fixture 可重复创建。
 
 #### KM-011：实现 Schema Pack loader/validator
@@ -2512,6 +2732,7 @@ Playwright 必须覆盖：
 
 - managed/referenced/snapshot-url。
 - immutable revision、SHA-256、MIME/size policy。
+- `source add --source-id` 追加 revision，soft-remove 状态写入 manifest。
 - **DoD：** 同 hash 幂等；新 hash 新 revision。
 
 #### KM-013：实现 Node Markdown parser/writer
@@ -2523,6 +2744,7 @@ Playwright 必须覆盖：
 #### KM-014：实现 Synthesis parser/writer
 
 - `[@evidence_id]` 引用解析与校验。
+- 从 Ask run 固化 dependency snapshot；缺失快照显示 unknown，不以当前索引补写历史。
 - **DoD：** 不存在 Evidence 阻止 Apply。
 
 ### Epic C — SQLite Projection
@@ -2546,7 +2768,12 @@ Playwright 必须覆盖：
 #### KM-023：实现 atomic rebuild 与 doctor
 
 - next DB、integrity check、swap、备份、transaction recovery。
-- **DoD：** 注入崩溃点后规范文件不丢失且可修复。
+- **DoD：** 22.9 节的逐文件崩溃点可前滚或报告外部修改冲突；runtime 复制和 freshness 重建一致。
+
+#### KM-024：实现来源影响查询与 freshness projection
+
+- `source.impact`、分页依赖遍历、assertion 语义 hash、Synthesis snapshot 比较。
+- **DoD：** 新 revision/soft-remove/断言变更触发正确原因；多来源保留历史证据，rebuild 前后结果一致。
 
 ### Epic D — Search & Graph
 
@@ -2558,12 +2785,13 @@ Playwright 必须覆盖：
 
 #### KM-031：实现 weighted RRF 与 explain
 
-- 多通道 rank、boost cap、稳定排序。
-- **DoD：** golden ranking tests。
+- 多通道候选集、理论上界归一化、exact ID tier、boost cap、explain 与稳定分页。
+- **DoD：** 15.3/22.5 节的尺度、降级和 cursor fixtures 通过，并保留无 boost 基线。
 
 #### KM-032：集成 sqlite-vec optional capability
 
 - static registration、profile/dimension rebuild、fallback。
+- 按实际 embedding 输入 hash + profile 复用向量，新 revision 保持独立索引与证据身份。
 - **DoD：** 有/无 extension 和有/无 key 四种组合均可启动。
 
 #### KM-033：实现 Graph neighbors/path/subgraph
@@ -2586,7 +2814,8 @@ Playwright 必须覆盖：
 #### KM-042：实现 chunker 与 cache
 
 - heading/page-aware、token/char fallback。
-- **DoD：** Evidence locator 与 chunk 变化解耦。
+- 实现 13.6 节的阶段 key、产物 hash 校验和原子缓存 manifest。
+- **DoD：** Evidence locator 与 chunk 变化解耦；缺失/损坏产物及配置变更不误命中缓存。
 
 #### KM-043：实现 ModelProvider 与 structured output
 
@@ -2612,6 +2841,16 @@ Playwright 必须覆盖：
 
 - closed patch ops、revision、stale detection、strict policy。
 - **DoD：** 未审、过期、hash mismatch 均阻止不安全 Apply。
+
+#### KM-048：实现可恢复 Run 与执行控制
+
+- Run 持久化输入/checkpoint/结果、OS 锁 + attempt、pause/cancel/resume、有限重试与累计预算。
+- **DoD：** 20.4/22.9 节的恢复、迟到结果及幂等 fixtures 通过；CLI 前台与 HTTP 202 使用同一执行器。
+
+#### KM-049：实现 source refresh Proposal
+
+- 固定新 revision，对照历史 assertions，复用 KM-024 影响报告，输出追加证据/替代/冲突候选。
+- **DoD：** 新版未再提及不自动 retract；所有候选引用在目标 revision 上重新校验，旧知识仅在 Apply 后改变。
 
 ### Epic F — Agent Surface
 
@@ -2640,6 +2879,7 @@ Playwright 必须覆盖：
 #### KM-060：实现 Axum `/api/v1` 与 OpenAPI
 
 - endpoint、status/error mapping、loopback security。
+- run 控制/轮询和 source impact 契约随 OpenAPI 生成客户端。
 - `serve` 默认 API-only；capabilities 返回 server/API contract version。
 - **DoD：** OpenAPI contract tests；未安装 Web 时服务正常。
 
@@ -2657,12 +2897,13 @@ Playwright 必须覆盖：
 #### KM-063：实现 Source/Wiki/Search 页面
 
 - 分组检索、source context、node inspector。
+- run 进度与恢复、分页影响清单、freshness 原因及历史证据入口。
 - **DoD：** Playwright flow。
 
 #### KM-064：实现 Sigma/Graphology 图谱页
 
-- filters、expand、path、edge evidence、worker layout。
-- **DoD：** 500/1000 上限仍可交互。
+- filters、expand、path、edge evidence、Worker layout 与按 workspace/node 缓存坐标。
+- **DoD：** 500/1000 上限仍可交互；增量展开和迟到布局结果不破坏当前视图。
 
 #### KM-065：实现 Proposal Review UI
 
@@ -2674,12 +2915,14 @@ Playwright 必须覆盖：
 #### KM-070：实现 evidence bundle 与 Ask synthesizer
 
 - retrieval、structured answer、citation validator、gap/conflict。
-- **DoD：** 无效 Evidence ID 无法进入输出。
+- 按 17.5 节去重、保留冲突双方、控制来源占比、完整 quote 与可见截断，持久化 bundle manifest。
+- **DoD：** 无效或已从 bundle 移除的 Evidence ID 无法进入输出，预算不足和单来源例外显式可见。
 
 #### KM-071：实现 Synthesis Proposal/save loop
 
 - ask run → proposal → canonical synthesis → reindex。
-- **DoD：** 新 synthesis 可再次被检索和引用。
+- 固化生成时依赖快照，来源变化后显示复核原因，重新生成时保留旧综述。
+- **DoD：** 新 synthesis 可再次被检索和引用；freshness 删除 DB 后可重建。
 
 #### KM-072：建立 Virtual Cell dogfooding workspace/evals
 
@@ -2718,6 +2961,10 @@ v0.1 只有同时满足以下条件才可发布：
 - [ ] Compiler 不直接写 canonical knowledge。
 - [ ] Compiler assertions 的 Evidence locator validity 为 100%。
 - [ ] stale Proposal 不可 Apply。
+- [ ] 分阶段缓存失效、任务恢复/累计预算、迟到结果和重复提交的验收通过。
+- [ ] source impact、refresh 与 Synthesis freshness 可用，历史证据在来源更新/移除后仍可定位。
+- [ ] RRF 归一化/boost/降级回归与 evidence bundle 的去重/预算/冲突评测通过。
+- [ ] 写入边界门禁和多文件事务故障注入通过，未完成事务不发布混合索引。
 - [ ] CLI 默认 JSON，stdout 无日志污染，error code 稳定。
 - [ ] 六个 Skills 已嵌入 binary，Loader smoke test 通过。
 - [ ] 无 embedding/key 时系统明确降级并保持核心可用。
@@ -2760,6 +3007,19 @@ v0.1 只有同时满足以下条件才可发布：
 | PDF parser 是否外置 | 内置 text-layer + adapter | 真实论文 extraction 失败率过高 |
 | 是否拆 Compiler worker | 同进程 checkpointed jobs | 长任务并发/隔离成为真实瓶颈 |
 | 是否支持 Clinical production | 仅 strict preview schema | 完成合规、审核、评测和医院部署方案 |
+
+### 26.3 v0.1.2 细化决策记录
+
+状态：已采纳为实现规格，待实现验证；不改变 26.1 节的基础架构。以下记录保留取舍，具体规则以所属章节为唯一契约。
+
+| 问题 | 选择与理由 | 未采用方案及代价 | 契约 |
+|---|---|---|---|
+| raw RRF 与 boost 尺度不一致 | 按成功通道的理论上界归一化，精确 ID 单独排序 | 按候选最大值归一化更贴近 GBrain，但分数随候选变化；直接加 raw boost 会主导排名 | 15.3 |
+| 长任务需要恢复且 Web 可选 | 同进程执行器、SQLite Run、每 run OS 锁和 attempt，显式恢复 | 前端内存队列不能服务独立 CLI；外置 worker/消息队列增加运维；本地方案不提供分布式执行 | 20.4 |
+| 来源变化后的旧结论如何处理 | 保留不可变证据，派生复核提示，通过 Proposal 更新 | 直接级联删除会丢失其他来源及历史；细粒度自动判定科学结论失效超出 v0.1 | 14.11 |
+| 研究目标与知识结构职责不同 | 可选 Purpose 与 Schema 分开；模型只读目标 | 每个目标新建 Schema 会重复类型定义；Purpose 不提供新的事实依据 | 8.7 |
+| 证据有引用但上下文仍可能片面 | Core 构建有预算、去重及冲突披露的 bundle | 直接 top-k 拼接简单，但易重复、截断或单来源偏置；规则增加可测的打包开销 | 17.5 |
+
 
 ---
 
@@ -2810,6 +3070,7 @@ CREATE TABLE sources (
     authors_json TEXT NOT NULL DEFAULT '[]',
     tags_json TEXT NOT NULL DEFAULT '[]',
     status TEXT NOT NULL,
+    removed_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 ) STRICT;
@@ -2879,6 +3140,7 @@ CREATE TABLE claims (
     subject_node_id TEXT NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
     statement TEXT NOT NULL,
     normalized_hash TEXT NOT NULL,
+    semantic_sha256 TEXT NOT NULL,
     lifecycle_status TEXT NOT NULL CHECK (lifecycle_status IN ('active','superseded','retracted')),
     evidence_status TEXT NOT NULL CHECK (evidence_status IN ('supported','uncertain','conflicting','unreviewed')),
     confidence REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
@@ -2922,6 +3184,7 @@ CREATE TABLE relations (
     evidence_status TEXT NOT NULL CHECK (evidence_status IN ('supported','uncertain','conflicting','unreviewed')),
     confidence REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
     qualifiers_json TEXT NOT NULL DEFAULT '{}',
+    semantic_sha256 TEXT NOT NULL,
     canonical_path TEXT NOT NULL,
     canonical_order INTEGER NOT NULL,
     created_at TEXT NOT NULL,
@@ -2985,6 +3248,7 @@ CREATE TABLE syntheses (
     canonical_path TEXT NOT NULL UNIQUE,
     content_sha256 TEXT NOT NULL,
     generated_run_id TEXT,
+    dependency_snapshot_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 ) STRICT;
@@ -3151,31 +3415,49 @@ CREATE TABLE operation_runs (
     operation TEXT NOT NULL,
     surface TEXT NOT NULL CHECK (surface IN ('cli','http','internal')),
     actor TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('running','succeeded','failed','cancelled','partial')),
-    checkpoint TEXT,
+    status TEXT NOT NULL CHECK (status IN ('queued','running','paused','interrupted','succeeded','failed','cancelled','partial')),
+    control_action TEXT CHECK (control_action IN ('pause','cancel')),
+    attempt INTEGER NOT NULL DEFAULT 0 CHECK (attempt >= 0),
+    checkpoint_json TEXT,
+    input_json TEXT NOT NULL,
     input_digest TEXT NOT NULL,
+    dependency_snapshot_json TEXT NOT NULL DEFAULT '{}',
+    config_hash TEXT,
+    purpose_sha256 TEXT,
     output_refs_json TEXT NOT NULL DEFAULT '[]',
+    output_json TEXT,
     model_json TEXT,
     prompt_id TEXT,
     prompt_sha256 TEXT,
     schema_hash TEXT,
-    usage_json TEXT,
+    usage_json TEXT NOT NULL DEFAULT '{}',
+    budget_json TEXT NOT NULL DEFAULT '{}',
+    retries_json TEXT NOT NULL DEFAULT '{}',
     error_json TEXT,
-    started_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    started_at TEXT,
     finished_at TEXT
 ) STRICT;
 
 CREATE INDEX idx_runs_operation_time ON operation_runs(operation, started_at DESC);
+CREATE INDEX idx_runs_status_time ON operation_runs(status, created_at DESC);
 
 CREATE TABLE idempotency_keys (
     key TEXT NOT NULL,
     operation TEXT NOT NULL,
     input_hash TEXT NOT NULL,
-    response_json TEXT NOT NULL,
-    status_code INTEGER NOT NULL,
+    run_id TEXT REFERENCES operation_runs(id) ON DELETE SET NULL,
+    state TEXT NOT NULL CHECK (state IN ('in_progress','completed')),
+    response_json TEXT,
+    status_code INTEGER,
     created_at TEXT NOT NULL,
     expires_at TEXT,
-    PRIMARY KEY (key, operation)
+    PRIMARY KEY (key, operation),
+    CHECK (
+      (state = 'in_progress' AND response_json IS NULL AND status_code IS NULL)
+      OR (state = 'completed' AND response_json IS NOT NULL AND status_code IS NOT NULL)
+    )
 ) STRICT;
 
 CREATE TABLE audit_events (
@@ -3199,6 +3481,9 @@ CREATE TABLE audit_events (
 - 删除 Source 若仍被 accepted Evidence 引用，默认 soft-remove；`ON DELETE RESTRICT` 防止破坏 provenance。
 - `node_mentions` 的 XOR CHECK 依赖 SQLite 对布尔表达式的整数语义，migration test 必须覆盖。
 - 搜索 vector state 与 vec0 rowid 必须在同一 transaction 更新；失败时可删除 state 并重新 embed。
+- `semantic_sha256` 从规范 assertion 与 Evidence 计算；`dependency_snapshot_json` 从 Synthesis frontmatter 投影。freshness 为派生查询结果，不新增不可重建的审核状态表。
+- Run 输入、模型上下文/产物、checkpoint、预算和 output 使用 `operation_runs` 的 JSON 列持久化；大产物可实现内部 runtime side table 并随 Run 同事务写入、随 rebuild 一起复制。不能仅保存指向可丢失缓存的路径来声称任务可恢复。
+- run 领取、控制请求、attempt 校验、最终产物发布与幂等键预留必须有 transaction/CAS 测试；恢复动作遵守 20.4 节，不依赖前端内存。
 
 ---
 
@@ -3278,6 +3563,24 @@ knowmesh synthesis propose run_01K... \
 knowmesh proposal apply prp_01K... --yes --format json
 ```
 
+### B.5 任务恢复与来源更新
+
+```bash
+knowmesh run list --status interrupted --format json
+knowmesh run get run_01K... --format json
+knowmesh run resume run_01K... --idempotency-key "resume-run-01K-1" --format json
+
+knowmesh source add ../papers/state-v2.pdf --source-id src_01K... --format json
+knowmesh source impact src_01K... --limit 20 --format json
+knowmesh compile source src_01K... \
+  --revision rev_01K_NEW... \
+  --mode refresh \
+  --idempotency-key "refresh-rev-01K-NEW" \
+  --format json
+```
+
+示例中的新 revision 必须先登记到 Source manifest；`--revision` 不会下载或创建 revision。恢复资格由 `run get` 的 `allowed_actions` 给出；若返回 `RUN_INPUT_CHANGED`，应保留旧 run 并以新幂等键创建任务。refresh 的输出仍需走 B.2 的 Proposal 审核流程。
+
 ---
 
 ## 附录 C：实现者检查清单
@@ -3296,13 +3599,44 @@ knowmesh proposal apply prp_01K... --yes --format json
 10. 是否新增依赖、外部服务或未来复杂度，但没有当前验收价值？
 11. 是否使后端构建/安装/CLI 使用依赖 Web 产物或 Node.js？npm 安装器自身的运行依赖除外。
 12. 是否改变前后端兼容范围？若是，是否同步更新 Web manifest、API contract version 和兼容性测试？
+13. 是否变更缓存依赖、Run 状态/预算或恢复语义？是否验证迟到结果和重复调用？
+14. 来源变化是否保留历史证据，并正确传播影响及 freshness？
+15. 借鉴参考源码时，是否遵守附录 D 的固定版本、许可证和适配边界？
 
 ---
 
 ## 附录 D：参考实现与官方资料
 
-- [GBrain repository](https://github.com/garrytan/gbrain)：Markdown brain、CLI、hybrid retrieval 与 Engine contract 的参考。
-- [GBrain System of Record](https://github.com/garrytan/gbrain/blob/master/docs/architecture/system-of-record.md)：规范文件与派生数据库边界。
+### D.1 参考快照与复用边界
+
+实现相应 Issue 前，应阅读 D.2 的源码与测试，并按本 SPEC 的 DTO、Proposal、Evidence 和恢复规则独立验证。下表记录本次核对的本地 HEAD；上游后续变化不自动成为 KnowMesh 的规范。
+
+| 项目 | 本地目录 | 核对 commit | 许可证与使用方式 |
+|---|---|---|---|
+| [GBrain](https://github.com/garrytan/gbrain) | `references/gbrain/` | `8c70f6255047a7647adb30b1d6333a48068d9fa5` | [MIT](https://github.com/garrytan/gbrain/blob/8c70f6255047a7647adb30b1d6333a48068d9fa5/LICENSE)；允许按许可证复用，复制代码需保留版权及许可声明 |
+| [LLM Wiki](https://github.com/nashsu/llm_wiki) | `references/llm_wiki/` | `e8082119649e6a8e1cf85eaf289adcabfdf39d4e` | [GPLv3](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/LICENSE)；KnowMesh 当前 MIT 路线以设计、行为及边界案例为参考，独立实现，不直接复制或翻译其代码/测试/提示词后作为 MIT 发布 |
+
+`references/` 是被 Git 忽略的本地阅读材料，不是构建、运行或 CI 依赖。以下链接固定到上述 commit，未下载本地源码的实现者也能定位对应版本。引入任何参考实现前必须核对其依赖与许可证；不自动引入 PGlite/Bun、Tauri/LanceDB、自动写 Wiki、多 Agent 运行时或后台自进化。
+
+### D.2 源码到实现任务的映射
+
+路径相对于对应项目根目录；本地阅读时添加 D.1 的目录前缀。源码表示参考项目的实现，最后一列才是 KnowMesh 的采用边界。
+
+| KnowMesh 章节 / Issue | 固定版本源码与测试入口 | 可借鉴内容及适配要求 |
+|---|---|---|
+| 15.3 / KM-031 | GBrain [src/core/search/hybrid.ts](https://github.com/garrytan/gbrain/blob/8c70f6255047a7647adb30b1d6333a48068d9fa5/src/core/search/hybrid.ts) | 融合后归一化、boost 归因和降级；使用本 SPEC 的理论上界与权重，不照搬全部排名信号 |
+| 20.4 / KM-048 | LLM Wiki [src/lib/ingest-queue.ts](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/lib/ingest-queue.ts)、[队列测试](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/lib/ingest-queue.test.ts)、[提交协调](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/lib/ingest-commit-coordinator.ts) | 恢复、取消、迟到结果及并发准备/串行提交；状态移入 Rust/SQLite，最终知识写入仍只通过 Proposal Apply |
+| 13.6 / KM-042 | LLM Wiki [src/lib/ingest-cache.ts](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/lib/ingest-cache.ts)、[缓存测试](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/lib/ingest-cache.test.ts) | 检查输入与产物；KnowMesh 额外覆盖阶段版本、配置及产物 hash，不仅检查文件存在 |
+| 9.4、13.6 / KM-032 | GBrain [src/core/embed-reuse.ts](https://github.com/garrytan/gbrain/blob/8c70f6255047a7647adb30b1d6333a48068d9fa5/src/core/embed-reuse.ts)、[复用测试](https://github.com/garrytan/gbrain/blob/8c70f6255047a7647adb30b1d6333a48068d9fa5/test/embed-reuse.test.ts) | 按稳定内容复用，避免位置变化重算；原实现面向 code chunks，KnowMesh 必须纳入实际发送文本与 profile，保持证据 revision 隔离 |
+| 14.11 / KM-024、KM-049 | LLM Wiki [src/lib/source-delete-decision.ts](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/lib/source-delete-decision.ts)、[删除决策测试](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/lib/source-delete-decision.test.ts) | 多来源依赖与误匹配案例；KnowMesh 使用 typed IDs 和影响报告，不照搬单来源页面自动删除规则；Synthesis freshness 是本 SPEC 的扩展 |
+| 8.7、14 / KM-010、KM-043 | LLM Wiki [src/lib/ingest.ts](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/lib/ingest.ts) | Purpose 上下文与分析/生成阶段分离；KnowMesh 使用结构化候选和确定性 Proposal builder，不接受模型输出任意文件块 |
+| 17.5 / KM-070 | GBrain [src/core/think/gather.ts](https://github.com/garrytan/gbrain/blob/8c70f6255047a7647adb30b1d6333a48068d9fa5/src/core/think/gather.ts) | 围绕查询选上下文、预算与截断标记；增加 KnowMesh 的完整 quote、来源占比、冲突披露和不可变 Evidence 绑定 |
+| 10.6、22.9 / KM-004、KM-023 | GBrain [scripts/check-system-of-record.sh](https://github.com/garrytan/gbrain/blob/8c70f6255047a7647adb30b1d6333a48068d9fa5/scripts/check-system-of-record.sh)、[重建一致性测试](https://github.com/garrytan/gbrain/blob/8c70f6255047a7647adb30b1d6333a48068d9fa5/test/e2e/system-of-record-invariant.test.ts) | 写入门禁与重建证明；适配 Rust 可见性/依赖检查，并补多文件事务逐步故障注入 |
+| 16、19.5 / KM-064 | LLM Wiki [src/components/graph/graph-view.tsx](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/components/graph/graph-view.tsx)、[布局 Worker](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/components/graph/graph-layout-worker.ts)、[关联分数](https://github.com/nashsu/llm_wiki/blob/e8082119649e6a8e1cf85eaf289adcabfdf39d4e/src/lib/graph-relevance.ts) | Worker/坐标缓存可参考；关联性不等于有证据的关系，社区检测仍延后 |
+
+### D.3 架构与官方资料
+
+- [GBrain System of Record](https://github.com/garrytan/gbrain/blob/8c70f6255047a7647adb30b1d6333a48068d9fa5/docs/architecture/system-of-record.md)：规范文件与派生数据库边界。
 - [Lark CLI](https://github.com/larksuite/cli)：Agent-friendly CLI、JSON envelope、dry-run、schema introspection 与 Skills。
 - [Lark CLI embedded content](https://github.com/larksuite/cli/blob/main/content_embed.go)：Skill/docs 随 binary 同版本嵌入。
 - [Lark CLI Error Contract](https://github.com/larksuite/cli/blob/main/errs/ERROR_CONTRACT.md)：typed error 与 Agent recoverability 参考。

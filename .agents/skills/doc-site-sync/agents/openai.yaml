@@ -1,0 +1,4 @@
+interface:
+  display_name: "Doc Site Sync"
+  short_description: "Sync documentation with an existing site"
+  default_prompt: "Use $doc-site-sync to update documentation sources and verify their site pages."
