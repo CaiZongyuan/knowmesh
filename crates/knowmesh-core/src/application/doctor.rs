@@ -263,13 +263,7 @@ fn git_status(root: &Path) -> AppResult<GitStatus> {
             runtime_tracked: false,
         });
     }
-    let ignored = run(&[
-        "check-ignore",
-        "--quiet",
-        "--no-index",
-        "--",
-        ".knowmesh/",
-    ])?;
+    let ignored = run(&["check-ignore", "--quiet", "--no-index", "--", ".knowmesh/"])?;
     let tracked = run(&["ls-files", "--", ".knowmesh/"])?;
     if !matches!(ignored.status.code(), Some(0 | 1)) || !tracked.status.success() {
         return Err(AppError::new(
