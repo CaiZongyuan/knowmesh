@@ -1203,7 +1203,7 @@ knowmesh
 ├── serve [--web-dir <path>]
 ├── rebuild
 ├── migrate
-├── doctor
+├── doctor [--repair [--dry-run|--yes]]
 └── version
 ```
 
@@ -1230,6 +1230,8 @@ knowmesh
 | `proposal.reject` | proposal id、reason | Proposal state | runtime-write | 是 | 是 |
 | `synthesis.propose` | ask run、title | Proposal | runtime-write | 是 | 是 |
 | `sync` | paths/all | reconcile report | derived-write | 是 | 是 |
+| `doctor` | workspace | diagnostics、recovery status、Git checks | read | 不适用 | 不适用 |
+| `doctor.repair` | `doctor --repair`、confirmation | recovery report、reconcile report | canonical-write | 是 | 是 |
 | `rebuild` | index selection | rebuild report | destructive-derived | 是 | 是 |
 | `migrate` | target version | file patches | canonical-write | 是 | 是 |
 
@@ -1318,7 +1320,7 @@ knowmesh
 ### 11.10 Dry-run、确认与幂等
 
 - 所有 `canonical-write` 和 `destructive-derived` 命令必须支持 `--dry-run`。
-- `proposal.apply`、`source.remove`、`rebuild`、`migrate` 实际执行必须带 `--yes`；否则返回 `confirmation/CONFIRMATION_REQUIRED`。
+- `proposal.apply`、`source.remove`、`rebuild`、`migrate`、`doctor --repair` 实际执行必须带 `--yes`；否则返回 `confirmation/CONFIRMATION_REQUIRED`。不带 `--repair` 的 `doctor` 只读诊断，不隐式创建、迁移或修复数据库。
 - `--dry-run` 返回精确的目标文件、before/after hash、数据库影响计数和 policy warning，不修改规范文件。
 - canonical/runtime write 命令接受 `--idempotency-key <string>`。
 - 同 key + 同 operation + 同 input hash：返回首次结果。

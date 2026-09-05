@@ -9,8 +9,8 @@ use crate::{
         transaction::{TransactionState, WorkspaceWriter, pending, recovery_required},
         workspace::Workspace,
     },
-    error::AppResult,
-    ports::{ProjectionStore, ReconcileReport},
+    error::{AppError, AppResult, ErrorType},
+    ports::{IndexStore, ProjectionStore, ReconcileReport},
 };
 
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
@@ -23,6 +23,7 @@ pub struct SyncInput {
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct SyncReport {
     pub dry_run: bool,
+    pub fast_path: bool,
     pub projection: Option<ReconcileReport>,
     pub files: Vec<FileManifest>,
     pub warnings: Vec<SnapshotWarning>,
@@ -47,6 +48,7 @@ pub fn preview(workspace: &Workspace) -> AppResult<SyncReport> {
     let snapshot = CanonicalSnapshot::scan(workspace)?;
     Ok(SyncReport {
         dry_run: true,
+        fast_path: false,
         projection: None,
         files: snapshot.files,
         warnings: snapshot.warnings,
@@ -58,10 +60,46 @@ pub fn synchronize(
     store: &mut dyn ProjectionStore,
 ) -> AppResult<SyncReport> {
     let _writer = WorkspaceWriter::acquire(&workspace.root)?;
+    scan_and_reconcile(workspace, store)
+}
+
+pub fn fast_synchronize(
+    workspace: &Workspace,
+    store: &mut dyn IndexStore,
+) -> AppResult<SyncReport> {
+    let _writer = WorkspaceWriter::acquire(&workspace.root)?;
+    let state = store.projection_state()?;
+    if state.workspace_id != workspace.config.workspace.id {
+        return Err(AppError::new(
+            ErrorType::Configuration,
+            "WORKSPACE_ID_MISMATCH",
+            "The index belongs to another workspace.",
+        ));
+    }
+    if !state.snapshot_sha256.is_empty()
+        && state.warnings.is_some()
+        && CanonicalSnapshot::metadata_matches(workspace, &state.schema_hash, &state.files)?
+    {
+        return Ok(SyncReport {
+            dry_run: false,
+            fast_path: true,
+            projection: Some(state.projection),
+            files: state.files,
+            warnings: state.warnings.unwrap_or_default(),
+        });
+    }
+    scan_and_reconcile(workspace, store)
+}
+
+fn scan_and_reconcile(
+    workspace: &Workspace,
+    store: &mut dyn ProjectionStore,
+) -> AppResult<SyncReport> {
     let snapshot = CanonicalSnapshot::scan(workspace)?;
     let projection = store.reconcile(&snapshot)?;
     Ok(SyncReport {
         dry_run: false,
+        fast_path: false,
         projection: Some(projection),
         files: snapshot.files,
         warnings: snapshot.warnings,
@@ -90,11 +128,15 @@ pub fn recovery_status(workspace: &Workspace) -> AppResult<RecoveryReport> {
     })
 }
 
-pub fn recover(
-    workspace: &Workspace,
-    store: &mut dyn ProjectionStore,
-) -> AppResult<RecoveryReport> {
+pub fn recover(workspace: &Workspace, store: &mut dyn IndexStore) -> AppResult<RecoveryReport> {
     let writer = WorkspaceWriter::acquire(&workspace.root)?;
+    if store.projection_state()?.workspace_id != workspace.config.workspace.id {
+        return Err(AppError::new(
+            ErrorType::Configuration,
+            "WORKSPACE_ID_MISMATCH",
+            "The recovery index belongs to another workspace.",
+        ));
+    }
     let transactions = writer.pending()?;
     if transactions.len() > 1 {
         return Err(recovery_required());

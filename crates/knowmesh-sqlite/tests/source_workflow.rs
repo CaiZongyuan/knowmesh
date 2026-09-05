@@ -2,7 +2,7 @@
 mod support;
 
 use knowmesh_core::{
-    application::{source, sync},
+    application::{doctor, source, status, sync},
     canonical::{
         snapshot::CanonicalSnapshot,
         source::{ImportInput, SourceLibrary},
@@ -78,11 +78,28 @@ fn source_import_preview_commit_and_recovery_share_the_same_transaction_path() {
     assert!(pending.recovery_required);
     assert_eq!(pending.transactions.len(), 1);
     assert_eq!(pending.transactions[0].state, "canonical_committed");
+    let last_complete =
+        status::get(&workspace, &mut store, &status::StatusInput::default()).unwrap();
+    assert!(last_complete.recovery_required);
+    assert_eq!(last_complete.projection.generation, 1);
+    assert_eq!(last_complete.projection.source_count, 1);
     assert_eq!(
         sync::synchronize(&workspace, &mut store).unwrap_err().code,
         "TRANSACTION_RECOVERY_REQUIRED"
     );
-    let recovered = sync::recover(&workspace, &mut store).unwrap();
+    let diagnostic = doctor::inspect(&workspace, doctor::IndexAccess::Ready(&store)).unwrap();
+    assert_eq!(diagnostic.generation, Some(1));
+    assert!(diagnostic.recovery.unwrap().recovery_required);
+    let repaired = doctor::repair(
+        &workspace,
+        &mut store,
+        &doctor::RepairInput {
+            dry_run: false,
+            yes: true,
+        },
+    )
+    .unwrap();
+    let recovered = repaired.recovery.unwrap();
     assert!(!recovered.recovery_required);
     assert_eq!(recovered.recovered_transaction_ids.len(), 1);
     assert_eq!(store.generation().unwrap(), 2);

@@ -140,11 +140,10 @@ impl<'a> SourceLibrary<'a> {
         Self { workspace }
     }
 
-    pub fn list(&self, include_removed: bool) -> AppResult<Vec<SourceFile>> {
+    pub(crate) fn manifest_paths(&self) -> AppResult<Vec<PathBuf>> {
         let root = checked_path(&self.workspace.root, Path::new("sources"))?;
         let entries = fs::read_dir(root).map_err(io_error)?;
-        let mut sources = Vec::new();
-        let mut ids = BTreeSet::new();
+        let mut paths = Vec::new();
         for entry in entries {
             let entry = entry.map_err(io_error)?;
             if entry.file_type().map_err(io_error)?.is_file() {
@@ -157,6 +156,17 @@ impl<'a> SourceLibrary<'a> {
             if !path.exists() {
                 continue;
             }
+            paths.push(relative);
+        }
+        paths.sort();
+        Ok(paths)
+    }
+
+    pub fn list(&self, include_removed: bool) -> AppResult<Vec<SourceFile>> {
+        let mut sources = Vec::new();
+        let mut ids = BTreeSet::new();
+        for relative in self.manifest_paths()? {
+            let path = checked_path(&self.workspace.root, &relative)?;
             let source = SourceFile::parse(relative, &read_bounded(&path, 16 * 1024 * 1024)?)?;
             if !ids.insert(source.manifest.id.clone()) {
                 return Err(source_error(

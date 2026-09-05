@@ -7,9 +7,10 @@ use std::{
 use clap::{Parser, Subcommand, ValueEnum, error::ErrorKind};
 use knowmesh_core::{
     application::{
+        doctor::{self, IndexAccess, RepairInput},
         operations,
         schema::{self, PackInput},
-        source, sync,
+        source, status, sync,
         workspace::{self, InitInput},
     },
     canonical::{source::ImportInput, workspace::Workspace},
@@ -32,6 +33,8 @@ struct Cli {
     format: OutputFormat,
     #[arg(long, global = true)]
     trace_id: Option<RunId>,
+    #[arg(long, global = true)]
+    no_sync: bool,
     #[command(subcommand)]
     command: Command,
 }
@@ -48,6 +51,7 @@ enum OutputFormat {
 #[derive(Subcommand)]
 enum Command {
     Version,
+    Status,
     Init {
         path: Option<PathBuf>,
         #[arg(long, default_value = "Knowledge Space")]
@@ -68,6 +72,14 @@ enum Command {
     Source {
         #[command(subcommand)]
         command: SourceCommand,
+    },
+    Doctor {
+        #[arg(long)]
+        repair: bool,
+        #[arg(long, requires = "repair")]
+        dry_run: bool,
+        #[arg(long, requires = "repair")]
+        yes: bool,
     },
 }
 
@@ -125,6 +137,7 @@ impl Command {
     fn operation_name(&self) -> &'static str {
         match self {
             Self::Version => "version",
+            Self::Status => "status",
             Self::Init { .. } => "init",
             Self::Schema {
                 command: SchemaCommand::List,
@@ -136,6 +149,8 @@ impl Command {
                 command: SchemaCommand::Pack { .. },
             } => "schema.pack",
             Self::Sync { .. } => "sync",
+            Self::Doctor { repair: true, .. } => "doctor.repair",
+            Self::Doctor { .. } => "doctor",
             Self::Source {
                 command: SourceCommand::Add { .. },
             } => "source.add",
@@ -185,7 +200,7 @@ pub fn run() -> u8 {
             start,
         );
     }
-    let (data, workspace_id) = match execute(&cli.command, cli.workspace) {
+    let (data, workspace_id) = match execute(&cli.command, cli.workspace, cli.no_sync) {
         Ok(data) => data,
         Err(error) => return fail(error, command, trace, start),
     };
@@ -215,11 +230,21 @@ pub fn run() -> u8 {
 fn execute(
     command: &Command,
     root: Option<PathBuf>,
+    no_sync: bool,
 ) -> Result<(serde_json::Value, Option<WorkspaceId>), AppError> {
     operations::describe(command.operation_name())?;
     let mut workspace_id = None;
     let result = match command {
         Command::Version => serde_json::to_value(operations::version()),
+        Command::Status => {
+            let workspace = load_workspace(root)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            serde_json::to_value(status::get(
+                &workspace,
+                &mut crate::runtime::open_store(&workspace)?,
+                &status::StatusInput { no_sync },
+            )?)
+        }
         Command::Init {
             path,
             name,
@@ -310,6 +335,41 @@ fn execute(
                             &input,
                         )?
                     }
+                }
+            };
+            serde_json::to_value(report)
+        }
+        Command::Doctor {
+            repair,
+            dry_run,
+            yes,
+        } => {
+            let workspace = load_workspace(root)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            let input = RepairInput {
+                dry_run: *dry_run,
+                yes: *yes,
+            };
+            if *repair {
+                doctor::validate_repair(&input)?;
+            }
+            let report = if *repair && !*dry_run {
+                doctor::repair(
+                    &workspace,
+                    &mut crate::runtime::open_store(&workspace)?,
+                    &input,
+                )?
+            } else {
+                let store = crate::runtime::inspect_store(&workspace);
+                let access = match &store {
+                    Ok(Some(store)) => IndexAccess::Ready(store),
+                    Ok(None) => IndexAccess::Missing,
+                    Err(error) => IndexAccess::Failed(error.clone()),
+                };
+                if *dry_run {
+                    doctor::preview_repair(&workspace, access)?
+                } else {
+                    doctor::inspect(&workspace, access)?
                 }
             };
             serde_json::to_value(report)

@@ -93,11 +93,24 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
     sync.supports_dry_run = true;
     sync.supports_idempotency = true;
     sync.policy = "canonical-projection".into();
+    let mut repair = OperationDescriptor::read::<
+        super::doctor::RepairInput,
+        super::doctor::DoctorReport,
+    >("doctor.repair");
+    repair.effect = EffectLevel::CanonicalWrite;
+    repair.supports_dry_run = true;
+    repair.supports_idempotency = true;
+    repair.policy = "confirmed-transaction-recovery".into();
     vec![
         init,
         source_add,
         source_remove,
         sync,
+        repair,
+        OperationDescriptor::read::<EmptyInput, super::doctor::DoctorReport>("doctor"),
+        OperationDescriptor::read::<super::status::StatusInput, super::status::StatusReport>(
+            "status",
+        ),
         OperationDescriptor::read::<EmptyInput, VersionInfo>("version"),
         OperationDescriptor::read::<SchemaCommandInput, OperationDescriptor>("schema.command"),
         OperationDescriptor::read::<EmptyInput, Vec<OperationDescriptor>>("schema.list"),

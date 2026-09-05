@@ -126,6 +126,68 @@ pub struct CanonicalSnapshot {
 }
 
 impl CanonicalSnapshot {
+    pub(crate) fn metadata_matches(
+        workspace: &Workspace,
+        schema_hash: &str,
+        files: &[FileManifest],
+    ) -> AppResult<bool> {
+        check_recovery(workspace, None)?;
+        check_workspace(workspace)?;
+        if Schema::load(workspace)?.hash != schema_hash {
+            return Ok(false);
+        }
+        let mut paths = BTreeSet::from([PathBuf::from("knowmesh.yaml")]);
+        paths.extend(markdown_files(workspace, "knowledge/nodes")?);
+        paths.extend(markdown_files(workspace, "knowledge/syntheses")?);
+        paths.extend(SourceLibrary::new(workspace).manifest_paths()?);
+        for reference in workspace
+            .config
+            .schema
+            .packs
+            .iter()
+            .filter(|path| !path.starts_with("builtin:"))
+            .chain(workspace.config.workspace.purpose.iter())
+        {
+            let absolute = confined_existing_path(&workspace.root, Path::new(reference))?;
+            paths.insert(
+                absolute
+                    .strip_prefix(&workspace.root)
+                    .map_err(|_| file_changed())?
+                    .to_owned(),
+            );
+        }
+        let indexed: BTreeSet<_> = files
+            .iter()
+            .filter(|file| file.kind != "source_blob")
+            .map(|file| file.path.clone())
+            .collect();
+        if paths != indexed {
+            return Ok(false);
+        }
+        for file in files {
+            let path = checked_path(&workspace.root, &file.path)?;
+            let metadata = match fs::metadata(path) {
+                Ok(metadata) => metadata,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+                Err(error) => return Err(io_error(error)),
+            };
+            let modified = metadata
+                .modified()
+                .map_err(io_error)?
+                .duration_since(UNIX_EPOCH)
+                .map_err(|_| file_changed())?
+                .as_nanos();
+            if !metadata.is_file()
+                || metadata.len() != file.byte_size
+                || modified != u128::from(file.mtime_ns)
+            {
+                return Ok(false);
+            }
+        }
+        check_recovery(workspace, None)?;
+        Ok(true)
+    }
+
     pub fn scan(workspace: &Workspace) -> AppResult<Self> {
         Self::scan_inner(workspace, None)
     }

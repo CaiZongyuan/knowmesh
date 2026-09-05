@@ -28,6 +28,24 @@ impl ProjectionStore for SqliteStore {
             ));
         }
         if previous_hash == snapshot.content_sha256 {
+            for file in &snapshot.files {
+                tx.execute(
+                    "UPDATE file_manifest SET mtime_ns=?1,byte_size=?2 WHERE path=?3 AND sha256=?4",
+                    params![
+                        file.mtime_ns,
+                        file.byte_size,
+                        path_text(&file.path)?,
+                        file.sha256
+                    ],
+                )
+                .map_err(database_error)?;
+            }
+            tx.execute(
+                "UPDATE workspace_state SET snapshot_warnings_json=?1 WHERE singleton=1",
+                [json_text(&snapshot.warnings)?],
+            )
+            .map_err(database_error)?;
+            tx.commit().map_err(database_error)?;
             return Ok(report(snapshot, generation, false));
         }
         for source in &snapshot.sources {
@@ -235,7 +253,7 @@ impl ProjectionStore for SqliteStore {
             tx.execute("INSERT INTO file_manifest(path,kind,public_id,byte_size,mtime_ns,sha256,format_version,indexed_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)", params![path_text(&file.path)?, file.kind, file.public_id, file.byte_size, file.mtime_ns, file.sha256, file.format_version, now]).map_err(database_error)?;
         }
         let generation = generation.checked_add(1).ok_or_else(payload_error)?;
-        tx.execute("UPDATE workspace_state SET schema_hash=?1,snapshot_sha256=?2,canonical_generation=?3,indexed_generation=?3,updated_at=?4 WHERE singleton=1", params![snapshot.schema_hash, snapshot.content_sha256, generation, now]).map_err(database_error)?;
+        tx.execute("UPDATE workspace_state SET schema_hash=?1,snapshot_sha256=?2,canonical_generation=?3,indexed_generation=?3,updated_at=?4,snapshot_warnings_json=?5 WHERE singleton=1", params![snapshot.schema_hash, snapshot.content_sha256, generation, now, json_text(&snapshot.warnings)?]).map_err(database_error)?;
         tx.commit().map_err(database_error)?;
         Ok(report(snapshot, generation, true))
     }

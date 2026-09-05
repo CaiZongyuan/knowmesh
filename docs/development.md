@@ -77,19 +77,35 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   revisions cannot be rewritten. Failed validation or a database error leaves
   the previous complete projection intact.
 - `sync` performs a full canonical scan and projection update; `sync --dry-run`
-  only validates and reports files. Fast metadata-based sync and watching remain
-  under KM-022. Application Source writes first validate/reconcile the existing
-  projection, then commit their file journal and final projection under one
+  only validates and reports files. `status` uses a file-list/size/mtime fast path
+  and falls back to a full scan when those hints change. Timestamp-only changes
+  refresh the hints without advancing generation. Link warnings survive the
+  fast path and database upgrades. Explicit `sync` always rechecks content hashes;
+  it also detects edits whose size and mtime were intentionally preserved.
+  The server watcher remains under KM-022. Application Source writes first
+  validate/reconcile the existing projection, then commit their file journal and final projection under one
   workspace lock. Core recovery completes interrupted writes before permitting
   new syncs; repeating recovery after a database commit keeps its generation.
+- `status --no-sync` keeps the previous index generation while retaining Schema
+  validation. During transaction recovery or another active writer, status can
+  report the last complete index and the reason synchronization was skipped.
+- `doctor` inspects database integrity/version, canonical references, pending
+  transactions, index freshness, and Git ignore/tracking state. Missing, outdated,
+  and corrupt databases are reported without creation or migration. Git is
+  optional; unavailable Git produces a diagnostic warning. Locator checks remain
+  structural until ingestion can verify them against extracted text.
+- `doctor --repair --dry-run` reports the current diagnostics and pending paths.
+  `doctor --repair --yes` rolls forward pending transactions and synchronizes
+  the index. Corrupt databases and invalid journals are preserved for explicit
+  recovery; this command does not discard runtime state or modify Git.
 
 Initialization now uses a durable file journal under `.knowmesh/transactions/`
 and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
 forward after any file replacement; external edits or staged corruption stop
 recovery and preserve its materials. Pending transactions block new writes.
 The coordinator and reconciler are connected through Application Core Source
-writes and recovery. The doctor command and rebuild integration remain under
-KM-023, so repair is not yet exposed through the CLI.
+writes and CLI doctor repair. Atomic rebuild and recovery when the workspace
+configuration itself cannot be loaded remain under KM-023.
 
 ## TDD Evidence
 
@@ -105,6 +121,7 @@ KM-023, so repair is not yet exposed through the CLI.
 | [KM-020 / #11](https://github.com/CaiZongyuan/knowmesh/issues/11), [KM-030 / #16](https://github.com/CaiZongyuan/knowmesh/issues/16), database infrastructure | Commits `6d209df`, `4caac1d`: missing store/migrations; current-store reads block behind a writer | `cargo +stable test --workspace --locked`: 69 tests pass, including migration preservation/checksums, workspace binding, WAL concurrency, and dual FTS triggers |
 | [KM-021 / #12](https://github.com/CaiZongyuan/knowmesh/issues/12), canonical projection | Commits `59ceaa5`, `faf5d06`: missing snapshot/reconcile ports, unique-key conflicts during replacements, and stale or modified snapshots accepted | `cargo +stable test --workspace --locked`: 80 tests pass, including rebuild equivalence, deletion propagation, revision history checks, runtime reference preservation, and transaction rollback after an injected database failure |
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), [KM-051 / #31](https://github.com/CaiZongyuan/knowmesh/issues/31), Source write workflow | Commits `7360d3a`, `2075236`, `7565f76`: missing application/CLI operations and incompatible stores detected after file writes | `cargo +stable test --workspace --locked`: 86 tests pass, including preview, confirmation, duplicate import, soft removal, store preflight, and recovery before/after the database commit |
+| [KM-022 / #13](https://github.com/CaiZongyuan/knowmesh/issues/13), [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), status/doctor | Commits `c4c3b1e`, `9c63316`, `a58df05`: missing fast sync, doctor, and status commands | `cargo +stable test --workspace --locked`: 93 tests pass, including change detection, stable generations, warning migration, read-only inspection, explicit repair, last-complete status during recovery, and Schema checks with `--no-sync` |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
@@ -113,6 +130,8 @@ The [workspace CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/3397
 also passed on all three operating systems for commit `2c2ca76`.
 The [projection CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33984019917)
 passed on all three operating systems for commit `d352ac9`.
+The [Source workflow CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33984687743)
+passed on all three operating systems for commit `fcc9ca9`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked

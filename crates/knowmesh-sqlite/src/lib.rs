@@ -1,5 +1,6 @@
 //! SQLite projection and runtime storage adapter for KnowMesh.
 
+mod index;
 mod migrations;
 mod reconcile;
 
@@ -8,12 +9,12 @@ use std::{
     time::Duration,
 };
 
+pub use knowmesh_core::ports::DatabaseDiagnostics;
 use knowmesh_core::{
     domain::{Timestamp, WorkspaceId},
     error::{AppError, AppResult, ErrorType},
 };
-use rusqlite::{Connection, ErrorCode, OptionalExtension, params};
-use serde::Serialize;
+use rusqlite::{Connection, ErrorCode, OpenFlags, OptionalExtension, params};
 
 #[derive(Debug)]
 pub struct SqliteStore {
@@ -21,18 +22,34 @@ pub struct SqliteStore {
     path: PathBuf,
 }
 
-#[derive(Debug, Serialize)]
-pub struct DatabaseDiagnostics {
-    pub sqlite_version: String,
-    pub schema_version: u32,
-    pub journal_mode: String,
-    pub foreign_keys: bool,
-    pub busy_timeout_ms: u64,
-    pub integrity: String,
-    pub foreign_key_violations: usize,
-}
-
 impl SqliteStore {
+    pub fn open_read_only(path: &Path) -> AppResult<Self> {
+        let connection = Connection::open_with_flags(
+            path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .map_err(database_error)?;
+        connection
+            .busy_timeout(Duration::from_secs(5))
+            .map_err(database_error)?;
+        let version = migrations::validate_history(&connection)?;
+        if version != migrations::current_version() {
+            return Err(AppError::new(
+                ErrorType::Configuration,
+                "DATABASE_UPGRADE_REQUIRED",
+                "The database requires a migration before it can be queried.",
+            )
+            .with_hint("Run `knowmesh sync` with the current binary."));
+        }
+        connection
+            .execute_batch("PRAGMA foreign_keys=ON;")
+            .map_err(database_error)?;
+        Ok(Self {
+            connection,
+            path: path.to_owned(),
+        })
+    }
+
     pub fn open(path: &Path) -> AppResult<Self> {
         let mut connection = Connection::open(path).map_err(database_error)?;
         connection

@@ -13,7 +13,16 @@ const MIGRATIONS: &[(u32, &str, &str)] = &[
         "canonical_payloads",
         include_str!("../migrations/0002_canonical_payloads.sql"),
     ),
+    (
+        3,
+        "snapshot_warnings",
+        include_str!("../migrations/0003_snapshot_warnings.sql"),
+    ),
 ];
+
+pub(crate) fn current_version() -> u32 {
+    MIGRATIONS.last().map(|migration| migration.0).unwrap_or(0)
+}
 
 pub(crate) fn validate_history(connection: &Connection) -> AppResult<u32> {
     let version: u32 = connection
