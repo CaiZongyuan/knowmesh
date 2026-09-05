@@ -4,3 +4,6 @@ pub mod workspace;
 
 #[cfg(test)]
 mod transaction_tests;
+
+#[cfg(test)]
+mod source_tests;
