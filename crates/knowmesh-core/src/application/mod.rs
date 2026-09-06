@@ -6,6 +6,7 @@ pub mod evidence_verify;
 pub mod impact;
 pub mod lexical;
 pub mod operations;
+pub mod proposal;
 pub mod rebuild;
 pub mod schema;
 pub mod search;

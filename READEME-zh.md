@@ -13,10 +13,10 @@ Search 已支持中英召回、筛选、可配置 RRF、分数解释、稳定游
 Core 已支持 Markdown/TXT/HTML 的结构化来源解析；`source add --encoding <label>` 可显式导入旧编码文本，保留原始快照字节。原生 PDF 文本提取已包含页码映射和质量门；OCR 与完整编译流水线仍待实现。
 Core 已提供结构感知分块和带校验的阶段缓存，继续接入后续 Compiler 工作流。
 模型适配器已提供有界结构化生成与本地 Schema 校验；完整 compile/review/apply 流程仍在实现中。
-Core Evidence verifier 已支持原文区间验证与有界定位修复，拒绝歧义引用；Proposal review/apply 的强制接入仍待完成。
+Core Evidence verifier 已支持原文区间验证与有界定位修复，拒绝歧义引用；Proposal Builder 在审核前重新校验来源原文。
 实体消歧已支持保守的标识符、名称、别名匹配、SQLite 候选召回与受限模型建议；Compiler/Proposal 集成仍待接入。
 规范冲突组已支持投影同步和重建保留；精确去重保留科学符号差异，受限语义比较可生成待审核的冲突计划。Compiler/Proposal/Run 集成仍在实现中。
-Proposal 状态、审核契约、只读规范预览和保留周边 Markdown 的 Summary 编辑已实现；payload/Evidence 校验、持久化和 Apply 仍在接入。
+Proposal 状态、审核契约、严格 payload/Evidence 校验、只读规范预览和保留周边 Markdown 的 Summary 编辑已实现；持久化和 Apply 仍在接入。
 Workspace 测试也检查公共 Operation 注册、依赖方向及已登记的写入边界，覆盖范围与限制见[开发文档](docs/development.md)。
 
 ```bash

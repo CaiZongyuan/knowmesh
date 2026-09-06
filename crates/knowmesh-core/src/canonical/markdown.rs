@@ -8,7 +8,7 @@ use crate::{
     error::{AppError, AppResult, ErrorType},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(super) struct MarkdownFile {
     pub original: String,
     pub header: Range<usize>,

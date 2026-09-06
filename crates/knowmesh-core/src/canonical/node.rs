@@ -17,7 +17,7 @@ use crate::{
 
 mod summary;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeDocument {
     pub metadata: NodeMetadata,
     pub claims: Vec<ClaimRecord>,

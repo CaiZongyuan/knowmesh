@@ -36,15 +36,15 @@ for the remaining Compiler integration.
 Model adapters now provide bounded structured generation with local Schema
 validation; the full compile/review/apply workflow remains in development.
 Core Evidence verification checks quotes against bounded source spans and rejects
-ambiguous repairs; enforcement through Proposal review/apply is still pending.
+ambiguous repairs; the Proposal Builder rechecks source bytes before review.
 Entity resolution includes conservative identifier/name/alias matching and SQLite
 candidate retrieval plus bounded model advice; Compiler/Proposal integration is pending.
 Canonical conflict groups survive projection and rebuild. Exact assertion/Evidence
 deduplication preserves scientific symbols. Bounded semantic comparison produces
 reviewable conflict plans; Compiler/Proposal/Run integration remains in development.
-Proposal state/review contracts and read-only canonical previews are in place;
-controlled summary editing preserves surrounding Markdown. Payload/Evidence
-validation, persistence, and Apply integration remain in development.
+Proposal state/review contracts, typed payload/Evidence validation, and read-only
+canonical previews are in place. Controlled summary editing preserves surrounding
+Markdown. Persistence and Apply integration remain in development.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

@@ -1913,13 +1913,21 @@ update_source_metadata
 
 禁止模型输出任意 filesystem patch、SQL 或 shell command。
 
-`record_claim_conflict` 是 KM-047 待实现的显式组变更操作：target 为成员所属 Node，payload 包含完整 conflict group 和显式成员 evidence_status 变更。它必须在同一 Node 写入中维护全部成员副本，并遵守 14.7 节的身份、scope、状态与历史约束；不能借该操作修改 Claim 正文、Evidence 或 lifecycle。创建组依赖的新 Claim 必须已存在或由同一已接受 Proposal 的创建项提供，缺失/被拒绝的依赖阻止 Apply。新增 Claim 与追加 Evidence 项保留去重阶段基线，组修改单独审核；不得把组副本预先混入可独立接受的新 Claim 项，造成循环依赖或绕过组决策。
+`record_claim_conflict` 是显式组变更操作：target 为成员所属 Node，payload 包含完整 conflict group 和显式成员 evidence_status 变更。它必须在同一 Node 写入中维护全部成员副本，并遵守 14.7 节的身份、scope、状态与历史约束；不能借该操作修改 Claim 正文、Evidence 或 lifecycle。创建组依赖的新 Claim 必须已存在或由同一已接受 Proposal 的创建项提供，缺失/被拒绝的依赖阻止 Apply。新增 Claim 与追加 Evidence 项保留去重阶段基线，组修改单独审核；不得把组副本预先混入可独立接受的新 Claim 项，造成循环依赖或绕过组决策。Builder 已实现内存组变更；已关闭组的字段及任何既有组的 created_at 不可改写，再次记录冲突使用新组 ID。审核后子集应用仍由 KM-047 接入。
+
+当前 [`proposal::prepare`](../crates/knowmesh-core/src/application/proposal/mod.rs) 已实现只读 Builder。它扫描真实 workspace，校验 Schema hash、可选来源 revision 及每项具体 payload；compile/refresh 必须声明已有来源 revision，新 Claim/Relation 必须有可验证 Evidence。输入仍使用已分配的规范 ID 和完整 metadata，返回 pending Proposal、原始快照 hash、拟议文档字节和只读预览，不写规范文件、索引或 runtime 表，不调用模型。
+
+各 op 的严格 DTO 与可生成 JSON Schema 位于 [`payload`](../crates/knowmesh-core/src/application/proposal/payload.rs)。新建 Node/Synthesis 接受 metadata 与 summary/body；其余 op 分别接收 summary、alias、完整 Claim/Relation、replacement_id、retraction reason、Evidence 数组、conflict group/member_statuses，或来源全部可编辑描述字段。target 类型、payload 内 ID、已有全局身份、Schema 属性/关系及引用必须一致。创建 Node 先于断言创建，其后执行普通编辑/生命周期、冲突组及 Synthesis；before_sha256 始终来自原 canonical 文件，不能以中间拟议状态代替。新页面标题转义 Markdown 并折叠换行；来源元数据仅能修改 title/kind/authors/identifiers/language/tags/represented_nodes。
+
+Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析和验证直接及依赖 Evidence。相同 Evidence ID 必须保留全部原字段；已有 locator 若指定 offsets，不在此阶段修复或换发 ID。错误引用、Schema/目标错误及 payload 超限形成 blocking warnings，阻止 acceptance；可独立完成的有效项仍可预览。直接 Evidence IDs 每项最多 1024，冲突成员等传递引用另行验证，不膨胀该列表或截断 Evidence。诊断最多 128 条，溢出以 blocking `PROPOSAL_ISSUE_LIMIT` 表示。最终全图预览失败时清空文档输出并阻塞其余项。
+
+新建 Synthesis 必须显式提供 dependency_snapshot，引用可用 Schema Pack、已有或本 Proposal 新建的断言，以及归属正确的 source heads；每个直接引用来源都必须有生成时 head。Builder 保留所给历史 assertion hash/head，不以当前值补全或替换，freshness 另行判定。缺失快照的旧文件仍可由 Parser 读取。Ask run 产物的来源校验与快照复制、持久化、接受子集重验证和实际 Apply 尚待集成；本层预览成功不构成写入授权。
 
 [`CanonicalSnapshot::preview_documents`](../crates/knowmesh-core/src/canonical/snapshot/preview.rs) 已提供 Builder 所需的只读文档预览：基于已扫描快照接受至多 10,000 个文档、合计 64 MiB 的拟议替换。仅允许 knowledge/nodes 与 knowledge/syntheses 下的 Markdown，以及已有来源的描述元数据；单个 Markdown 上限 8 MiB、来源 manifest 上限 16 MiB。配置、原始 blob、新建来源、revision/head/removal 状态变化和已有 Node/Synthesis 身份或创建时间替换均被拒绝。
 
 预览前后检查 workspace/Schema、规范文件清单和原有内容 hash；新增文件、目标被占用、路径大小写别名、symlink 或外部编辑会使预览失败。它复用真实扫描的 Node/Claim/Relation/Evidence 投影和链接解析，重新验证整个拟议引用图；新节点/别名也会更新未修改页面中的链接解析。预览没有磁盘写入，不创建索引；相同文档实际落盘后，完整扫描得到相同逻辑 hash，文件 mtime 仅作为扫描提示。
 
-`CanonicalPreview` 只暴露只读投影和 hash，不能作为 `ProjectionStore::reconcile` 的输入。该层验证规范格式、Schema 和引用一致性，不能代替具体 patch payload 校验、来源 quote 定位、审核或文件事务；这些仍由 KM-047 的 Builder/Apply 接入。
+`CanonicalPreview` 只暴露只读投影和 hash，不能作为 `ProjectionStore::reconcile` 的输入。该层验证规范格式、Schema 和引用一致性，不能代替上述 Builder 的具体 payload/quote 校验、审核或文件事务；Apply 协调仍由 KM-047 接入。
 
 `update_node_summary` 的受控编辑已由 [`NodeDocument::set_summary`](../crates/knowmesh-core/src/canonical/node/summary.rs) 提供。读取与编辑共用 CommonMark 顶层章节识别：优先 `## Summary`，没有该二级节时兼容一级 Summary；引用块和代码中的标题不作为目标。多个同级目标返回 `AMBIGUOUS_NODE_SUMMARY`。替换范围截止下一顶层 H1/H2 或 HTML 块，不触及 frontmatter、其他章节和受管断言；缺少 Summary 时在首个受管块前插入，空文本可清空已有正文。
 

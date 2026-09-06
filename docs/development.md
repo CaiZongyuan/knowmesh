@@ -162,8 +162,8 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - Fixtures cover invalid metadata, unknown pages, cross-boundary spans, long Unicode
   text, scoped search limits, and chunk-independent locators. Successful results mint
   Evidence IDs and normalized quote hashes. Defaults/errors live in SPEC 14.5.
-  Proposal enforcement remains #27; #24 stays open until its assertion validity gate
-  is exercised through that workflow.
+  Proposal Builder now rechecks actual source bytes without repairing stored offsets;
+  #24 stays open until the same assertion validity gate is enforced through Apply.
 - Deterministic entity resolution indexes a complete validated Node catalog and
   uses Schema-declared identifier adapters plus normalized names/aliases. Only
   unique compatible identifier/alias matches are eligible for automatic linking;
@@ -225,9 +225,19 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   a no-op, while rebase or item-order changes reset decisions.
 - Proposal state fixtures cover typed targets, blocked acceptance, preserved
   rejections, stale revisions, edited payloads, attestation changes, and JSON
-  round trips. This is the in-memory state layer only: runtime history, typed patch
-  payload validation, real Evidence checking, and canonical Apply remain #27.
+  round trips. Runtime history and canonical Apply remain #27.
   The contract and limits live in SPEC 14.9.
+- The read-only Proposal Builder decodes all thirteen operation payloads, checks
+  actual source Evidence, binds original file hashes, and previews the resulting
+  canonical graph. New objects are available to later dependent edits regardless
+  of input order. Invalid items remain blocked and cannot be accepted.
+- Builder fixtures cover each operation, cross-item references, source metadata
+  restrictions, escaped Node titles, immutable closed conflict history, Schema/ID
+  failures, and bounded Evidence/diagnostics. Synthesis snapshots retain supplied
+  historical hashes/heads and require valid references; the Builder does not prove
+  their Ask-run origin. Full payload contracts and bounds live in SPEC 14.8.
+  Accepted-subset validation, runtime history, and Apply remain #27; Ask integration
+  must supply the original run snapshot rather than reconstructing its contents.
 - Canonical document previews overlay Node/Synthesis Markdown and existing source
   metadata in memory. They reuse projection and link resolution, revalidate the
   complete reference graph, and check that the original file inventory/content
@@ -236,7 +246,7 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   integrity seal, so copying proposed data and its public hash into a scanned
   snapshot cannot produce an indexable snapshot. Fixtures cover identity/source
   restrictions, new link resolution, Schema/reference failures, and external changes.
-  Patch payload/quote validation and actual Apply still remain under #27/#24.
+  Builder now supplies patch payload/quote validation; actual Apply remains #27/#24.
 - Node summary editing shares CommonMark section recognition with indexed summary
   extraction. It preserves frontmatter, other sections, managed assertions, line
   endings, indented code, and existing reference definitions. Structural injection
@@ -416,6 +426,7 @@ KM-023 and their owning implementation issues.
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), exact deduplication | Commits `ddc74a8`, `f31a49e`: missing deduplication module; scientific symbols collapse and legacy keys skip reindexing | `assertion_dedup`: 11 tests pass; `fast_sync`: 5 tests pass, including two normalization/migration regressions |
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), semantic comparison/planning | Commit `84f5bba`: missing Claim comparison context; an additional regression exposed conflicting shared Evidence payloads | `cargo +stable test -p knowmesh-core --test assertion_compare --locked`: 11 tests cover six golden scenarios, canonical rendering, and shared Evidence integrity |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), Proposal state/review | Commit `3fb7339`: missing Proposal domain module; further regressions expose unbound context/attestation metadata | `cargo +stable test -p knowmesh-core --test proposal_state --locked`: 10 state/review tests; builder/store/Apply integration remains pending |
+| [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), read-only Builder | Commits `8c8a5df`, `0a1f129`, `4d1fefe`: missing Builder, invalid snapshot acceptance, Evidence/diagnostic overflow, and mutable closed conflicts | `proposal_builder` and `proposal_builder_operations`: 17 tests cover all operations and actual source verification; persistence and Apply remain pending |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), canonical preview | Commit `9d8b7b4`: missing document preview | `cargo +stable test -p knowmesh-core --test canonical_preview --locked`: 6 tests pass, including preview/scan equivalence and rejection of proposed data as a canonical snapshot |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), controlled summary editing | Commits `1fa51a2`, `f803758`: missing summary editor, accepted reference injection, and stale summary projections | `node_summary`: 8 focused cases; `fast_sync`: 6 cases including v3 Claim-key and v4 summary refresh |
 

@@ -598,7 +598,8 @@ fn conflict_resolution_preserves_members_and_prevents_rewriting_closed_history()
     let before = CanonicalSnapshot::scan(&workspace).unwrap();
     let owner = &before.claims[0].claim.subject_node_id;
     let path = &before.claims[0].canonical_path;
-    let mut doc = NodeDocument::parse(&fs::read_to_string(workspace.root.join(path)).unwrap()).unwrap();
+    let mut doc =
+        NodeDocument::parse(&fs::read_to_string(workspace.root.join(path)).unwrap()).unwrap();
     let mut other = doc.claims[0].clone();
     other.id = ClaimId::new();
     other.statement = "A conflicting statement.".into();
@@ -606,9 +607,12 @@ fn conflict_resolution_preserves_members_and_prevents_rewriting_closed_history()
     let mut claim_ids: Vec<_> = doc.claims.iter().map(|claim| claim.id.clone()).collect();
     claim_ids.sort();
     let group = ConflictGroup {
-        id: ConflictGroupId::new(), claim_ids,
-        reason: "The initial conflict review.".into(), status: ConflictGroupStatus::Open,
-        created_at: before.nodes[0].metadata.created_at, resolved_at: None,
+        id: ConflictGroupId::new(),
+        claim_ids,
+        reason: "The initial conflict review.".into(),
+        status: ConflictGroupStatus::Open,
+        created_at: before.nodes[0].metadata.created_at,
+        resolved_at: None,
     };
     for claim in &mut doc.claims {
         claim.conflict_groups = vec![group.clone()];
@@ -618,19 +622,53 @@ fn conflict_resolution_preserves_members_and_prevents_rewriting_closed_history()
     let mut resolved = group.clone();
     resolved.status = ConflictGroupStatus::Resolved;
     resolved.resolved_at = Some(now());
-    let statuses: BTreeMap<_, _> = group.claim_ids.iter().cloned().map(|id| (id, EvidenceStatus::Uncertain)).collect();
-    let prepared = build(&workspace, vec![item(PatchOp::RecordClaimConflict, owner, json!({"group":resolved, "member_statuses":statuses}))]);
+    let statuses: BTreeMap<_, _> = group
+        .claim_ids
+        .iter()
+        .cloned()
+        .map(|id| (id, EvidenceStatus::Uncertain))
+        .collect();
+    let prepared = build(
+        &workspace,
+        vec![item(
+            PatchOp::RecordClaimConflict,
+            owner,
+            json!({"group":resolved, "member_statuses":statuses}),
+        )],
+    );
     unblocked(&prepared);
     for claim in prepared.preview.as_ref().unwrap().claims() {
-        assert_eq!(claim.claim.assertion.conflict_groups, vec![resolved.clone()]);
-        assert_eq!(claim.claim.assertion.evidence_status, EvidenceStatus::Uncertain);
+        assert_eq!(
+            claim.claim.assertion.conflict_groups,
+            vec![resolved.clone()]
+        );
+        assert_eq!(
+            claim.claim.assertion.evidence_status,
+            EvidenceStatus::Uncertain
+        );
     }
-    for (path, bytes) in prepared.documents() { fs::write(workspace.root.join(path), bytes).unwrap(); }
-    let reopened = build(&workspace, vec![item(PatchOp::RecordClaimConflict, owner, json!({"group":group}))]);
+    for (path, bytes) in prepared.documents() {
+        fs::write(workspace.root.join(path), bytes).unwrap();
+    }
+    let reopened = build(
+        &workspace,
+        vec![item(
+            PatchOp::RecordClaimConflict,
+            owner,
+            json!({"group":group}),
+        )],
+    );
     blocked(&reopened, 0, "CONFLICT_HISTORY_IMMUTABLE");
     assert!(reopened.documents().is_empty());
     resolved.created_at = now();
-    let changed = build(&workspace, vec![item(PatchOp::RecordClaimConflict, owner, json!({"group":resolved}))]);
+    let changed = build(
+        &workspace,
+        vec![item(
+            PatchOp::RecordClaimConflict,
+            owner,
+            json!({"group":resolved}),
+        )],
+    );
     blocked(&changed, 0, "CONFLICT_HISTORY_IMMUTABLE");
     assert!(changed.documents().is_empty());
 }
@@ -648,14 +686,41 @@ fn schema_and_global_identity_errors_block_only_the_invalid_local_operations() {
     node.schema = "absent@1".into();
     let mut evidence = before.evidence[0].evidence.clone();
     evidence.confidence = 0.5;
-    let prepared = build(&workspace, vec![
-        item(PatchOp::AddRelation, owner, json!({"relation":relation})),
-        item(PatchOp::CreateNode, &node.id, json!({"metadata":node,"summary":"New summary."})),
-        item(PatchOp::AddEvidence, &before.claims[0].claim.assertion.id, json!({"evidence":[evidence]})),
-        item(PatchOp::AddClaim, owner, json!({"claim":before.claims[0].claim.assertion})),
-        item(PatchOp::AddAlias, owner, json!({"alias":"Valid independent alias"})),
-    ]);
-    for (index, code) in ["RELATION_DIRECTION_MISMATCH", "SCHEMA_PACK_NOT_FOUND", "EVIDENCE_ID_CONFLICT", "CLAIM_ALREADY_EXISTS"].into_iter().enumerate() {
+    let prepared = build(
+        &workspace,
+        vec![
+            item(PatchOp::AddRelation, owner, json!({"relation":relation})),
+            item(
+                PatchOp::CreateNode,
+                &node.id,
+                json!({"metadata":node,"summary":"New summary."}),
+            ),
+            item(
+                PatchOp::AddEvidence,
+                &before.claims[0].claim.assertion.id,
+                json!({"evidence":[evidence]}),
+            ),
+            item(
+                PatchOp::AddClaim,
+                owner,
+                json!({"claim":before.claims[0].claim.assertion}),
+            ),
+            item(
+                PatchOp::AddAlias,
+                owner,
+                json!({"alias":"Valid independent alias"}),
+            ),
+        ],
+    );
+    for (index, code) in [
+        "RELATION_DIRECTION_MISMATCH",
+        "SCHEMA_PACK_NOT_FOUND",
+        "EVIDENCE_ID_CONFLICT",
+        "CLAIM_ALREADY_EXISTS",
+    ]
+    .into_iter()
+    .enumerate()
+    {
         blocked(&prepared, index, code);
     }
     assert!(prepared.proposal.items[4].issues.is_empty());
@@ -671,10 +736,25 @@ fn builder_verifies_existing_evidence_locations_without_rebinding_or_offset_repa
     evidence.id = EvidenceId::new();
     evidence.locator.char_start = Some(0);
     evidence.locator.char_end = Some(evidence.quote.chars().count());
-    let prepared = build(&workspace, vec![item(PatchOp::AddEvidence, &before.claims[0].claim.assertion.id, json!({"evidence":[evidence]}))]);
-    assert!(prepared.proposal.items[0].issues.iter().any(|issue| issue.blocking));
+    let prepared = build(
+        &workspace,
+        vec![item(
+            PatchOp::AddEvidence,
+            &before.claims[0].claim.assertion.id,
+            json!({"evidence":[evidence]}),
+        )],
+    );
+    assert!(
+        prepared.proposal.items[0]
+            .issues
+            .iter()
+            .any(|issue| issue.blocking)
+    );
     assert!(prepared.documents().is_empty());
-    assert_eq!(prepared.proposal.items[0].payload["evidence"][0], serde_json::to_value(evidence).unwrap());
+    assert_eq!(
+        prepared.proposal.items[0].payload["evidence"][0],
+        serde_json::to_value(evidence).unwrap()
+    );
 }
 
 #[test]
@@ -686,18 +766,42 @@ fn compiler_proposals_require_current_schema_source_context_and_assertion_eviden
     claim.statement = "An unreviewed manual statement.".into();
     claim.evidence.clear();
     claim.evidence_status = EvidenceStatus::Unreviewed;
-    let items = vec![item(PatchOp::AddClaim, &before.claims[0].claim.subject_node_id, json!({"claim":claim}))];
+    let items = vec![item(
+        PatchOp::AddClaim,
+        &before.claims[0].claim.subject_node_id,
+        json!({"claim":claim}),
+    )];
     unblocked(&build(&workspace, items.clone()));
     let mut input = ProposalInput {
-        kind: ProposalKind::Compile, base_generation:1, schema_hash:before.schema_hash,
-        source_revision_id: None, compiler_run_id:None, summary:"Compiler candidates.".into(), items,
+        kind: ProposalKind::Compile,
+        base_generation: 1,
+        schema_hash: before.schema_hash,
+        source_revision_id: None,
+        compiler_run_id: None,
+        summary: "Compiler candidates.".into(),
+        items,
     };
-    assert_eq!(prepare(&workspace, &input, "compiler", now()).unwrap_err().code, "PROPOSAL_SOURCE_REQUIRED");
+    assert_eq!(
+        prepare(&workspace, &input, "compiler", now())
+            .unwrap_err()
+            .code,
+        "PROPOSAL_SOURCE_REQUIRED"
+    );
     input.source_revision_id = Some(knowmesh_core::domain::SourceRevisionId::new());
-    assert_eq!(prepare(&workspace, &input, "compiler", now()).unwrap_err().code, "SOURCE_REVISION_NOT_FOUND");
+    assert_eq!(
+        prepare(&workspace, &input, "compiler", now())
+            .unwrap_err()
+            .code,
+        "SOURCE_REVISION_NOT_FOUND"
+    );
     input.source_revision_id = Some(before.sources[0].manifest.current_revision_id.clone());
     let prepared = prepare(&workspace, &input, "compiler", now()).unwrap();
     blocked(&prepared, 0, "EVIDENCE_REQUIRED");
     input.schema_hash = "0".repeat(64);
-    assert_eq!(prepare(&workspace, &input, "compiler", now()).unwrap_err().code, "PROPOSAL_SCHEMA_MISMATCH");
+    assert_eq!(
+        prepare(&workspace, &input, "compiler", now())
+            .unwrap_err()
+            .code,
+        "PROPOSAL_SCHEMA_MISMATCH"
+    );
 }

@@ -11,7 +11,7 @@ use crate::{
 static CITATIONS: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\[@([^\]\s]+)\]").expect("constant citation grammar"));
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SynthesisDocument {
     pub metadata: SynthesisMetadata,
     pub body: String,

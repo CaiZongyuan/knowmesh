@@ -70,7 +70,7 @@ impl SourcePlan {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SourceFile {
     pub path: PathBuf,
     pub manifest: SourceManifest,
