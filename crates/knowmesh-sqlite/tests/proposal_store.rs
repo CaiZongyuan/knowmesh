@@ -274,20 +274,49 @@ fn stale_proposals_cannot_restore_the_old_approval_by_changing_only_state() {
     store.proposal_create(&original).unwrap();
     let next = reviewed(&original);
     store.proposal_save(1, &next).unwrap();
-    let stale = ProposalRecord { proposal:next.proposal.mark_stale(2, "Requires revalidation", "author", now()).unwrap(), ..next };
+    let stale = ProposalRecord {
+        proposal: next
+            .proposal
+            .mark_stale(2, "Requires revalidation", "author", now())
+            .unwrap(),
+        ..next
+    };
     store.proposal_save(2, &stale).unwrap();
     let mut restored = stale.clone();
     restored.proposal.state = ProposalState::Approved;
     restored.proposal.state_reason = None;
     restored.proposal.revision += 1;
     restored.validate().unwrap();
-    assert_eq!(store.proposal_save(3, &restored).unwrap_err().code, "PROPOSAL_REVALIDATION_REQUIRED");
-    let revised = ProposalRecord { proposal:stale.proposal.revise(&ProposalRevision {
-        expected_revision:3, base_generation:stale.proposal.base_generation,
-        schema_hash:stale.proposal.schema_hash.clone(), summary:stale.proposal.summary.clone(), items:stale.proposal.items.clone(),
-    }, "author", now()).unwrap(), ..stale };
+    assert_eq!(
+        store.proposal_save(3, &restored).unwrap_err().code,
+        "PROPOSAL_REVALIDATION_REQUIRED"
+    );
+    let revised = ProposalRecord {
+        proposal: stale
+            .proposal
+            .revise(
+                &ProposalRevision {
+                    expected_revision: 3,
+                    base_generation: stale.proposal.base_generation,
+                    schema_hash: stale.proposal.schema_hash.clone(),
+                    summary: stale.proposal.summary.clone(),
+                    items: stale.proposal.items.clone(),
+                },
+                "author",
+                now(),
+            )
+            .unwrap(),
+        ..stale
+    };
     store.proposal_save(3, &revised).unwrap();
-    assert_eq!(store.proposal_get(&original.proposal.id, None).unwrap().proposal.state, ProposalState::Draft);
+    assert_eq!(
+        store
+            .proposal_get(&original.proposal.id, None)
+            .unwrap()
+            .proposal
+            .state,
+        ProposalState::Draft
+    );
 }
 
 #[test]
@@ -300,11 +329,31 @@ fn migration_preserves_legacy_rows_without_inventing_missing_review_history() {
     drop(db);
     let store = SqliteStore::open(&workspace.index_path().unwrap()).unwrap();
     assert_eq!(store.diagnostics().unwrap().schema_version, 6);
-    assert_eq!(store.proposal_get(&original.proposal.id, None).unwrap_err().code, "PROPOSAL_HISTORY_UNAVAILABLE");
+    assert_eq!(
+        store
+            .proposal_get(&original.proposal.id, None)
+            .unwrap_err()
+            .code,
+        "PROPOSAL_HISTORY_UNAVAILABLE"
+    );
     let db = Connection::open(workspace.index_path().unwrap()).unwrap();
-    assert_eq!(db.query_row("SELECT count(*) FROM proposals", [], |r| r.get::<_, i64>(0)).unwrap(), 1);
-    assert_eq!(db.query_row("SELECT count(*) FROM proposal_items", [], |r| r.get::<_, i64>(0)).unwrap(), 1);
-    assert_eq!(db.query_row("SELECT count(*) FROM proposal_revisions", [], |r| r.get::<_, i64>(0)).unwrap(), 0);
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM proposals", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM proposal_items", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM proposal_revisions", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
 }
 
 #[test]
@@ -316,11 +365,25 @@ fn atomic_rebuild_and_its_backup_preserve_complete_revision_history() {
     store.proposal_save(1, &next).unwrap();
     drop(store);
     let backend = knowmesh_sqlite::SqliteRebuilder::new(&workspace).unwrap();
-    let report = rebuild::execute(&workspace, &backend, &RebuildInput { yes:true, ..Default::default() }).unwrap();
+    let report = rebuild::execute(
+        &workspace,
+        &backend,
+        &RebuildInput {
+            yes: true,
+            ..Default::default()
+        },
+    )
+    .unwrap();
     assert_eq!(report.runtime_table_counts["proposal_revisions"], 2);
     for path in std::iter::once(workspace.index_path().unwrap()).chain(report.backup_paths) {
         let store = SqliteStore::open_read_only(&path).unwrap();
-        assert_eq!(store.proposal_get(&original.proposal.id, Some(1)).unwrap(), original);
-        assert_eq!(store.proposal_get(&original.proposal.id, None).unwrap(), next);
+        assert_eq!(
+            store.proposal_get(&original.proposal.id, Some(1)).unwrap(),
+            original
+        );
+        assert_eq!(
+            store.proposal_get(&original.proposal.id, None).unwrap(),
+            next
+        );
     }
 }

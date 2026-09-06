@@ -28,6 +28,11 @@ const MIGRATIONS: &[(u32, &str, &str)] = &[
         "node_summary_sections",
         include_str!("../migrations/0005_node_summary_sections.sql"),
     ),
+    (
+        6,
+        "proposal_revisions",
+        include_str!("../migrations/0006_proposal_revisions.sql"),
+    ),
 ];
 
 pub(crate) fn current_version() -> u32 {

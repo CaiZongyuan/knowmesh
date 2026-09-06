@@ -8,9 +8,10 @@ use rusqlite::{OptionalExtension, TransactionBehavior, params_from_iter, types::
 
 use crate::{SqliteStore, database_error};
 
-pub(crate) const RUNTIME_TABLES: [&str; 5] = [
+pub(crate) const RUNTIME_TABLES: [&str; 6] = [
     "operation_runs",
     "proposals",
+    "proposal_revisions",
     "proposal_items",
     "idempotency_keys",
     "audit_events",
@@ -45,7 +46,8 @@ impl SqliteStore {
         tx.execute_batch(
             "PRAGMA defer_foreign_keys=ON;
             DELETE FROM audit_events; DELETE FROM idempotency_keys;
-            DELETE FROM proposal_items; DELETE FROM proposals; DELETE FROM operation_runs;",
+            DELETE FROM proposal_items; DELETE FROM proposal_revisions;
+            DELETE FROM proposals; DELETE FROM operation_runs;",
         )
         .map_err(database_error)?;
         let mut table_counts = BTreeMap::new();

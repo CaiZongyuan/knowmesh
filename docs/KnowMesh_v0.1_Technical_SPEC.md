@@ -869,7 +869,7 @@ PRAGMA temp_store = MEMORY;
 | Canonical projection | `sources`、`source_revisions`、`nodes`、`claims`、`relations`、`evidence`、`syntheses` | DB-derived |
 | Search projection | `chunks`、`search_units`、`search_fts_word`、`search_fts_tri`、`search_vectors` | DB-derived |
 | Graph projection | `relations`、`node_mentions`、相关索引 | DB-derived |
-| Runtime | `proposals`、`proposal_items`、`operation_runs`、`idempotency_keys`、`audit_events` | DB-runtime |
+| Runtime | `proposals`、`proposal_revisions`、`proposal_items`、`operation_runs`、`idempotency_keys`、`audit_events` | DB-runtime |
 | Infrastructure | `schema_migrations`、`workspace_state`、`file_manifest` | 混合 |
 
 完整初始 DDL 见附录 A。
@@ -1921,7 +1921,7 @@ update_source_metadata
 
 Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析和验证直接及依赖 Evidence。相同 Evidence ID 必须保留全部原字段；已有 locator 若指定 offsets，不在此阶段修复或换发 ID。错误引用、Schema/目标错误及不符合具体 op 的 payload 形成 blocking warnings，阻止 acceptance；可独立完成的有效项仍可预览。直接 Evidence IDs 每项最多 1024，冲突成员等传递引用另行验证，不膨胀该列表或截断 Evidence。诊断最多 128 条，溢出以 blocking `PROPOSAL_ISSUE_LIMIT` 表示。最终全图预览失败时清空文档输出并阻塞其余项。
 
-新建 Synthesis 必须显式提供 dependency_snapshot，引用可用 Schema Pack、已有或本 Proposal 新建的断言，以及归属正确的 source heads；每个直接引用来源都必须有生成时 head。Builder 保留所给历史 assertion hash/head，不以当前值补全或替换，freshness 另行判定。缺失快照的旧文件仍可由 Parser 读取。Ask run 产物的来源校验与快照复制、持久化和实际 Apply 尚待集成；本层预览成功不构成写入授权。
+新建 Synthesis 必须显式提供 dependency_snapshot，引用可用 Schema Pack、已有或本 Proposal 新建的断言，以及归属正确的 source heads；每个直接引用来源都必须有生成时 head。Builder 保留所给历史 assertion hash/head，不以当前值补全或替换，freshness 另行判定。缺失快照的旧文件仍可由 Parser 读取。Ask run 产物的来源校验与快照复制、持久化工作流和实际 Apply 尚待集成；本层预览成功不构成写入授权。
 
 [`CanonicalSnapshot::preview_documents`](../crates/knowmesh-core/src/canonical/snapshot/preview.rs) 已提供 Builder 所需的只读文档预览：基于已扫描快照接受至多 10,000 个文档、合计 64 MiB 的拟议替换。仅允许 knowledge/nodes 与 knowledge/syntheses 下的 Markdown，以及已有来源的描述元数据；单个 Markdown 上限 8 MiB、来源 manifest 上限 16 MiB。配置、原始 blob、新建来源、revision/head/removal 状态变化和已有 Node/Synthesis 身份或创建时间替换均被拒绝。
 
@@ -1957,7 +1957,13 @@ Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析�
 - 任一 item 含 invalid evidence、schema violation、ambiguous entity 时不得被 accept，除非用户先修复 payload 形成新 proposal version。
 - Proposal 每次编辑递增 `revision`，保留旧 revision，不原地隐藏历史。
 
-当前 [`domain::proposal`](../crates/knowmesh-core/src/domain/proposal/mod.rs) 已实现版本化内存快照、14.8 节的闭集 op 和审核状态契约。每次实际 review/revise/reject/stale/applied 状态变化返回新快照并递增 revision，原快照保持可用；同样的重复决策不增加 revision。Mutation 输入必须给出 `expected_revision`，不匹配返回 `PROPOSAL_REVISION_MISMATCH`。数据库保存这些历史快照、CLI/HTTP 输入与事务协调仍随 KM-047 接入。
+当前 [`domain::proposal`](../crates/knowmesh-core/src/domain/proposal/mod.rs) 已实现版本化内存快照、14.8 节的闭集 op 和审核状态契约。每次实际 review/revise/reject/stale/applied 状态变化返回新快照并递增 revision，原快照保持可用；同样的重复决策不增加 revision。Mutation 输入必须给出 `expected_revision`，不匹配返回 `PROPOSAL_REVISION_MISMATCH`。SQLite 历史存储已实现；Application 工作流、CLI/HTTP 输入与 Apply 事务协调仍随 KM-047 接入。
+
+[`ProposalStore`](../crates/knowmesh-core/src/ports.rs) 以 [`ProposalRecord`](../crates/knowmesh-core/src/application/proposal/record.rs) 保存完整 Proposal 和原 canonical 快照 hash。[SQLite adapter](../crates/knowmesh-sqlite/src/proposal.rs) 在同一 IMMEDIATE 事务内追加 `proposal_revisions`、更新 current header/items 并写入 audit event。新建仅接受 draft revision 1；后续保存必须匹配当前 expected_revision，并恰好增加 1。同 revision、同内容保存为 no-op；并发过期写入、跳号、身份/创建信息改写及未经协调的 applied 状态均被拒绝。Stale 不能仅通过改 state 恢复旧批准，必须先保存重验证后的 pending revision。
+
+完整历史 JSON 包含逐项审核 hash、方式、人工确认、操作者、时间、警告及基线，每条最多 20 MiB；generation 限于 SQLite 有符号 64 位范围。读取在一个只读事务内验证 JSON hash、领域约束及对应 current header 的 revision/state/generation/Schema。创建与普通审核保存要求基线匹配完整索引；记录 stale/rejected 可保留已经过期的基线。该检查不读取规范文件，文件重扫及审核后的子集验证仍由 Application 负责。普通保存不会创建文件或完成 Apply。
+
+Migration 0006 不从旧 header/items 猜造丢失的审核信息；旧行保留，无历史快照时读取返回 `PROPOSAL_HISTORY_UNAVAILABLE`。Rebuild 与备份包含全部 revision，不丢弃旧审核。选择独立追加快照表是为了保留可重读的完整历史；代价是每次 revision 重复保存完整 Proposal，current header/items 仅作为当前查询投影，不能代替历史事实。后续幂等结果与 Apply recovery 必须在此基础上协调，不能在文件提交后单独调用普通保存来伪造完成状态。
 
 每项 decision 为 pending/accepted/rejected，保存原因、reviewed_by/at、explicit/bulk 方式及 human_verified。Relaxed bulk 只接受 pending 项，不覆盖已拒绝项；strict、禁止 accept-all 或要求人工验证的 policy 均拒绝 bulk。Accepted 项若有 blocking warning 则返回 `PROPOSAL_ITEM_BLOCKED`；需要人工确认而未提供时返回 `HUMAN_VERIFICATION_REQUIRED`。所有项均已决且至少一项 accepted 才为 approved；pending 阻止 Apply 状态门禁，全部拒绝则为 rejected。
 
@@ -3314,6 +3320,7 @@ v0.1 只有同时满足以下条件才可发布：
 | 已接受冲突的成员、原因与处理状态如何重建 | 沿用共享 Evidence 的方式，由成员 Claims 内嵌一致的组记录；组变化进入 Claim 语义 hash，SQLite 只保存派生投影 | 仅保存 DB 组会在重建时丢失 accepted knowledge；独立冲突文件会新增规范文件种类和跨文件维护边界。内嵌方案增加受管块尺寸，并要求更新所有成员副本 | 14.7 |
 | Claim 精确去重如何保留科学符号 | Statement 只折叠空白；保留大小写和 Unicode 字符差异，其他相似性进入待审核比较；旧索引重新生成 key | 名称用的 NFKC/小写会把 Co/CO 等不同含义折叠。较窄的 exact 规则增加 possible_duplicate 候选，但避免自动丢失不同断言 | 14.7 |
 | 如何预览整图而不把拟议内容索引为知识 | 预览与真实扫描共用投影校验，结果使用独立只读类型；真实快照保留私有封存 hash | 直接返回可 reconcile 的快照容易绕过 Apply；只校验公开 hash 不能阻止数据与 hash 一起被替换。独立类型增加少量访问接口，保留 FS 来源边界 | 10.6 / 14.8 |
+| 如何保留完整审核历史并阻止并发覆盖 | 追加完整 Proposal revision 快照，与 current header/items 和 audit 在同一 SQLite 事务保存；expected_revision 做并发比较 | 仅覆盖当前行会丢失旧审核内容，差量事件重放需要额外版本兼容规则；完整快照增加存储成本，但可独立校验和读取。旧数据不具备的审核信息不推断补写 | 14.9 |
 
 
 ---
@@ -3324,7 +3331,7 @@ v0.1 只有同时满足以下条件才可发布：
 
 实现迁移的唯一源码位于 [`crates/knowmesh-sqlite/migrations/`](../crates/knowmesh-sqlite/migrations/0001_initial.sql)。下方 SQL 保留为初始逻辑基线；后续 schema 扩展使用新迁移，不修改已应用迁移。[0002](../crates/knowmesh-sqlite/migrations/0002_canonical_payloads.sql) 增加派生的 typed JSON payload 与 snapshot hash，用于保留读取契约和检查投影是否变化；[0003](../crates/knowmesh-sqlite/migrations/0003_snapshot_warnings.sql) 保存派生扫描警告，旧索引以 NULL 表示尚需补齐。这些字段不成为新的 System of Record。
 
-[0004](../crates/knowmesh-sqlite/migrations/0004_claim_normalization.sql) 将扫描完成标记置为 NULL，确保旧 Claim normalized hash 在 fast-sync 前按 14.7 节重新生成。[0005](../crates/knowmesh-sqlite/migrations/0005_node_summary_sections.sql) 使旧摘要投影重新经过顶层章节识别，避免继续使用引用块中的同名标题。SQLite schema version 当前为 5；迁移保留 canonical 与 runtime 数据，重新同步仅更新派生投影。
+[0004](../crates/knowmesh-sqlite/migrations/0004_claim_normalization.sql) 将扫描完成标记置为 NULL，确保旧 Claim normalized hash 在 fast-sync 前按 14.7 节重新生成。[0005](../crates/knowmesh-sqlite/migrations/0005_node_summary_sections.sql) 使旧摘要投影重新经过顶层章节识别，避免继续使用引用块中的同名标题。[0006](../crates/knowmesh-sqlite/migrations/0006_proposal_revisions.sql) 增加 14.9 节的完整 Proposal 历史表。SQLite schema version 当前为 6；迁移保留 canonical 与 runtime 数据，重新同步仅更新派生投影。
 
 ```sql
 CREATE TABLE schema_migrations (

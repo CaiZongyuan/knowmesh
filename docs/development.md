@@ -225,7 +225,7 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   a no-op, while rebase or item-order changes reset decisions.
 - Proposal state fixtures cover typed targets, blocked acceptance, preserved
   rejections, stale revisions, edited payloads, attestation changes, and JSON
-  round trips. Runtime history and canonical Apply remain #27.
+  round trips. Public Proposal workflows and canonical Apply remain #27.
   The contract and limits live in SPEC 14.9.
 - The read-only Proposal Builder decodes all thirteen operation payloads, checks
   actual source Evidence, binds original file hashes, and previews the resulting
@@ -237,13 +237,23 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   historical hashes/heads and require valid references; the Builder does not prove
   their Ask-run origin. Full payload contracts and bounds live in SPEC 14.8.
   Ask integration must supply the original run snapshot rather than reconstructing
-  its contents. Runtime history and Apply remain #27.
+  its contents. Public persistence workflows and Apply remain #27.
 - Accepted-subset previews rerun Builder against current files and actual Schema
   policy. Rejected dependencies, changed generation/content, forged item hashes,
   and reviews missing Builder-derived preconditions cannot yield an accepted preview.
   Five fixtures cover selection, strict/human policy, and stale baselines. The helper
   uses the generation/base hash supplied by its coordinator and never writes; store
   reads, locks, durable Apply, and recovery integration remain #27.
+- SQLite Proposal storage appends complete, hashed revision snapshots and updates
+  current header/items plus audit in one transaction. Reads recover the original
+  review metadata; saves compare expected revisions, preserve identity, and reject
+  direct applied-state writes or restoration of stale approvals. Same-revision,
+  identical saves are no-ops. Baseline checks use the complete indexed snapshot.
+- Nine storage fixtures cover concurrent writers, rollback, corrupt history,
+  stale approvals, legacy migration, runtime copying, and real atomic rebuild with
+  backups. Migration 0006 preserves legacy rows without inventing missing review
+  snapshots. Public operations, idempotency, and coordinated Apply remain #27.
+  The storage contract, bounds, and rationale live in SPEC 14.9.
 - Canonical document previews overlay Node/Synthesis Markdown and existing source
   metadata in memory. They reuse projection and link resolution, revalidate the
   complete reference graph, and check that the original file inventory/content
@@ -341,7 +351,7 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   readable database, rolls forward under the workspace lock, and completes the
   journal only after canonical validation and index commit. Unjournaled external
   damage is preserved; database read/version errors block pending file writes.
-- The SQLite rebuild helper copies all five runtime tables from one read
+- The SQLite rebuild helper copies all six runtime tables from one read
   transaction into a separate candidate. It preserves self-referencing Runs,
   Proposal revision links, idempotent responses, and the audit sequence even
   after event deletion. Invalid references roll back the candidate's runtime
@@ -360,7 +370,7 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   Unchanged canonical content preserves the generation. `--keep-backups <1..20>`
   defaults to three; retention preserves the current backup and unrecognized files.
 - Corrupt runtime state stops rebuild by default. `--discard-runtime --yes`
-  explicitly discards all five runtime tables while keeping a verified backup.
+  explicitly discards all six runtime tables while keeping a verified backup.
   The flag cannot override workspace identity, migration checksum, or database
   version errors. Older databases currently require migration before rebuild;
   `sync` applies recognized migrations. Server connection draining is still pending.
@@ -434,6 +444,7 @@ KM-023 and their owning implementation issues.
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), Proposal state/review | Commit `3fb7339`: missing Proposal domain module; further regressions expose unbound context/attestation metadata | `cargo +stable test -p knowmesh-core --test proposal_state --locked`: 10 state/review tests; builder/store/Apply integration remains pending |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), read-only Builder | Commits `8c8a5df`, `0a1f129`, `4d1fefe`: missing Builder, invalid snapshot acceptance, Evidence/diagnostic overflow, and mutable closed conflicts | `proposal_builder` and `proposal_builder_operations`: 17 tests cover all operations and actual source verification; persistence and Apply remain pending |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), accepted subset | Commit `2417e1c`: missing `prepare_accepted` helper | `proposal_selection`: 5 tests cover selected dependencies, stale content/revisions/generation, and actual workspace review policy; durable Apply remains pending |
+| [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), revision storage | Commits `2bbb27f`, `5544a42`: missing Proposal store, then unsafe restoration of stale approvals | `proposal_store`: 9 tests cover atomic history, concurrency, rollback, migration, copying, and rebuild; public workflows and Apply remain pending |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), canonical preview | Commit `9d8b7b4`: missing document preview | `cargo +stable test -p knowmesh-core --test canonical_preview --locked`: 6 tests pass, including preview/scan equivalence and rejection of proposed data as a canonical snapshot |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), controlled summary editing | Commits `1fa51a2`, `f803758`: missing summary editor, accepted reference injection, and stale summary projections | `node_summary`: 8 focused cases; `fast_sync`: 6 cases including v3 Claim-key and v4 summary refresh |
 

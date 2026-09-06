@@ -134,7 +134,12 @@ fn unreadable_runtime_is_preserved_unless_discard_is_explicit_and_backed_up() {
         },
     )
     .unwrap();
-    assert_eq!(report.discarded_runtime_tables.len(), 5);
+    assert_eq!(report.discarded_runtime_tables.len(), 6);
+    assert!(
+        report
+            .discarded_runtime_tables
+            .contains(&"proposal_revisions".into())
+    );
     assert_eq!(
         fs::read(&report.backup_paths[0]).unwrap(),
         b"corrupt fixture"

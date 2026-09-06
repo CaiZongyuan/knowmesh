@@ -45,7 +45,8 @@ reviewable conflict plans; Compiler/Proposal/Run integration remains in developm
 Proposal state/review contracts, typed payload/Evidence validation, and read-only
 canonical previews are in place. Accepted subsets are revalidated against current
 files and workspace policy. Controlled summary editing preserves surrounding
-Markdown. Persistence and Apply integration remain in development.
+Markdown. SQLite preserves complete review revisions; public Proposal workflows
+and coordinated Apply remain in development.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

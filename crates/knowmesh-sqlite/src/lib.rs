@@ -6,6 +6,7 @@ mod index;
 mod lexical;
 mod maintenance;
 mod migrations;
+mod proposal;
 mod rebuild;
 mod reconcile;
 mod runtime;

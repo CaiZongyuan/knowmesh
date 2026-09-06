@@ -98,6 +98,23 @@ pub trait IndexStore: ProjectionStore {
     fn diagnostics(&self) -> AppResult<DatabaseDiagnostics>;
 }
 
+pub trait ProposalStore: IndexStore {
+    fn proposal_create(
+        &mut self,
+        record: &crate::application::proposal::ProposalRecord,
+    ) -> AppResult<()>;
+    fn proposal_get(
+        &self,
+        id: &crate::domain::ProposalId,
+        revision: Option<u32>,
+    ) -> AppResult<crate::application::proposal::ProposalRecord>;
+    fn proposal_save(
+        &mut self,
+        expected_revision: u32,
+        record: &crate::application::proposal::ProposalRecord,
+    ) -> AppResult<()>;
+}
+
 pub trait ImpactStore: IndexStore {
     fn source_impact(
         &self,

@@ -31,6 +31,7 @@
     "crates/knowmesh-sqlite/src/migrations.rs",
     "crates/knowmesh-sqlite/src/reconcile.rs",
     "crates/knowmesh-sqlite/src/runtime.rs",
+    "crates/knowmesh-sqlite/src/proposal.rs",
     "crates/knowmesh-sqlite/src/rebuild.rs",
     "crates/knowmesh-sqlite/src/impact/preview.rs"
   ],

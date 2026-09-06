@@ -1,8 +1,10 @@
 mod documents;
 mod evidence;
 pub mod payload;
+mod record;
 mod selection;
 
+pub use record::{MAX_PROPOSAL_RECORD_BYTES, ProposalRecord};
 pub use selection::{AcceptedPreview, prepare_accepted};
 
 use std::{collections::BTreeMap, path::PathBuf};
