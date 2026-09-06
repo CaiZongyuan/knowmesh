@@ -1,5 +1,6 @@
 //! SQLite projection and runtime storage adapter for KnowMesh.
 
+mod entity_resolution;
 mod impact;
 mod index;
 mod lexical;

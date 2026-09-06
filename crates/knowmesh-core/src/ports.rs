@@ -65,6 +65,13 @@ pub trait SearchStore: IndexStore {
     ) -> AppResult<crate::application::search::SearchData>;
 }
 
+pub trait EntityResolutionStore: IndexStore {
+    fn entity_resolution_data(
+        &self,
+        query: &crate::application::entity_resolution::EntityBatchQuery,
+    ) -> AppResult<crate::application::entity_resolution::EntityBatchData>;
+}
+
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct ProjectionState {
     pub workspace_id: WorkspaceId,

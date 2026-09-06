@@ -1819,7 +1819,15 @@ Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint�
 
 唯一且类型兼容、没有任何共同属性标识符冲突的 identifier match 可自动关联；否则，唯一且无冲突的 normalized alias match 可自动关联。单独的 canonical name match 仅给出 `existing` 待审核建议。重复 identifier、多个 name/alias 候选、类型不符或共同标识符冲突均返回 `ambiguous` 且不选定 Node；唯一确定性 identifier 可优先于普通名称候选。无候选返回待审核的 `new`，不自动创建或恢复 inactive Node。
 
-候选返回上限默认为 20，允许 `1..=100`。唯一性和歧义先在完整匹配集上判定，再截断展示列表，报告 `total_candidates`、`candidates_truncated`、匹配原因和 warning；仅显示 Top-1 不代表唯一。此阶段不调用 provider、不写文件或数据库。FTS/vector 候选召回、受限模型建议及 Proposal 接入仍由 KM-045/KM-047 继续实现，当前确定性阶段的测试不代表整个消歧流程完成。
+候选返回上限默认为 20，允许 `1..=100`。确定性唯一性和歧义先在完整匹配集上判定，再截断展示列表，报告 `total_candidates`、`candidates_truncated`、匹配原因和 warning；仅显示 Top-1 不代表唯一。此内存阶段不调用 provider、不写文件或数据库。
+
+[`resolve_batch`](../crates/knowmesh-core/src/application/entity_resolution/retrieve.rs) 经 Core fast-sync 后调用 `EntityResolutionStore`，批次为 1–64 个实体。SQLite 在同一只读事务中加载完整 Node catalog 与各查询的候选；catalog 原始 JSON 合计上限 64 MiB，批次读取上限 5 s，每个查询另遵守 `search.lexical_timeout_ms`。Core 校验 workspace/Schema、同步状态、generation、snapshot hash 和返回 Node metadata 一致性；不完整或混合快照失败，不能输出可自动关联的结果。
+
+召回使用 word/trigram FTS 的 title/aliases 列和短中文/短文本的 title/alias fallback；不以 Node 正文作为实体名称候选。Node type 与 active 状态先于每通道 limit 生效，查询默认 literal，不解释用户 FTS 运算符。每通道上限使用 `search.candidate_limit`，为比较 Top-2 至少取 2；达到上限时报告 `ENTITY_RETRIEVAL_LIMIT_REACHED`，纯检索候选保守保持 ambiguous。完整目录中的确定性歧义不受这个检索筛选或上限影响。
+
+词法候选沿用加权 RRF，禁用额外 boosts，展示规范化 `retrieval_score`；它不是实体相同的概率。仅有词法候选时不得自动关联；Top-1 与 Top-2 分差不超过 0.05 时保持 ambiguous。否则可提供 existing 的待审核建议。失败 FTS 通道显式报告并从 RRF 分母排除；没有可用词法通道时 `retrieval_available=false`。`retrieval_sha256` 绑定索引快照、查询所得候选、排名参数、实际通道与上限，供知识阶段缓存使用。
+
+当前向量通道仍返回 `VECTOR_DISABLED` 或 `VECTOR_UNAVAILABLE`。受限模型建议、可选向量实现及 Proposal 接入仍由 KM-045/KM-031/KM-047 继续完成；确定性和真实 SQLite fixtures 不代表整个 Compiler/Apply 流程完成。
 
 ### 14.7 去重与冲突
 

@@ -1,7 +1,9 @@
+mod retrieve;
 mod types;
 
 use std::collections::{BTreeMap, BTreeSet};
 
+pub use retrieve::{EntityBatchData, EntityBatchQuery, EntityBatchReport, resolve_batch};
 pub use types::*;
 
 use crate::{
@@ -10,7 +12,7 @@ use crate::{
     error::{AppError, AppResult, ErrorType},
 };
 
-pub const RESOLVER_VERSION: &str = "1";
+pub const RESOLVER_VERSION: &str = "2";
 
 struct IndexedNode<'a> {
     metadata: &'a NodeMetadata,
@@ -110,6 +112,10 @@ impl<'a> EntityResolver<'a> {
     }
 
     pub fn resolve(&self, input: &EntityInput) -> AppResult<ResolutionReport> {
+        self.report(input, self.matching_candidates(input)?)
+    }
+
+    fn matching_candidates(&self, input: &EntityInput) -> AppResult<Vec<ResolutionCandidate>> {
         validate_names(&input.name, &input.aliases)?;
         let identifiers = self
             .schema
@@ -143,7 +149,7 @@ impl<'a> EntityResolver<'a> {
                 }
             }
         }
-        let mut candidates: Vec<_> = matches
+        let candidates: Vec<_> = matches
             .into_iter()
             .map(|(index, reasons)| {
                 let indexed = &self.nodes[index];
@@ -165,13 +171,28 @@ impl<'a> EntityResolver<'a> {
                     name: node.name.clone(),
                     node_type: node.node_type.clone(),
                     matched_by: reasons.into_iter().collect(),
+                    retrieval_score: None,
                     warnings,
                 }
             })
             .collect();
+        Ok(candidates)
+    }
+
+    fn report(
+        &self,
+        input: &EntityInput,
+        mut candidates: Vec<ResolutionCandidate>,
+    ) -> AppResult<ResolutionReport> {
         candidates.sort_by(|left, right| {
             strength(left)
                 .cmp(&strength(right))
+                .then_with(|| {
+                    right
+                        .retrieval_score
+                        .unwrap_or(0.0)
+                        .total_cmp(&left.retrieval_score.unwrap_or(0.0))
+                })
                 .then_with(|| left.node_id.cmp(&right.node_id))
         });
         let (decision, selected, automatic) = decide(&candidates);
@@ -191,6 +212,8 @@ impl<'a> EntityResolver<'a> {
             candidates,
             total_candidates,
             candidates_truncated,
+            retrieval_available: false,
+            retrieval_sha256: None,
             catalog_sha256: self.catalog_sha256.clone(),
             input_sha256: hash(input)?,
             options_sha256: self.options_sha256.clone(),
@@ -213,7 +236,26 @@ fn decide(
         [] => {}
         _ => return (ResolutionDecision::Ambiguous, None, false),
     }
-    match candidates {
+    let deterministic: Vec<_> = candidates
+        .iter()
+        .filter(|candidate| strength(candidate) < 3)
+        .collect();
+    if deterministic.is_empty() {
+        return match candidates {
+            [] => (ResolutionDecision::New, None, false),
+            [first, rest @ ..]
+                if first.warnings.is_empty()
+                    && rest.first().is_none_or(|second| {
+                        first.retrieval_score.unwrap_or(0.0) - second.retrieval_score.unwrap_or(0.0)
+                            > 0.05
+                    }) =>
+            {
+                (ResolutionDecision::Existing, Some(first), false)
+            }
+            _ => (ResolutionDecision::Ambiguous, None, false),
+        };
+    }
+    match deterministic.as_slice() {
         [] => (ResolutionDecision::New, None, false),
         [only] if only.warnings.is_empty() => (
             ResolutionDecision::Existing,
@@ -237,8 +279,10 @@ fn strength(candidate: &ResolutionCandidate) -> u8 {
         .any(|reason| reason == "canonical_name")
     {
         1
-    } else {
+    } else if candidate.matched_by.iter().any(|reason| reason == "alias") {
         2
+    } else {
+        3
     }
 }
 

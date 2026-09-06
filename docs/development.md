@@ -171,8 +171,16 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - Candidate truncation follows uniqueness checks and is explicitly reported.
   Tests cover DOI URL decoding, opaque/NCBI identity rules, Schema hash changes,
   inactive nodes, type conflicts, duplicate identities, and catalog ordering.
-  Contract details live in SPEC 7.3/14.6. FTS/vector retrieval, bounded model advice,
-  and the Proposal workflow still remain under #25/#27.
+  Contract details live in SPEC 7.3/14.6.
+- Core batch entity resolution fast-syncs and reads the full catalog plus word,
+  trigram, and short title/alias candidates in one SQLite transaction. Snapshot,
+  workspace, Schema, and candidate metadata must agree. Body-only FTS matches
+  are excluded; exact-match ambiguity survives lexical filters and display limits.
+- Real fixtures cover external updates, close ranking scores, literal operators,
+  short Unicode aliases, missing FTS channels, and mixed or altered snapshots.
+  Retrieval scores are review suggestions; context hashes retain the actual
+  channels/configuration. Bounded model advice, vectors, and the Proposal workflow
+  remain under #25/#18/#27.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
@@ -335,7 +343,8 @@ KM-023 and their owning implementation issues.
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), URL fetching | Commits `2983eb9`, `1d0f963`: missing fetch policy/transport/CLI override, and invalid downloaded bytes create an index before rejection | `cargo +stable test --workspace --locked`: 143 tests pass, including public/private address policy, actual DNS checks, bounded redirects/downloads/timeouts, preview without writes, MIME validation before index creation, repeat-hash imports, and offline snapshot reads |
 | [KM-003 / #4](https://github.com/CaiZongyuan/knowmesh/issues/4), public handler registration | Commit `237a7d9`: no automated coverage of the full CLI operation mapping | `cargo +stable test --workspace --locked`: 146 tests pass, including unregistered-handler fixtures and rejection of dynamic/wildcard/missing mappings |
 | [KM-044 / #24](https://github.com/CaiZongyuan/knowmesh/issues/24), Evidence verifier component | Commit `bf76b48`: missing Evidence verifier module | `cargo +stable test -p knowmesh-core --test evidence_verify --locked`: 14 tests pass; Proposal integration remains pending |
-| [KM-045 / #25](https://github.com/CaiZongyuan/knowmesh/issues/25), deterministic entity resolution | Commit `9f26ba8`: missing entity resolution module | `cargo +stable test -p knowmesh-core --test entity_resolution --locked`: 10 tests pass; retrieval/model/Proposal integration remains pending |
+| [KM-045 / #25](https://github.com/CaiZongyuan/knowmesh/issues/25), deterministic entity resolution | Commit `9f26ba8`: missing entity resolution module | `cargo +stable test -p knowmesh-core --test entity_resolution --locked`: 10 tests pass |
+| [KM-045 / #25](https://github.com/CaiZongyuan/knowmesh/issues/25), entity retrieval | Commit `9e5fd6b`: missing batch entity resolution operation | `cargo +stable test -p knowmesh-sqlite --test entity_resolution --locked`: 7 tests cover real FTS retrieval, snapshot consistency, ambiguity, and degradation |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

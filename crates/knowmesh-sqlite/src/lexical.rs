@@ -208,7 +208,7 @@ fn read_hits(
     Ok(hits)
 }
 
-fn literal_expression(terms: &[&str]) -> String {
+pub(crate) fn literal_expression(terms: &[&str]) -> String {
     terms
         .iter()
         .map(|term| format!("\"{}\"", term.replace('"', "\"\"")))
@@ -235,7 +235,7 @@ fn filters(query: &LexicalQuery) -> (&'static str, String) {
     (owners, filter)
 }
 
-fn like_pattern(term: &str) -> String {
+pub(crate) fn like_pattern(term: &str) -> String {
     format!(
         "%{}%",
         term.replace('\\', "\\\\")

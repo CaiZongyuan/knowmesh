@@ -47,6 +47,7 @@ pub struct ResolutionCandidate {
     pub name: String,
     pub node_type: String,
     pub matched_by: Vec<String>,
+    pub retrieval_score: Option<f64>,
     pub warnings: Vec<String>,
 }
 
@@ -58,6 +59,8 @@ pub struct ResolutionReport {
     pub candidates: Vec<ResolutionCandidate>,
     pub total_candidates: usize,
     pub candidates_truncated: bool,
+    pub retrieval_available: bool,
+    pub retrieval_sha256: Option<String>,
     pub catalog_sha256: String,
     pub input_sha256: String,
     pub options_sha256: String,
