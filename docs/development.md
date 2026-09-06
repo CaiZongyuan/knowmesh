@@ -107,7 +107,17 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
   FTS indexes follow search-unit insert/update/delete through triggers; ingestion
-  and search operations are not yet wired to these projections.
+  operations and public Search adapters are still pending.
+- The Core lexical port queries both FTS indexes and short title/alias fallback
+  through one SQLite read transaction. Literal input escapes FTS operators, quotes,
+  and LIKE wildcards. Mixed English/Chinese fixtures verify word, substring, and
+  one/two-character recall, including long/short mixed terms.
+- Candidate queries apply record-type/status filters before per-channel limits,
+  retain empty successful channels, and return stable ranks/public identities.
+  Advanced syntax is opt-in; query bounds and SQLite execution interruption apply
+  to both modes. Error paths release the progress callback for later queries.
+  Contract details live in SPEC 9.3/15.6. RRF, full Search filters/freshness,
+  cursor pagination, and public Search commands remain #17.
 - Core scans canonical files into a validated snapshot, resolving wiki links and
   checking cross-object references, schema constraints, and managed revision
   hashes. Ambiguous or unresolved links produce warnings. A stale Workspace or

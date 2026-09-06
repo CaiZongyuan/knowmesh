@@ -1,5 +1,6 @@
 pub mod doctor;
 pub mod impact;
+pub mod lexical;
 pub mod operations;
 pub mod rebuild;
 pub mod schema;

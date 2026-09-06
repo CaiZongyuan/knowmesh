@@ -73,8 +73,11 @@ fn mixed_language_queries_recall_words_substrings_and_short_titles_or_aliases() 
         ("细胞", LexicalChannel::ShortText, vec!["a", "b"]),
         ("图", LexicalChannel::ShortText, vec!["b"]),
         ("scGPT 扰动预测", LexicalChannel::Trigram, vec!["a"]),
+        ("scGPT 细胞", LexicalChannel::Trigram, vec!["a"]),
     ] {
-        let result = store.search_lexical(&query(text)).unwrap();
+        let result = store
+            .search_lexical(&query(text))
+            .unwrap_or_else(|error| panic!("{text}: {error:?}"));
         let hits = &result
             .channels
             .iter()
@@ -102,7 +105,9 @@ fn fts_operators_quotes_and_like_wildcards_are_literal_by_default() {
         "title:literal",
         "NEAR(foo)",
     ] {
-        let result = store.search_lexical(&query(text)).unwrap();
+        let result = store
+            .search_lexical(&query(text))
+            .unwrap_or_else(|error| panic!("{text}: {error:?}"));
         let words = &result
             .channels
             .iter()

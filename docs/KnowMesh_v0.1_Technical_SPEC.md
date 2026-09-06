@@ -869,6 +869,12 @@ SQLite FTS5 原生支持 BM25、highlight、snippet、prefix 与 trigram tokeniz
 - v0.1 不引入第三方中文分词扩展，避免破坏单 binary 与跨平台发布。
 - 后续若评测显示必要，可通过 `TokenizerAdapter` 增加中文 tokenizer，但不得改变公共 Search API。
 
+当前 Core `LexicalSearchStore` port 与 SQLite 候选查询已实现。Word/trigram 按 BM25 升序、同分按 `unit_id` 排序；返回从 1 开始的 channel rank 和公开身份，不返回 rowid。Literal 查询按空白拆词，每项分别用 FTS 双引号转义并以 AND 组合，允许词分布在不同索引字段；引号、冒号和布尔关键字不作为用户运算符执行。
+
+Literal 中不足 3 个 Unicode 字符的词使用 `title/aliases` 的参数化 LIKE 条件，转义 `%`、`_` 和反斜杠。混合长短词时，trigram 检索长词并附加这些短词条件；全部为短词时，以 `short_text` 通道替代 trigram，按 `unit_id` 排序，BM25 为 null。该 fallback 不扫描正文，word 通道仍独立执行。
+
+各通道在截取候选前使用相同的 `record_types/statuses` 过滤，默认只含 active，空列表表示不限制对应字段。所有通道与 generation/snapshot hash 从同一只读事务取得；成功但零命中的通道仍保留。此层尚不提供公开 Search 分页、来源/节点类型/tag 过滤、RRF 或 freshness 结果，随 KM-031 接入。
+
 ### 9.4 向量索引
 
 使用 `sqlite-vec` 的 Rust binding 并静态注册 extension。该项目支持 Cargo 安装和静态链接，但 v0.1.x API 仍应视为年轻依赖，参考 [sqlite-vec 安装说明](https://github.com/asg017/sqlite-vec/blob/main/site/getting-started/installation.md) 与 [`vec0` 文档](https://alexgarcia.xyz/sqlite-vec/features/vec0.html)。
@@ -1934,6 +1940,8 @@ B=\sum_{c \in C}\frac{w_c}{k+1},\qquad normalized(d)=raw(d)/B
 - FTS 特殊语法默认 escape 为 literal；只有显式 `query_syntax=advanced` 才允许高级语法。
 - advanced query 仍必须设置长度、token 数和执行 timeout。
 - Search 不自动调用 LLM；只有 `ask` 使用模型。
+
+词法 port 当前对 literal/advanced 均限制 query 为非空、无 NUL、至多 4096 UTF-8 bytes 和 64 个空白分隔项；每通道候选默认 100，范围 1..500。SQLite VM 执行预算默认 200 ms，范围 1..5000 ms，覆盖全部词法通道；到期返回 `policy/SEARCH_TIMEOUT`，不返回部分候选。进度回调在退出时移除，语法或超时错误后连接可继续使用；数据库锁等待仍遵守 21.2 节的 busy timeout。Advanced 直接使用参数绑定的 FTS5 表达式，不套用 literal fallback，语法错误返回 `validation/INVALID_SEARCH_SYNTAX`。
 
 ---
 

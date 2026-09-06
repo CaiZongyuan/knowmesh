@@ -30,6 +30,13 @@ pub trait SourceFetcher: Send + Sync {
     ) -> AppResult<crate::canonical::source::ImportedContent>;
 }
 
+pub trait LexicalSearchStore: Send {
+    fn search_lexical(
+        &self,
+        query: &crate::application::lexical::LexicalQuery,
+    ) -> AppResult<crate::application::lexical::LexicalCandidates>;
+}
+
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct ProjectionState {
     pub workspace_id: WorkspaceId,

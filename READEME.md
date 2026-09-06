@@ -24,6 +24,8 @@ Source lists support cursor pagination; content reads verify historical bytes,
 with explicit `--raw` output for text and PDFs.
 Core error mappings and JSON envelopes have contract snapshots; HTTP serving is
 still pending.
+Lexical retrieval supports English/Chinese candidates and short title/alias
+fallback in the storage port; the public Search workflow is still pending.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

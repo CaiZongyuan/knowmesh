@@ -2,6 +2,7 @@
 
 mod impact;
 mod index;
+mod lexical;
 mod maintenance;
 mod migrations;
 mod rebuild;
