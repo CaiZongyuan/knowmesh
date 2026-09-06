@@ -1,4 +1,4 @@
-mod context;
+pub(crate) mod context;
 mod preview;
 
 pub use preview::SqliteImpactPreview;

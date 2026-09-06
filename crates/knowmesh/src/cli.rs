@@ -9,9 +9,11 @@ use knowmesh_core::{
     application::{
         doctor::{self, IndexAccess, RepairInput},
         impact::{self, ImpactInput, ImpactKind},
+        lexical::{QuerySyntax, RecordType},
         operations,
         rebuild::{self, RebuildInput},
         schema::{self, PackInput},
+        search::{self, SearchInput},
         source,
         source_read::{self, ContentId, ContentInput},
         status, sync,
@@ -56,6 +58,29 @@ enum OutputFormat {
 enum Command {
     Version,
     Status,
+    Search {
+        query: String,
+        #[arg(long, default_value = "literal")]
+        query_syntax: QuerySyntax,
+        #[arg(long = "record-type")]
+        record_types: Vec<RecordType>,
+        #[arg(long = "node-type")]
+        node_types: Vec<String>,
+        #[arg(long = "source-id")]
+        source_ids: Vec<SourceId>,
+        #[arg(long = "tag")]
+        tags: Vec<String>,
+        #[arg(long = "status", default_value = "active")]
+        statuses: Vec<String>,
+        #[arg(long)]
+        limit: Option<u32>,
+        #[arg(long)]
+        cursor: Option<String>,
+        #[arg(long)]
+        include_graph_paths: bool,
+        #[arg(long)]
+        explain: bool,
+    },
     Init {
         path: Option<PathBuf>,
         #[arg(long, default_value = "Knowledge Space")]
@@ -185,6 +210,7 @@ impl Command {
         match self {
             Self::Version => "version",
             Self::Status => "status",
+            Self::Search { .. } => "knowledge.search",
             Self::Init { .. } => "init",
             Self::Schema {
                 command: SchemaCommand::List,
@@ -332,6 +358,44 @@ fn execute(
     let mut workspace_id = None;
     let result = match command {
         Command::Version => serde_json::to_value(operations::version()),
+        Command::Search {
+            query,
+            query_syntax,
+            record_types,
+            node_types,
+            source_ids,
+            tags,
+            statuses,
+            limit,
+            cursor,
+            include_graph_paths,
+            explain,
+        } => {
+            let workspace = load_workspace(root)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            serde_json::to_value(search::execute(
+                &workspace,
+                crate::runtime::open_search_store(&workspace)?.as_mut(),
+                &SearchInput {
+                    query: query.clone(),
+                    query_syntax: *query_syntax,
+                    record_types: if record_types.is_empty() {
+                        SearchInput::default().record_types
+                    } else {
+                        record_types.clone()
+                    },
+                    node_types: node_types.clone(),
+                    source_ids: source_ids.clone(),
+                    tags: tags.clone(),
+                    statuses: statuses.clone(),
+                    limit: *limit,
+                    cursor: cursor.clone(),
+                    include_graph_paths: *include_graph_paths,
+                    explain: *explain,
+                    no_sync,
+                },
+            )?)
+        }
         Command::Status => {
             let workspace = load_workspace(root)?;
             workspace_id = Some(workspace.config.workspace.id.clone());

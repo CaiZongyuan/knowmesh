@@ -88,6 +88,7 @@ pub struct Candidate {
     pub record_id: String,
     pub title: String,
     pub aliases: Vec<String>,
+    pub preview: String,
 }
 
 impl From<&LexicalHit> for Candidate {
@@ -98,6 +99,7 @@ impl From<&LexicalHit> for Candidate {
             record_id: hit.record_id.clone(),
             title: hit.title.clone(),
             aliases: hit.aliases.clone(),
+            preview: hit.preview.clone(),
         }
     }
 }

@@ -28,6 +28,7 @@ fn results(config: &RankingConfig, vector_available: bool) -> RankingResult {
             record_id: format!("fixture-{index}"),
             title: "Other".into(),
             aliases: vec![],
+            preview: String::new(),
             rank: index + 1,
             bm25: None,
         })

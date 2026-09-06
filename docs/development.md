@@ -106,30 +106,41 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
-  FTS indexes follow search-unit insert/update/delete through triggers; ingestion
-  operations and public Search adapters are still pending.
+  FTS indexes follow search-unit insert/update/delete through triggers.
 - The Core lexical port queries both FTS indexes and short title/alias fallback
   through one SQLite read transaction. Literal input escapes FTS operators, quotes,
   and LIKE wildcards. Mixed English/Chinese fixtures verify word, substring, and
   one/two-character recall, including long/short mixed terms.
-- Candidate queries apply record-type/status filters before per-channel limits,
+- Candidate queries apply all Search filters before per-channel limits,
   retain empty successful channels, and return stable ranks/public identities.
   Advanced syntax is opt-in; query bounds and SQLite execution interruption apply
   to both modes. Error paths release the progress callback for later queries.
-  Contract details live in SPEC 9.3/15.6. RRF, full Search filters/freshness,
-  cursor pagination, and public Search commands remain #17.
+  Contract details live in SPEC 9.3/15.6.
 - Core's pure RRF implementation uses configurable weights and the theoretical
   channel bound, preserves successful empty channels, excludes unavailable ones,
   deduplicates per channel, and sorts exact IDs in a separate tier. Explanations
   include contributions, bounded boosts, and degradation reasons. Tests preserve
   a no-boost baseline and scores across candidate-tail truncation. Workspace config
-  validates weights/budgets and supplies defaults for older files. Public Search
-  integration and retrieval evaluation are still pending under #17/#42.
+  validates weights/budgets and supplies defaults for older files. Retrieval
+  quality and performance evaluation remain part of #42.
 - Ranked snapshot pagination binds workspace/query, generation/snapshot hash,
   ranking settings/candidate limits, actual channels, and candidate results.
   The opaque cursor stores an exact-tier/score/ID position. Tests cover changing
   final page sizes, stale snapshots/config/channels/candidates, and malformed
-  positions. This Core helper still needs the public Search integration in #17.
+  positions. CLI returns the continuation in both data and envelope metadata.
+- `search` calls the registered `knowledge.search` Core operation. Ordinary and
+  exact-ID candidates share filter semantics, including recorded assertion/source
+  links, Synthesis dependency snapshots, and Chunk owners (SPEC 15.4). A real
+  workspace fixture verifies filters before a one-candidate channel limit.
+- Candidate identities, canonical aliases, bounded Unicode previews, freshness
+  dependencies, and index version are read in one SQLite transaction. Search
+  fast-syncs by default; `--no-sync` reports unknown freshness. Removed sources
+  retain historical evidence and mark affected knowledge as needing review.
+- Failed lexical I/O channels expose their error code, drop partial candidates,
+  and trigger renormalization with a degradation warning. An actual missing
+  trigram index fixture invalidates the previous cursor. Validation, syntax,
+  lock, and execution-budget failures remain typed errors. Optional vectors and
+  Graph paths remain unavailable until #18/#19 and are explicitly disclosed.
 - Core scans canonical files into a validated snapshot, resolving wiki links and
   checking cross-object references, schema constraints, and managed revision
   hashes. Ambiguous or unresolved links produce warnings. A stale Workspace or
@@ -206,7 +217,8 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   and generation/snapshot hash; stale or changed queries return typed errors.
   `--no-sync`, pending recovery, and skipped synchronization produce unknown
   freshness. Source updates/removal preserve independent Evidence, and rebuild
-  preserves impact results. HTTP and Search integration are pending.
+  preserves impact results. Search shares these freshness rules; HTTP integration
+  is still pending.
 - `source remove --dry-run` includes an impact preview built from canonical files
   in an in-memory index. It uses the same query and freshness rules, preserves the
   disk index, and returns the first 20 dependencies before removal. The preview

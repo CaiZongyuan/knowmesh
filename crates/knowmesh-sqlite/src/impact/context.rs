@@ -15,7 +15,7 @@ use serde::de::DeserializeOwned;
 use super::invalid_projection;
 use crate::{database_error, reconcile::json_text};
 
-pub(super) fn load(db: &Connection, items: &mut [ImpactRow]) -> AppResult<FreshnessContext> {
+pub(crate) fn load(db: &Connection, items: &mut [ImpactRow]) -> AppResult<FreshnessContext> {
     let mut context = FreshnessContext::default();
     let mut claims = BTreeSet::new();
     let mut relations = BTreeSet::new();

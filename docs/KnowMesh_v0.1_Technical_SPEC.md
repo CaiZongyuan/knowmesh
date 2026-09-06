@@ -879,7 +879,7 @@ SQLite FTS5 原生支持 BM25、highlight、snippet、prefix 与 trigram tokeniz
 
 Literal 中不足 3 个 Unicode 字符的词使用 `title/aliases` 的参数化 LIKE 条件，转义 `%`、`_` 和反斜杠。混合长短词时，trigram 检索长词并附加这些短词条件；全部为短词时，以 `short_text` 通道替代 trigram，按 `unit_id` 排序，BM25 为 null。该 fallback 不扫描正文，word 通道仍独立执行。
 
-各通道在截取候选前使用相同的 `record_types/statuses` 过滤，默认只含 active，空列表表示不限制对应字段。所有通道与 generation/snapshot hash 从同一只读事务取得；成功但零命中的通道仍保留。此层尚不提供公开 Search 分页、来源/节点类型/tag 过滤、RRF 或 freshness 结果，随 KM-031 接入。
+各通道与精确 ID lookup 在截取候选前使用相同过滤条件，继承规则见 15.4 节。所有通道、精确 ID 结果、freshness 依赖与 generation/snapshot hash 从同一只读事务取得；成功但零命中的通道仍保留。Core 的 `knowledge.search` 与 CLI `search` 已接入此读取路径、RRF 和稳定分页。
 
 ### 9.4 向量索引
 
@@ -1368,7 +1368,7 @@ Core 的 `AppError::exit_code()` 与 `http_status()` 是映射的唯一实现，
 - cursor 至少编码 sort key、record id、query fingerprint；改变 query/filter 后旧 cursor 返回 `CURSOR_QUERY_MISMATCH`。
 - Search cursor 还必须绑定 indexed generation、排名配置和实际参与通道；任一变化返回 `conflict/CURSOR_STALE`，由调用者重新开始查询，避免翻页时重排或重复。
 
-Core 的 [`search::pagination`](../crates/knowmesh-core/src/application/search/pagination.rs) 已实现 ranked snapshot 分页。游标为有版本的 Base64url JSON（输入上限 4096 bytes），包含 workspace/query fingerprint、generation/snapshot hash、排名配置与候选上限 hash、实际通道/候选结果 hash，以及最后一个结果的 exact tier、score bits 和 `unit_id`；不保存 offset。Query/filter 或 workspace 不符返回 `CURSOR_QUERY_MISMATCH`，索引/排名/通道/候选变化返回 `CURSOR_STALE`，不存在的排序位置返回 `INVALID_CURSOR`。改变最终页大小不改变候选池，可继续同一游标。该 helper 的契约测试已通过，公开 Search 用例仍需从同一次索引读取构造这些绑定值；游标不声明签名或访问权限能力。
+Core 的 [`search::pagination`](../crates/knowmesh-core/src/application/search/pagination.rs) 已实现 ranked snapshot 分页。游标为有版本的 Base64url JSON（输入上限 4096 bytes），包含 workspace/query fingerprint、generation/snapshot hash、排名配置与候选上限 hash、实际通道/候选结果 hash，以及最后一个结果的 exact tier、score bits 和 `unit_id`；不保存 offset。Query/filter 或 workspace 不符返回 `CURSOR_QUERY_MISMATCH`，索引/排名/通道/候选变化返回 `CURSOR_STALE`，不存在的排序位置返回 `INVALID_CURSOR`。改变最终页大小或 explain 开关不改变候选池，可继续同一游标。公开 Search 用例从同一次索引读取构造绑定值，CLI 同时通过 `data.next_cursor` 与 `meta.next_cursor` 返回后续游标；游标不声明签名或访问权限能力。
 
 ### 11.12 Raw 输出例外
 
@@ -1900,7 +1900,7 @@ B=\sum_{c \in C}\frac{w_c}{k+1},\qquad normalized(d)=raw(d)/B
 
 Core 的 [`search::ranking`](../crates/knowmesh-core/src/application/search/ranking.rs) 已实现以上纯融合规则。`search.word_weight/trigram_weight/vector_weight` 配置各通道权重，`short_text` fallback 复用 trigram 权重且两者不能同时参与；`search.boosts_enabled=false` 提供无 boost 基线，仍保留独立 exact ID tier。上述可选配置缺省值见 8.1 节，旧配置无需补齐。`search.candidate_limit` 与 `lexical_timeout_ms` 的范围见 15.6 节。
 
-融合前同通道同 `unit_id` 取最优正 rank，重复 metadata 必须一致；不允许同一通道登记两次或把失败通道的部分候选混入。默认 name boost 仅用于 Node 的规范名称，alias 匹配先逐条规范化，prefix 适用于候选标题。Explain 保留各通道 rank/weight/contribution、raw/B/normalized、各项 boost 及 cap 后总和、exact tier、最终分数和降级通道。理论上界不随候选尾部截断改变，空的成功通道仍计入 B，全部通道不可用时只允许已过滤的 exact ID lookup 结果进入独立 tier。公开 Search 用例、完整 filters/freshness 与 cursor 集成仍由 KM-031 继续实施；纯融合测试不等同于 retrieval eval 验收。
+融合前同通道同 `unit_id` 取最优正 rank，重复 metadata 必须一致；不允许同一通道登记两次或把失败通道的部分候选混入。默认 name boost 仅用于 Node 的规范名称，alias 从 canonical JSON 数组读取并逐条规范化，保留多行别名的边界；prefix 适用于候选标题。Explain 保留各通道 rank/weight/contribution、raw/B/normalized、各项 boost 及 cap 后总和、exact tier、最终分数和降级通道。理论上界不随候选尾部截断改变，空的成功通道仍计入 B，全部通道不可用时只允许已过滤的 exact ID lookup 结果进入独立 tier。当前已接入公开 Search 用例、过滤、freshness 和 cursor；纯融合及 workspace 合同测试不等同于 22.5 节的检索质量评测。
 
 ### 15.4 Search Input
 
@@ -1919,6 +1919,20 @@ Core 的 [`search::ranking`](../crates/knowmesh-core/src/application/search/rank
 }
 ```
 
+当前入口为 `knowmesh search <query>` 与 Core `knowledge.search` Operation；`schema command knowledge.search` 可读取完整 DTO。CLI 提供可重复的 `--record-type`、`--node-type`、`--source-id`、`--tag`、`--status`，以及 `--query-syntax literal|advanced`、`--limit`、`--cursor`、`--explain`、`--include-graph-paths`；`--no-sync` 沿用全局语义。
+
+`record_types` 默认包含 node/claim/source/synthesis，显式选择 `chunk` 可检索已有 Chunk 投影；`statuses` 默认 active。每个非空 record-type/node-type/source-id/status 列表内部为 OR，不同字段之间为 AND；所有指定 tag 必须逐个精确匹配。空列表不限制对应字段，过滤列表排序或去重不改变 query fingerprint。最终 `limit` 缺省时读取 workspace 配置，独立于每通道 candidate limit。
+
+| 对象 | node type / node tag 关联 | source id 关联 |
+|---|---|---|
+| Node | 本节点 | represented/source-node links，或本节点 Claim、入向/出向 Relation 的 Evidence 来源 |
+| Claim | subject node | 本 Claim 的 Evidence 来源 |
+| Source | 与此来源有上述关联的 Node；tag 也包含 Source 自身 tag | 本 Source |
+| Synthesis | related_nodes，或 dependency snapshot 内 assertion 的 subject/endpoints | 直接 Evidence、snapshot source_heads，或 snapshot assertion 的 Evidence 来源 |
+| Chunk | 继承 Node/Synthesis owner；source_revision owner 映射到其 Source | 同左 |
+
+筛选沿规范引用和已接受 assertion 关联，不用全文 tag token 近似判断。来源关联保留历史 revision/assertion，因此命中仅表示有关联，是否仍支持当前结论由 freshness 单独说明。Node/Claim 的状态来自其 lifecycle；Source 映射为 active/removed，Synthesis 的 draft/reviewed 映射为 active、archived 保持 archived。Chunk 使用其 search-unit lifecycle 状态。Source/node-type/tag 列表各最多 64 项，node type 最多 64 bytes、tag 最多 256 bytes。
+
 ### 15.5 Search Output
 
 ```json
@@ -1928,6 +1942,7 @@ Core 的 [`search::ranking`](../crates/knowmesh-core/src/application/search/rank
     "claims": [],
     "sources": [],
     "syntheses": [],
+    "chunks": [],
     "graph_paths": []
   },
   "resolved_entities": [],
@@ -1945,6 +1960,12 @@ Core 的 [`search::ranking`](../crates/knowmesh-core/src/application/search/rank
 ```
 
 单个 hit 的 `explain` 至少包含 channel ranks/weights、raw RRF、normalization bound B、normalized score、exact ID tier、各项 boost、最终 score 和降级原因；不得暴露原始 embedding。知识对象同时按 14.11 节返回 freshness 信息。
+
+当前 CLI 返回 knowledge/claims/sources/syntheses/chunks 分类结果，每项包含公开身份、title、完整 aliases、正文前 512 个 Unicode 字符的 `preview`、score 和 exact ID tier。Preview 仅供展示，不作为 Evidence 或定位摘录。`explain` 默认省略，显式开启后返回完整分数解释。`resolved_entities` 报告候选中精确 ID、规范名或别名匹配的 Node，不静默裁掉歧义匹配。
+
+读取前默认 fast sync；`index_complete` 表示规范投影同步状态，与各检索通道 capability 独立。Node freshness 汇总其 active Claims 和相邻 active Relations 的 Evidence，Claim/Synthesis 复用 14.11 节判定；来源变化保留历史 Evidence IDs，`--no-sync` 返回 unknown。当前向量与 Graph paths 尚待 KM-032/KM-033 接入，分别明确报告 `vector=false`、`graph_paths=false`；启用但不可用的向量、请求但不可用的 Graph paths 在 warnings 中披露，当前不生成 `groups.graph_paths`。
+
+词法通道 I/O 失败会丢弃该通道全部候选，以 `channels[].unavailable_reason` 披露错误 code，返回 `LEXICAL_SEARCH_DEGRADED` warning，capability 标为 false，并按剩余成功通道重新计算 B。真实 trigram 索引缺失 fixture 验证降级和旧 cursor 失效。语法、校验、锁冲突及整体执行预算错误仍失败，不转成空命中；依赖读取失败也不返回未经验证的知识结果。
 
 ### 15.6 安全与限制
 

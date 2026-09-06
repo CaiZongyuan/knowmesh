@@ -213,6 +213,30 @@ fn synthesis_filters_follow_recorded_assertions_without_direct_source_or_node_li
 }
 
 #[test]
+fn alias_matching_preserves_canonical_multiline_aliases() {
+    let (temp, workspace, mut store, _) = fixture();
+    let path = temp.path().join("knowledge/nodes/model-a.md");
+    let mut document =
+        knowmesh_core::canonical::node::NodeDocument::parse(&fs::read_to_string(&path).unwrap())
+            .unwrap();
+    document.metadata.aliases = vec!["Alpha\nBeta".into()];
+    fs::write(path, document.render().unwrap()).unwrap();
+    let result = search::execute(&workspace, &mut store, &input("alpha beta")).unwrap();
+    assert_eq!(result.resolved_entities.len(), 1);
+    assert_eq!(result.resolved_entities[0].node_id, document.metadata.id);
+    assert_eq!(result.groups.knowledge[0].aliases, ["Alpha\nBeta"]);
+    assert_eq!(
+        result.groups.knowledge[0]
+            .explain
+            .as_ref()
+            .unwrap()
+            .boosts
+            .exact_alias,
+        0.04
+    );
+}
+
+#[test]
 fn real_search_pages_are_stable_and_expire_when_the_index_or_rank_settings_change() {
     let (temp, workspace, mut store, _) = fixture();
     let mut request = input("fixture");

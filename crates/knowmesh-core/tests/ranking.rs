@@ -13,6 +13,7 @@ fn hit(id: &str, title: &str, rank: u32) -> LexicalHit {
         record_id: id.into(),
         title: title.into(),
         aliases: vec![],
+        preview: String::new(),
         rank,
         bm25: None,
     }

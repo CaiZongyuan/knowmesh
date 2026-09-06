@@ -115,6 +115,9 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
         sync,
         repair,
         rebuild,
+        OperationDescriptor::read::<super::search::SearchInput, super::search::SearchReport>(
+            "knowledge.search",
+        ),
         OperationDescriptor::read::<EmptyInput, super::doctor::DoctorReport>("doctor"),
         OperationDescriptor::read::<super::source_read::ListInput, super::source_read::ListReport>(
             "source.list",

@@ -37,6 +37,13 @@ pub trait LexicalSearchStore: Send {
     ) -> AppResult<crate::application::lexical::LexicalCandidates>;
 }
 
+pub trait SearchStore: IndexStore {
+    fn search_data(
+        &self,
+        query: &crate::application::lexical::LexicalQuery,
+    ) -> AppResult<crate::application::search::SearchData>;
+}
+
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct ProjectionState {
     pub workspace_id: WorkspaceId,

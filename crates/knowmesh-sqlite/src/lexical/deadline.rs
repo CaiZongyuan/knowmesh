@@ -5,13 +5,13 @@ use rusqlite::Connection;
 
 use crate::database_error;
 
-pub(super) struct Deadline<'a> {
+pub(crate) struct Deadline<'a> {
     connection: &'a Connection,
     expires: Instant,
 }
 
 impl<'a> Deadline<'a> {
-    pub(super) fn new(connection: &'a Connection, timeout_ms: u64) -> AppResult<Self> {
+    pub(crate) fn new(connection: &'a Connection, timeout_ms: u64) -> AppResult<Self> {
         Self::at(
             connection,
             Instant::now() + Duration::from_millis(timeout_ms),
@@ -28,7 +28,7 @@ impl<'a> Deadline<'a> {
         })
     }
 
-    pub(super) fn check(&self) -> AppResult<()> {
+    pub(crate) fn check(&self) -> AppResult<()> {
         if Instant::now() >= self.expires {
             Err(timeout())
         } else {

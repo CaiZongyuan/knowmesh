@@ -8,6 +8,7 @@ mod migrations;
 mod rebuild;
 mod reconcile;
 mod runtime;
+mod search;
 mod source_read;
 
 use std::{

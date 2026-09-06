@@ -7,7 +7,7 @@ Markdown/YAML, SQLite projections, and reviewed proposals.
 `knowmesh init [path] --template research`, `knowmesh version`, and operation discovery with `knowmesh schema list` /
 `knowmesh schema command <operation>` / `knowmesh schema pack <id>`, plus local
 `source add/list/get/content`, confirmed `source remove`, paginated `source impact`, `sync`, `status`,
-`doctor`, and `rebuild`;
+`doctor`, `rebuild`, and `search`;
 the complete ingestion, knowledge, search, graph, proposal,
 and optional Web workflows are not released yet. The npm bootstrap package does
 not contain an executable.
@@ -24,9 +24,9 @@ Source lists support cursor pagination; content reads verify historical bytes,
 with explicit `--raw` output for text and PDFs.
 Core error mappings and JSON envelopes have contract snapshots; HTTP serving is
 still pending.
-Lexical retrieval supports English/Chinese candidates and short title/alias
-fallback in the storage port. Core also implements configurable RRF and score
-explanations; the public Search workflow is still pending.
+Search supports English/Chinese retrieval, filters, configurable RRF, score
+explanations, stable cursor pagination, and evidence freshness. Optional vectors
+and Graph paths are still pending.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).
@@ -36,6 +36,7 @@ cargo run -p knowmesh -- init ./my-knowledge --name "My Research"
 cargo run -p knowmesh -- version
 cargo run -p knowmesh -- --workspace ./my-knowledge sync --dry-run
 cargo run -p knowmesh -- --workspace ./my-knowledge status
+cargo run -p knowmesh -- --workspace ./my-knowledge search "virtual cell" --explain
 cargo run -p knowmesh -- --workspace ./my-knowledge rebuild --dry-run
 cargo test --workspace
 ```
