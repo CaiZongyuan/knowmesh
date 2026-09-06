@@ -1875,7 +1875,19 @@ conflict_groups:
 
 Claim 语义 hash 包含按组 ID 排序的全部冲突记录，因此组成员、原因或处理状态的变化会使依赖该 Claim 的 Synthesis 需要复核。用于 exact dedup 的 normalized hash 仍只取 statement 与 qualifiers；没有 conflict_groups 的旧 Claim 保持原语义 hash。规范文件解析保留字节级往返，修改冲突只更新所在受管块。
 
-SQLite 的 conflict_groups/conflict_group_claims 是上述记录的派生投影，与 Claim/Evidence 在同一个 reconcile 事务中更新；这两张表不是 runtime 例外。规范记录被移除时清理投影，写入失败回滚整个投影。逻辑快照与原子 rebuild 校验包含组内容和成员，备份及重建后的数据库均保留相同冲突身份与状态。当前 fixtures 验证规范完整性、语义 hash、真实原子重建及失败回滚；语义相似/极性比较和 Compiler 生成冲突组仍随 KM-046 的后续实现接入。
+SQLite 的 conflict_groups/conflict_group_claims 是上述记录的派生投影，与 Claim/Evidence 在同一个 reconcile 事务中更新；这两张表不是 runtime 例外。规范记录被移除时清理投影，写入失败回滚整个投影。逻辑快照与原子 rebuild 校验包含组内容和成员，备份及重建后的数据库均保留相同冲突身份与状态。规范完整性、语义 hash、真实原子重建及失败回滚已有 fixtures。
+
+[`ClaimComparisonContext`](../crates/knowmesh-core/src/application/assertion_compare/mod.rs) 接收去重后至多 100,000 条 Claim 的完整相关上下文，校验 ID 和既有冲突组，并固定内容 hash。`select_pairs` 以至多 10,000 个 active focus IDs 选择涉及新增/变化断言的比较对；只有不同 ID、相同 subject/qualifiers、非 exact duplicate 的 active Claims 可被比较。Pair 按两个 Claim ID 排序并去重，分页大小为 1–32；cursor 绑定上下文、focus 集合和位置，改变页大小可继续，改变数据或 focus 则拒绝。调用方必须消费全部页或保留 partial/checkpoint 状态，不能把一页成功当作全部比较完成。
+
+`compare` 通过版本化 [assertion-comparison-v1.md](../crates/knowmesh-core/prompts/assertion-comparison-v1.md) 和 `ModelProvider` 比较每批至多 32 对，复用 14.4 节的 Schema、输入大小、请求/token/deadline 和有限修复预算；空批次不调用模型。Claim 与 Evidence 全部作为 user message 数据，不裁剪证据来隐瞒超限，也不让模型选择其他 ID。输出必须完整、无重复地覆盖给定 pairs，verdict 闭集为 `independent | possible_duplicate | conflicting | undetermined`，reason 非空且不超过 2048 字符。比较的是所给陈述之间的关系，不判定哪一方科学上为真。
+
+未知、重复、缺失的模型 pair 或无效 reason 返回 `CLAIM_COMPARISON_OUTPUT_INVALID`，保留 usage/诊断而不附带模型原文；结构坏 JSON/Schema 继续使用通用的 bounded repair 规则。报告可序列化，保留上下文、实际输入、prompt 及双方语义 hash。`plan` 在使用结果前重新核对这些绑定；内容、Evidence 或 prompt 变化返回 `CLAIM_COMPARISON_STALE`。
+
+冲突计划始终 `requires_review=true`。possible_duplicate/undetermined 仅保留建议，不覆盖或合并陈述；conflicting 为每个被判定的 pair 建立两成员 open 组并拟将双方 evidence_status 标记为 conflicting。不会推断传递冲突，不改写正文、Evidence、confidence 或 lifecycle。已有包含双方的 open 组直接复用；已有 closed 记录保留，新候选使用新组 ID。缺 Evidence 或达到每条 Claim 的组上限时，记录 `blocked_conflicts`，不产生该 pair 的成员修改，其他合法 pairs 可继续形成计划。
+
+同一 Claim 涉及多对冲突时，修改合并到一条成员变更，before_semantic_sha256 仍锚定比较阶段输入。它可能是前一去重阶段的拟议状态，因此 Proposal builder 必须保留原始 canonical 基线与新增标记，再组合各阶段结果；不能把阶段间 before hash 当成文件写入前提。生成组的 ID、时间与完整计划应由 Run artifact/checkpoint 保留，恢复时不能仅为重建计划而分配另一套身份。
+
+当前 [golden fixtures](../crates/knowmesh-core/tests/fixtures/claim_comparisons.json) 与 fake provider 测试覆盖相反结果、改写、不同指标、科学符号、信息不足和缺证据，并通过 Evidence verifier 与规范文件往返检查结果。分页、过期报告、模型缺项/重复、组复用与上限也已验证。真实模型判断质量仍由 KM-072 评测；Compiler/Proposal/Run 接入仍由 KM-047/KM-048 完成。
 
 ### 14.8 Proposal Patch Operation
 
@@ -1892,11 +1904,14 @@ add_relation
 supersede_relation
 retract_relation
 add_evidence
+record_claim_conflict
 create_synthesis
 update_source_metadata
 ```
 
 禁止模型输出任意 filesystem patch、SQL 或 shell command。
+
+`record_claim_conflict` 是 KM-047 待实现的显式组变更操作：target 为成员所属 Node，payload 包含完整 conflict group 和显式成员 evidence_status 变更。它必须在同一 Node 写入中维护全部成员副本，并遵守 14.7 节的身份、scope、状态与历史约束；不能借该操作修改 Claim 正文、Evidence 或 lifecycle。创建组依赖的新 Claim 必须已存在或由同一已接受 Proposal 的创建项提供，缺失/被拒绝的依赖阻止 Apply。新增 Claim 与追加 Evidence 项保留去重阶段基线，组修改单独审核；不得把组副本预先混入可独立接受的新 Claim 项，造成循环依赖或绕过组决策。
 
 每个 Proposal item 包含：
 

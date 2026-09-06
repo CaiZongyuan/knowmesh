@@ -203,8 +203,21 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - Claim exact keys now preserve case and compatibility characters in scientific
   statements. Migration 0004 forces legacy keys through a complete reconciliation
   before the metadata fast path is reused. Tests preserve canonical bytes and keep
-  Co/CO assertions in separate active rows. Semantically similar claims and polarity
-  conflict detection still require the remaining #26 stage.
+  Co/CO assertions in separate active rows.
+- Semantic Claim comparison fixes a validated context and enumerates same-scope,
+  non-exact pairs involving focus Claims through bounded cursor pages. Shared Evidence
+  IDs must retain identical payloads. Model batches
+  must classify every supplied pair exactly once; unknown, missing, duplicate, or
+  malformed results fail with usage retained. Reports bind inputs and prompt content.
+- Conflict plans preserve statement/Evidence/lifecycle data, retain possible-duplicate
+  and undetermined advice, reuse open groups, and preserve closed history. Missing
+  Evidence or group limits produce explicit blocked pairs. Overlapping changes retain
+  the original comparison hashes and always require review.
+- Six golden scenarios use verified source quotes and fake provider responses, then
+  round-trip reports/plans and render the resulting canonical Claims. Other fixtures
+  cover pagination, stale context, model repair bounds, overlapping groups, and limits.
+  These checks establish controller behavior, not real-model judgment quality (#42).
+  SPEC 14.7/14.8 define the remaining Proposal/Run integration (#27/#28).
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
@@ -373,6 +386,7 @@ KM-023 and their owning implementation issues.
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), canonical conflict groups | Commit `3b75c6d`: missing conflict types and Claim metadata | `cargo +stable test -p knowmesh-core --test claim_conflicts --locked`: 7 tests pass |
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), conflict projection | Commit `f8856dd`: missing group rows and projection behavior; adding groups also exposed the old rebuild hash inventory | `cargo +stable test -p knowmesh-sqlite --test conflict_groups --locked`: 3 tests pass, including actual rebuild and transaction rollback |
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), exact deduplication | Commits `ddc74a8`, `f31a49e`: missing deduplication module; scientific symbols collapse and legacy keys skip reindexing | `assertion_dedup`: 11 tests pass; `fast_sync`: 5 tests pass, including two normalization/migration regressions |
+| [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), semantic comparison/planning | Commit `84f5bba`: missing Claim comparison context; an additional regression exposed conflicting shared Evidence payloads | `cargo +stable test -p knowmesh-core --test assertion_compare --locked`: 11 tests cover six golden scenarios, canonical rendering, and shared Evidence integrity |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

@@ -15,7 +15,7 @@ Core 已提供结构感知分块和带校验的阶段缓存，继续接入后续
 模型适配器已提供有界结构化生成与本地 Schema 校验；完整 compile/review/apply 流程仍在实现中。
 Core Evidence verifier 已支持原文区间验证与有界定位修复，拒绝歧义引用；Proposal review/apply 的强制接入仍待完成。
 实体消歧已支持保守的标识符、名称、别名匹配、SQLite 候选召回与受限模型建议；Compiler/Proposal 集成仍待接入。
-规范冲突组已支持投影同步和重建保留；断言与 Evidence 的精确去重保留科学符号差异，语义冲突检测仍待实现。
+规范冲突组已支持投影同步和重建保留；精确去重保留科学符号差异，受限语义比较可生成待审核的冲突计划。Compiler/Proposal/Run 集成仍在实现中。
 Workspace 测试也检查公共 Operation 注册、依赖方向及已登记的写入边界，覆盖范围与限制见[开发文档](docs/development.md)。
 
 ```bash

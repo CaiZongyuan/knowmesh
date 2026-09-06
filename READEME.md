@@ -40,7 +40,8 @@ ambiguous repairs; enforcement through Proposal review/apply is still pending.
 Entity resolution includes conservative identifier/name/alias matching and SQLite
 candidate retrieval plus bounded model advice; Compiler/Proposal integration is pending.
 Canonical conflict groups survive projection and rebuild. Exact assertion/Evidence
-deduplication preserves scientific symbols; semantic conflict detection is still pending.
+deduplication preserves scientific symbols. Bounded semantic comparison produces
+reviewable conflict plans; Compiler/Proposal/Run integration remains in development.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

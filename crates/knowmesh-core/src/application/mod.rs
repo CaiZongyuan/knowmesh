@@ -1,3 +1,4 @@
+pub mod assertion_compare;
 pub mod assertion_dedup;
 pub mod doctor;
 pub mod entity_resolution;
