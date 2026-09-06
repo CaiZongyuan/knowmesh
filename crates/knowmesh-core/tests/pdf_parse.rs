@@ -78,7 +78,7 @@ fn scanned_and_mostly_empty_pdfs_require_ocr_instead_of_compiling() {
 }
 
 #[test]
-fn encrypted_pdf_is_blocked_without_password_attempts_or_text_leakage() {
+fn encrypted_pdf_is_blocked_without_releasing_text() {
     let mut doc = fixture::document(&[Some(TEXT)], false);
     let encryption = lopdf::EncryptionState::try_from(lopdf::EncryptionVersion::V2 {
         document: &doc,
@@ -116,7 +116,10 @@ fn garbled_unicode_and_unreliable_page_maps_fail_quality_checks() {
         parsed
             .warnings
             .iter()
-            .any(|warning| warning.code == "PDF_TEXT_GARBLED")
+            .any(|warning| warning.code == "PDF_TEXT_GARBLED"),
+        "{:?} {:?}",
+        parsed.warnings,
+        parsed.normalized_text,
     );
 
     let mut doc = fixture::document(&[Some(TEXT)], false);
@@ -196,5 +199,52 @@ fn malformed_revision_and_decompression_or_output_limits_return_typed_errors() {
     assert_eq!(
         parser.parse(&revision(&bytes), &bytes).unwrap_err().code,
         "SOURCE_PARSE_LIMIT"
+    );
+}
+
+#[test]
+fn explicit_unicode_maps_take_precedence_and_broken_maps_cannot_silently_fall_back() {
+    let text = [1; 100];
+    let mut doc = fixture::document(&[Some(&text)], true);
+    for object in doc.objects.values_mut() {
+        if let Ok(font) = object.as_dict_mut()
+            && font.has_type(b"Font")
+        {
+            font.set("Encoding", "WinAnsiEncoding");
+        }
+    }
+    let bytes = fixture::bytes(doc);
+    let parsed = PdfParser::default()
+        .parse(&revision(&bytes), &bytes)
+        .unwrap();
+    assert!(
+        parsed
+            .warnings
+            .iter()
+            .any(|warning| warning.code == "PDF_TEXT_GARBLED")
+    );
+
+    let mut doc = fixture::document(&[Some(TEXT)], false);
+    let map = doc.add_object(lopdf::Stream::new(
+        lopdf::dictionary! {},
+        b"broken map".to_vec(),
+    ));
+    for object in doc.objects.values_mut() {
+        if let Ok(font) = object.as_dict_mut()
+            && font.has_type(b"Font")
+        {
+            font.set("ToUnicode", map);
+        }
+    }
+    let bytes = fixture::bytes(doc);
+    let parsed = PdfParser::default()
+        .parse(&revision(&bytes), &bytes)
+        .unwrap();
+    assert_eq!(parsed.status, ParseStatus::NeedsOcr);
+    assert!(
+        parsed
+            .warnings
+            .iter()
+            .any(|warning| warning.code == "PDF_TEXT_EXTRACTION_FAILED")
     );
 }

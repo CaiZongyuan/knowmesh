@@ -9,6 +9,7 @@ pub fn document(pages: &[Option<&[u8]>], replacement_font: bool) -> Document {
     let pages_id = doc.new_object_id();
     let mut font = dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica", "Encoding" => "WinAnsiEncoding" };
     if replacement_font {
+        font.remove(b"Encoding");
         let map = b"/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Fixture def\n/CMapType 2 def\n1 begincodespacerange\n<00> <FF>\nendcodespacerange\n1 beginbfchar\n<01> <FFFD>\nendbfchar\nendcmap\nCMapName currentdict /CMap defineresource pop\nend end";
         let cmap = doc.add_object(Stream::new(dictionary! {}, map.to_vec()));
         font.set("ToUnicode", cmap);
