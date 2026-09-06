@@ -108,3 +108,52 @@ fn metadata_only_changes_refresh_scan_hints_without_a_new_generation() {
     assert!(again.fast_path);
     assert_eq!(again.projection.unwrap().generation, 1);
 }
+
+#[test]
+fn v3_claim_keys_are_recomputed_before_metadata_can_take_the_fast_path() {
+    use knowmesh_core::domain::{normalize_name, sha256};
+
+    let (temp, workspace) = support::fixture();
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let path = workspace.index_path().unwrap();
+    let mut store = SqliteStore::open(&path).unwrap();
+    store
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
+    sync::synchronize(&workspace, &mut store).unwrap();
+    drop(store);
+    let assertion = &snapshot.claims[0].claim.assertion;
+    let legacy_key = sha256(
+        &serde_json::to_vec(&(normalize_name(&assertion.statement), &assertion.qualifiers))
+            .unwrap(),
+    );
+    let db = rusqlite::Connection::open(&path).unwrap();
+    db.execute("DELETE FROM schema_migrations WHERE version=4", [])
+        .unwrap();
+    db.pragma_update(None, "user_version", 3).unwrap();
+    db.execute("UPDATE claims SET normalized_hash=?1,canonical_json=json_set(canonical_json,'$.normalized_hash',?1)", [&legacy_key]).unwrap();
+    db.execute(
+        "UPDATE workspace_state SET snapshot_sha256=?1",
+        [sha256(b"legacy projection hash")],
+    )
+    .unwrap();
+    drop(db);
+    let node_path = temp.path().join("knowledge/nodes/model-a.md");
+    let before = fs::read(&node_path).unwrap();
+    let mut store = SqliteStore::open(&path).unwrap();
+    let report = sync::fast_synchronize(&workspace, &mut store).unwrap();
+    assert!(!report.fast_path);
+    assert_eq!(report.projection.unwrap().generation, 2);
+    let db = rusqlite::Connection::open(&path).unwrap();
+    let current: String = db
+        .query_row("SELECT normalized_hash FROM claims", [], |row| row.get(0))
+        .unwrap();
+    assert_ne!(current, legacy_key);
+    assert_eq!(current, assertion.normalized_hash().unwrap());
+    assert_eq!(fs::read(node_path).unwrap(), before);
+    assert!(
+        sync::fast_synchronize(&workspace, &mut store)
+            .unwrap()
+            .fast_path
+    );
+}
