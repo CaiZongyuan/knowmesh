@@ -298,7 +298,10 @@ impl<'ast> Visit<'ast> for Guard<'_> {
     fn visit_expr_call(&mut self, call: &'ast ExprCall) {
         if let Expr::Path(path) = call.func.as_ref() {
             let path = self.resolved(&path.path);
-            if path.rsplit("::").next() == Some("reconcile") {
+            if matches!(
+                path.rsplit("::").next(),
+                Some("reconcile" | "apply_proposal")
+            ) {
                 self.projection_write();
             }
             if path.starts_with("rusqlite::") {
@@ -347,7 +350,7 @@ impl<'ast> Visit<'ast> for Guard<'_> {
             self.file_write(&method);
         }
         self.sql_write(&method);
-        if method == "reconcile" {
+        if matches!(method.as_str(), "reconcile" | "apply_proposal") {
             self.projection_write();
         }
         visit::visit_expr_method_call(self, call);

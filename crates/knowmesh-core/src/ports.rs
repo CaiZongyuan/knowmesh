@@ -96,9 +96,26 @@ pub struct DatabaseDiagnostics {
 pub trait IndexStore: ProjectionStore {
     fn projection_state(&self) -> AppResult<ProjectionState>;
     fn diagnostics(&self) -> AppResult<DatabaseDiagnostics>;
+    fn apply_proposal(
+        &mut self,
+        _context: &crate::application::proposal::apply::ApplyContext,
+        _canonical: &mut dyn FnMut() -> AppResult<
+            crate::application::proposal::apply::CanonicalApplication,
+        >,
+    ) -> AppResult<crate::application::proposal::apply::ApplyReport> {
+        Err(crate::error::AppError::new(
+            crate::error::ErrorType::Configuration,
+            "PROPOSAL_APPLY_UNAVAILABLE",
+            "This store cannot coordinate Proposal Apply transactions.",
+        ))
+    }
 }
 
 pub trait ProposalStore: IndexStore {
+    fn proposal_application(
+        &self,
+        id: &crate::domain::ProposalId,
+    ) -> AppResult<Option<crate::application::proposal::apply::ApplyReceipt>>;
     fn proposal_create(
         &mut self,
         record: &crate::application::proposal::ProposalRecord,

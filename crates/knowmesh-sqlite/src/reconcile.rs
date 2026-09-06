@@ -6,7 +6,7 @@ use knowmesh_core::{
     error::{AppError, AppResult, ErrorType},
     ports::{ProjectionStore, ReconcileReport},
 };
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -16,68 +16,84 @@ use crate::{SqliteStore, database_error};
 
 impl ProjectionStore for SqliteStore {
     fn reconcile(&mut self, snapshot: &CanonicalSnapshot) -> AppResult<ReconcileReport> {
-        snapshot.validate()?;
+        if snapshot.proposal_apply_context().is_some() {
+            return Err(AppError::new(
+                ErrorType::Conflict,
+                "PROPOSAL_APPLY_COORDINATOR_REQUIRED",
+                "A Proposal journal must update its projection and completion state together.",
+            ));
+        }
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(database_error)?;
-        let (workspace_id, previous_hash, generation): (String, String, u64) = tx.query_row("SELECT workspace_id,snapshot_sha256,indexed_generation FROM workspace_state WHERE singleton=1", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).map_err(database_error)?;
-        if workspace_id != snapshot.workspace_id.as_str() {
-            return Err(AppError::new(
-                ErrorType::Configuration,
-                "WORKSPACE_ID_MISMATCH",
-                "The projection snapshot belongs to another workspace.",
-            ));
-        }
-        if previous_hash == snapshot.content_sha256 {
-            for file in &snapshot.files {
-                tx.execute(
-                    "UPDATE file_manifest SET mtime_ns=?1,byte_size=?2 WHERE path=?3 AND sha256=?4",
-                    params![
-                        file.mtime_ns,
-                        file.byte_size,
-                        path_text(&file.path)?,
-                        file.sha256
-                    ],
-                )
-                .map_err(database_error)?;
-            }
+        let result = reconcile_in_transaction(&tx, snapshot)?;
+        tx.commit().map_err(database_error)?;
+        Ok(result)
+    }
+}
+
+pub(crate) fn reconcile_in_transaction(
+    tx: &Transaction<'_>,
+    snapshot: &CanonicalSnapshot,
+) -> AppResult<ReconcileReport> {
+    snapshot.validate()?;
+    let (workspace_id, previous_hash, generation): (String, String, u64) = tx.query_row("SELECT workspace_id,snapshot_sha256,indexed_generation FROM workspace_state WHERE singleton=1", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).map_err(database_error)?;
+    if workspace_id != snapshot.workspace_id.as_str() {
+        return Err(AppError::new(
+            ErrorType::Configuration,
+            "WORKSPACE_ID_MISMATCH",
+            "The projection snapshot belongs to another workspace.",
+        ));
+    }
+    if previous_hash == snapshot.content_sha256 {
+        for file in &snapshot.files {
             tx.execute(
-                "UPDATE workspace_state SET snapshot_warnings_json=?1 WHERE singleton=1",
-                [json_text(&snapshot.warnings)?],
+                "UPDATE file_manifest SET mtime_ns=?1,byte_size=?2 WHERE path=?3 AND sha256=?4",
+                params![
+                    file.mtime_ns,
+                    file.byte_size,
+                    path_text(&file.path)?,
+                    file.sha256
+                ],
             )
             .map_err(database_error)?;
-            tx.commit().map_err(database_error)?;
-            return Ok(report(snapshot, generation, false));
         }
-        for source in &snapshot.sources {
-            let previous: Option<String> = tx
-                .query_row(
-                    "SELECT canonical_json FROM sources WHERE id=?1",
-                    [source.manifest.id.as_str()],
-                    |r| r.get(0),
-                )
-                .optional()
-                .map_err(database_error)?;
-            if let Some(previous) = previous.filter(|text| text != "{}") {
-                let previous: SourceProjection =
-                    serde_json::from_str(&previous).map_err(|_| payload_error())?;
-                source.manifest.validate_update(&previous.manifest)?;
-            }
+        tx.execute(
+            "UPDATE workspace_state SET snapshot_warnings_json=?1 WHERE singleton=1",
+            [json_text(&snapshot.warnings)?],
+        )
+        .map_err(database_error)?;
+        return Ok(report(snapshot, generation, false));
+    }
+    for source in &snapshot.sources {
+        let previous: Option<String> = tx
+            .query_row(
+                "SELECT canonical_json FROM sources WHERE id=?1",
+                [source.manifest.id.as_str()],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(database_error)?;
+        if let Some(previous) = previous.filter(|text| text != "{}") {
+            let previous: SourceProjection =
+                serde_json::from_str(&previous).map_err(|_| payload_error())?;
+            source.manifest.validate_update(&previous.manifest)?;
         }
-        tx.execute_batch("DELETE FROM claim_evidence; DELETE FROM relation_evidence; DELETE FROM synthesis_evidence; DELETE FROM synthesis_nodes; DELETE FROM source_node_links; DELETE FROM node_aliases; DELETE FROM node_mentions; DELETE FROM conflict_group_claims; DELETE FROM conflict_groups;").map_err(database_error)?;
-        // Vacate unique keys inside this transaction so swaps preserve object rows and runtime links.
-        // NUL cannot occur in a canonical filesystem path or a SHA-256 digest.
-        tx.execute_batch(
-            "UPDATE sources SET manifest_path=char(0)||id;
+    }
+    tx.execute_batch("DELETE FROM claim_evidence; DELETE FROM relation_evidence; DELETE FROM synthesis_evidence; DELETE FROM synthesis_nodes; DELETE FROM source_node_links; DELETE FROM node_aliases; DELETE FROM node_mentions; DELETE FROM conflict_group_claims; DELETE FROM conflict_groups;").map_err(database_error)?;
+    // Vacate unique keys inside this transaction so swaps preserve object rows and runtime links.
+    // NUL cannot occur in a canonical filesystem path or a SHA-256 digest.
+    tx.execute_batch(
+        "UPDATE sources SET manifest_path=char(0)||id;
             UPDATE nodes SET canonical_path=char(0)||id;
             UPDATE syntheses SET canonical_path=char(0)||id;
             UPDATE claims SET normalized_hash=char(0)||id;",
-        )
-        .map_err(database_error)?;
-        for source in &snapshot.sources {
-            let value = &source.manifest;
-            tx.execute(
+    )
+    .map_err(database_error)?;
+    for source in &snapshot.sources {
+        let value = &source.manifest;
+        tx.execute(
                 "INSERT INTO sources(id,slug,kind,title,language,storage_mode,manifest_path,current_revision_id,identifiers_json,authors_json,tags_json,status,removed_at,created_at,updated_at,canonical_json)
                  VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)
                  ON CONFLICT(id) DO UPDATE SET slug=excluded.slug,kind=excluded.kind,title=excluded.title,language=excluded.language,storage_mode=excluded.storage_mode,manifest_path=excluded.manifest_path,
@@ -85,193 +101,191 @@ impl ProjectionStore for SqliteStore {
                  identifiers_json=excluded.identifiers_json,authors_json=excluded.authors_json,tags_json=excluded.tags_json,removed_at=excluded.removed_at,created_at=excluded.created_at,updated_at=excluded.updated_at,canonical_json=excluded.canonical_json",
                 params![value.id.as_str(), value.slug, value.kind, value.title, value.language, enum_text(&value.storage)?, path_text(&source.manifest_path)?, value.current_revision_id.as_str(), json_text(&value.identifiers)?, json_text(&value.authors)?, json_text(&value.tags)?, if value.storage == StorageMode::Referenced { "registered" } else { "snapshotted" }, value.removed_at.map(|time| time.to_string()), value.created_at.to_string(), value.updated_at.to_string(), json_text(source)?],
             ).map_err(database_error)?;
-            for revision in &value.revisions {
-                let blob = if value.storage == StorageMode::Referenced {
-                    None
-                } else {
-                    Some(
-                        path_text(
-                            &source
-                                .manifest_path
-                                .parent()
-                                .ok_or_else(payload_error)?
-                                .join(&revision.path),
-                        )?
-                        .to_owned(),
-                    )
-                };
-                let uri = if value.storage == StorageMode::Referenced {
-                    Some(revision.path.clone())
-                } else {
-                    revision.url.clone()
-                };
-                tx.execute("INSERT INTO source_revisions(id,source_id,content_sha256,blob_path,original_uri,mime_type,byte_size,captured_at,extraction_status)
+        for revision in &value.revisions {
+            let blob = if value.storage == StorageMode::Referenced {
+                None
+            } else {
+                Some(
+                    path_text(
+                        &source
+                            .manifest_path
+                            .parent()
+                            .ok_or_else(payload_error)?
+                            .join(&revision.path),
+                    )?
+                    .to_owned(),
+                )
+            };
+            let uri = if value.storage == StorageMode::Referenced {
+                Some(revision.path.clone())
+            } else {
+                revision.url.clone()
+            };
+            tx.execute("INSERT INTO source_revisions(id,source_id,content_sha256,blob_path,original_uri,mime_type,byte_size,captured_at,extraction_status)
                     VALUES(?1,?2,?3,?4,?5,?6,?7,?8,'pending') ON CONFLICT(id) DO UPDATE SET source_id=excluded.source_id,content_sha256=excluded.content_sha256,blob_path=excluded.blob_path,original_uri=excluded.original_uri,mime_type=excluded.mime_type,byte_size=excluded.byte_size,captured_at=excluded.captured_at",
                     params![revision.id.as_str(), value.id.as_str(), revision.sha256, blob, uri, revision.mime_type, revision.byte_size, revision.captured_at.to_string()]).map_err(database_error)?;
-            }
         }
-        for node in &snapshot.nodes {
-            let value = &node.metadata;
-            let (schema_id, schema_version) = schema_reference(&value.schema)?;
-            let slug = node
-                .canonical_path
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("node")
-                .split("--")
-                .next()
-                .unwrap_or("node");
-            tx.execute("INSERT INTO nodes(id,schema_id,schema_version,node_type,canonical_name,normalized_name,slug,summary,lifecycle_status,properties_json,tags_json,canonical_path,content_sha256,created_at,updated_at,canonical_json)
+    }
+    for node in &snapshot.nodes {
+        let value = &node.metadata;
+        let (schema_id, schema_version) = schema_reference(&value.schema)?;
+        let slug = node
+            .canonical_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("node")
+            .split("--")
+            .next()
+            .unwrap_or("node");
+        tx.execute("INSERT INTO nodes(id,schema_id,schema_version,node_type,canonical_name,normalized_name,slug,summary,lifecycle_status,properties_json,tags_json,canonical_path,content_sha256,created_at,updated_at,canonical_json)
                 VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)
                 ON CONFLICT(id) DO UPDATE SET schema_id=excluded.schema_id,schema_version=excluded.schema_version,node_type=excluded.node_type,canonical_name=excluded.canonical_name,normalized_name=excluded.normalized_name,slug=excluded.slug,summary=excluded.summary,lifecycle_status=excluded.lifecycle_status,properties_json=excluded.properties_json,tags_json=excluded.tags_json,canonical_path=excluded.canonical_path,content_sha256=excluded.content_sha256,created_at=excluded.created_at,updated_at=excluded.updated_at,canonical_json=excluded.canonical_json",
                 params![value.id.as_str(), schema_id, schema_version, value.node_type, value.name, normalize_name(&value.name), slug, node.summary, enum_text(&value.lifecycle_status)?, json_text(&value.properties)?, json_text(&value.tags)?, path_text(&node.canonical_path)?, node.content_sha256, value.created_at.to_string(), value.updated_at.to_string(), json_text(node)?]).map_err(database_error)?;
-            for (ordinal, alias) in std::iter::once(&value.name)
-                .chain(&value.aliases)
-                .enumerate()
-            {
-                tx.execute("INSERT OR IGNORE INTO node_aliases(node_id,alias,normalized_alias,is_primary) VALUES(?1,?2,?3,?4)", params![value.id.as_str(), alias, normalize_name(alias), ordinal == 0]).map_err(database_error)?;
-            }
+        for (ordinal, alias) in std::iter::once(&value.name)
+            .chain(&value.aliases)
+            .enumerate()
+        {
+            tx.execute("INSERT OR IGNORE INTO node_aliases(node_id,alias,normalized_alias,is_primary) VALUES(?1,?2,?3,?4)", params![value.id.as_str(), alias, normalize_name(alias), ordinal == 0]).map_err(database_error)?;
         }
-        for source in &snapshot.sources {
-            for node in &source.manifest.represented_nodes {
-                tx.execute("INSERT INTO source_node_links(source_id,node_id,role) VALUES(?1,?2,'representation')", params![source.manifest.id.as_str(), node.as_str()]).map_err(database_error)?;
-            }
+    }
+    for source in &snapshot.sources {
+        for node in &source.manifest.represented_nodes {
+            tx.execute("INSERT INTO source_node_links(source_id,node_id,role) VALUES(?1,?2,'representation')", params![source.manifest.id.as_str(), node.as_str()]).map_err(database_error)?;
         }
-        for item in &snapshot.claims {
-            let value = &item.claim.assertion;
-            tx.execute("INSERT INTO claims(id,subject_node_id,statement,normalized_hash,semantic_sha256,lifecycle_status,evidence_status,confidence,qualifiers_json,canonical_path,canonical_order,created_at,updated_at,canonical_json)
+    }
+    for item in &snapshot.claims {
+        let value = &item.claim.assertion;
+        tx.execute("INSERT INTO claims(id,subject_node_id,statement,normalized_hash,semantic_sha256,lifecycle_status,evidence_status,confidence,qualifiers_json,canonical_path,canonical_order,created_at,updated_at,canonical_json)
                 VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)
                 ON CONFLICT(id) DO UPDATE SET subject_node_id=excluded.subject_node_id,statement=excluded.statement,normalized_hash=excluded.normalized_hash,semantic_sha256=excluded.semantic_sha256,lifecycle_status=excluded.lifecycle_status,evidence_status=excluded.evidence_status,confidence=excluded.confidence,qualifiers_json=excluded.qualifiers_json,canonical_path=excluded.canonical_path,canonical_order=excluded.canonical_order,created_at=excluded.created_at,updated_at=excluded.updated_at,canonical_json=excluded.canonical_json",
                 params![value.id.as_str(), item.claim.subject_node_id.as_str(), value.statement, item.normalized_hash, item.semantic_sha256, enum_text(&value.lifecycle_status)?, enum_text(&value.evidence_status)?, value.confidence, json_text(&value.qualifiers)?, path_text(&item.canonical_path)?, item.canonical_order as u64, item.created_at.to_string(), item.updated_at.to_string(), json_text(item)?]).map_err(database_error)?;
-        }
-        for item in &snapshot.relations {
-            let value = &item.relation.assertion;
-            tx.execute("INSERT INTO relations(id,source_node_id,predicate,target_node_id,directed,lifecycle_status,evidence_status,confidence,qualifiers_json,semantic_sha256,canonical_path,canonical_order,created_at,updated_at,canonical_json)
+    }
+    for item in &snapshot.relations {
+        let value = &item.relation.assertion;
+        tx.execute("INSERT INTO relations(id,source_node_id,predicate,target_node_id,directed,lifecycle_status,evidence_status,confidence,qualifiers_json,semantic_sha256,canonical_path,canonical_order,created_at,updated_at,canonical_json)
                 VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15)
                 ON CONFLICT(id) DO UPDATE SET source_node_id=excluded.source_node_id,predicate=excluded.predicate,target_node_id=excluded.target_node_id,directed=excluded.directed,lifecycle_status=excluded.lifecycle_status,evidence_status=excluded.evidence_status,confidence=excluded.confidence,qualifiers_json=excluded.qualifiers_json,semantic_sha256=excluded.semantic_sha256,canonical_path=excluded.canonical_path,canonical_order=excluded.canonical_order,created_at=excluded.created_at,updated_at=excluded.updated_at,canonical_json=excluded.canonical_json",
                 params![value.id.as_str(), item.relation.source_node_id.as_str(), value.predicate, value.target_node_id.as_str(), value.directed, enum_text(&value.lifecycle_status)?, enum_text(&value.evidence_status)?, value.confidence, json_text(&value.qualifiers)?, item.semantic_sha256, path_text(&item.canonical_path)?, item.canonical_order as u64, item.created_at.to_string(), item.updated_at.to_string(), json_text(item)?]).map_err(database_error)?;
-        }
-        for item in &snapshot.evidence {
-            let value = &item.evidence;
-            tx.execute("INSERT INTO evidence(id,source_revision_id,stance,quote,quote_sha256,locator_json,extraction_method,confidence,canonical_path,created_at,canonical_json)
+    }
+    for item in &snapshot.evidence {
+        let value = &item.evidence;
+        tx.execute("INSERT INTO evidence(id,source_revision_id,stance,quote,quote_sha256,locator_json,extraction_method,confidence,canonical_path,created_at,canonical_json)
                 VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
                 ON CONFLICT(id) DO UPDATE SET source_revision_id=excluded.source_revision_id,stance=excluded.stance,quote=excluded.quote,quote_sha256=excluded.quote_sha256,locator_json=excluded.locator_json,extraction_method=excluded.extraction_method,confidence=excluded.confidence,canonical_path=excluded.canonical_path,created_at=excluded.created_at,canonical_json=excluded.canonical_json",
                 params![value.id.as_str(), value.source_revision_id.as_str(), enum_text(&value.stance)?, value.quote, value.quote_sha256, json_text(&value.locator)?, enum_text(&value.extraction_method)?, value.confidence, path_text(&item.canonical_path)?, item.created_at.to_string(), json_text(item)?]).map_err(database_error)?;
+    }
+    for item in &snapshot.claims {
+        for evidence in &item.claim.assertion.evidence {
+            tx.execute(
+                "INSERT INTO claim_evidence(claim_id,evidence_id) VALUES(?1,?2)",
+                params![item.claim.assertion.id.as_str(), evidence.id.as_str()],
+            )
+            .map_err(database_error)?;
         }
-        for item in &snapshot.claims {
-            for evidence in &item.claim.assertion.evidence {
-                tx.execute(
-                    "INSERT INTO claim_evidence(claim_id,evidence_id) VALUES(?1,?2)",
-                    params![item.claim.assertion.id.as_str(), evidence.id.as_str()],
-                )
-                .map_err(database_error)?;
-            }
+    }
+    for item in &snapshot.relations {
+        for evidence in &item.relation.assertion.evidence {
+            tx.execute(
+                "INSERT INTO relation_evidence(relation_id,evidence_id) VALUES(?1,?2)",
+                params![item.relation.assertion.id.as_str(), evidence.id.as_str()],
+            )
+            .map_err(database_error)?;
         }
-        for item in &snapshot.relations {
-            for evidence in &item.relation.assertion.evidence {
-                tx.execute(
-                    "INSERT INTO relation_evidence(relation_id,evidence_id) VALUES(?1,?2)",
-                    params![item.relation.assertion.id.as_str(), evidence.id.as_str()],
-                )
-                .map_err(database_error)?;
-            }
-        }
-        for item in &snapshot.syntheses {
-            let value = &item.metadata;
-            let (schema_id, schema_version) = schema_reference(&value.schema)?;
-            let dependency = value
-                .dependency_snapshot
-                .as_ref()
-                .map(json_text)
-                .transpose()?
-                .unwrap_or_else(|| "{}".into());
-            tx.execute("INSERT INTO syntheses(id,schema_id,schema_version,title,question,status,body_markdown,canonical_path,content_sha256,generated_run_id,dependency_snapshot_json,created_at,updated_at,canonical_json)
+    }
+    for item in &snapshot.syntheses {
+        let value = &item.metadata;
+        let (schema_id, schema_version) = schema_reference(&value.schema)?;
+        let dependency = value
+            .dependency_snapshot
+            .as_ref()
+            .map(json_text)
+            .transpose()?
+            .unwrap_or_else(|| "{}".into());
+        tx.execute("INSERT INTO syntheses(id,schema_id,schema_version,title,question,status,body_markdown,canonical_path,content_sha256,generated_run_id,dependency_snapshot_json,created_at,updated_at,canonical_json)
                 VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)
                 ON CONFLICT(id) DO UPDATE SET schema_id=excluded.schema_id,schema_version=excluded.schema_version,title=excluded.title,question=excluded.question,status=excluded.status,body_markdown=excluded.body_markdown,canonical_path=excluded.canonical_path,content_sha256=excluded.content_sha256,generated_run_id=excluded.generated_run_id,dependency_snapshot_json=excluded.dependency_snapshot_json,created_at=excluded.created_at,updated_at=excluded.updated_at,canonical_json=excluded.canonical_json",
                 params![value.id.as_str(), schema_id, schema_version, value.title, value.question, enum_text(&value.status)?, item.body_markdown, path_text(&item.canonical_path)?, item.content_sha256, value.generated_by.as_ref().map(|g| g.run_id.as_str()), dependency, value.created_at.to_string(), value.updated_at.to_string(), json_text(item)?]).map_err(database_error)?;
-            for (ordinal, evidence) in value.evidence_ids.iter().enumerate() {
-                tx.execute("INSERT INTO synthesis_evidence(synthesis_id,evidence_id,citation_order) VALUES(?1,?2,?3)", params![value.id.as_str(), evidence.as_str(), ordinal as u64]).map_err(database_error)?;
-            }
-            for node in &value.related_nodes {
-                tx.execute(
-                    "INSERT INTO synthesis_nodes(synthesis_id,node_id) VALUES(?1,?2)",
-                    params![value.id.as_str(), node.as_str()],
-                )
-                .map_err(database_error)?;
-            }
+        for (ordinal, evidence) in value.evidence_ids.iter().enumerate() {
+            tx.execute("INSERT INTO synthesis_evidence(synthesis_id,evidence_id,citation_order) VALUES(?1,?2,?3)", params![value.id.as_str(), evidence.as_str(), ordinal as u64]).map_err(database_error)?;
         }
-        for mention in &snapshot.mentions {
-            tx.execute("INSERT INTO node_mentions(id,source_node_id,target_node_id,surface,locator_json,confidence,mention_kind) VALUES(?1,?2,?3,?4,?5,1.0,'wiki_link')", params![mention.id, mention.source_node_id.as_str(), mention.target_node_id.as_str(), mention.surface, json_text(&json!({"byte_start":mention.byte_start,"byte_end":mention.byte_end}))?]).map_err(database_error)?;
+        for node in &value.related_nodes {
+            tx.execute(
+                "INSERT INTO synthesis_nodes(synthesis_id,node_id) VALUES(?1,?2)",
+                params![value.id.as_str(), node.as_str()],
+            )
+            .map_err(database_error)?;
         }
-        delete_missing(
-            &tx,
-            "claims",
-            snapshot
-                .claims
-                .iter()
-                .map(|v| v.claim.assertion.id.as_str()),
-        )?;
-        delete_missing(
-            &tx,
-            "relations",
-            snapshot
-                .relations
-                .iter()
-                .map(|v| v.relation.assertion.id.as_str()),
-        )?;
-        delete_missing(
-            &tx,
-            "syntheses",
-            snapshot.syntheses.iter().map(|v| v.metadata.id.as_str()),
-        )?;
-        delete_missing(
-            &tx,
-            "evidence",
-            snapshot.evidence.iter().map(|v| v.evidence.id.as_str()),
-        )?;
-        delete_missing(
-            &tx,
-            "nodes",
-            snapshot.nodes.iter().map(|v| v.metadata.id.as_str()),
-        )?;
-        delete_missing(
-            &tx,
-            "source_revisions",
-            snapshot
-                .sources
-                .iter()
-                .flat_map(|s| s.manifest.revisions.iter().map(|r| r.id.as_str())),
-        )?;
-        delete_missing(
-            &tx,
-            "sources",
-            snapshot.sources.iter().map(|v| v.manifest.id.as_str()),
-        )?;
-        for item in snapshot.conflict_groups()? {
-            let group = item.group;
-            tx.execute("INSERT INTO conflict_groups(id,subject_node_id,reason,status,created_at,resolved_at) VALUES(?1,?2,?3,?4,?5,?6)",
+    }
+    for mention in &snapshot.mentions {
+        tx.execute("INSERT INTO node_mentions(id,source_node_id,target_node_id,surface,locator_json,confidence,mention_kind) VALUES(?1,?2,?3,?4,?5,1.0,'wiki_link')", params![mention.id, mention.source_node_id.as_str(), mention.target_node_id.as_str(), mention.surface, json_text(&json!({"byte_start":mention.byte_start,"byte_end":mention.byte_end}))?]).map_err(database_error)?;
+    }
+    delete_missing(
+        tx,
+        "claims",
+        snapshot
+            .claims
+            .iter()
+            .map(|v| v.claim.assertion.id.as_str()),
+    )?;
+    delete_missing(
+        tx,
+        "relations",
+        snapshot
+            .relations
+            .iter()
+            .map(|v| v.relation.assertion.id.as_str()),
+    )?;
+    delete_missing(
+        tx,
+        "syntheses",
+        snapshot.syntheses.iter().map(|v| v.metadata.id.as_str()),
+    )?;
+    delete_missing(
+        tx,
+        "evidence",
+        snapshot.evidence.iter().map(|v| v.evidence.id.as_str()),
+    )?;
+    delete_missing(
+        tx,
+        "nodes",
+        snapshot.nodes.iter().map(|v| v.metadata.id.as_str()),
+    )?;
+    delete_missing(
+        tx,
+        "source_revisions",
+        snapshot
+            .sources
+            .iter()
+            .flat_map(|s| s.manifest.revisions.iter().map(|r| r.id.as_str())),
+    )?;
+    delete_missing(
+        tx,
+        "sources",
+        snapshot.sources.iter().map(|v| v.manifest.id.as_str()),
+    )?;
+    for item in snapshot.conflict_groups()? {
+        let group = item.group;
+        tx.execute("INSERT INTO conflict_groups(id,subject_node_id,reason,status,created_at,resolved_at) VALUES(?1,?2,?3,?4,?5,?6)",
                 params![group.id.as_str(), item.subject_node_id.as_str(), group.reason, enum_text(&group.status)?, group.created_at.to_string(), group.resolved_at.map(|time| time.to_string())],
             ).map_err(database_error)?;
-            for claim in &group.claim_ids {
-                tx.execute(
-                    "INSERT INTO conflict_group_claims(conflict_group_id,claim_id) VALUES(?1,?2)",
-                    params![group.id.as_str(), claim.as_str()],
-                )
-                .map_err(database_error)?;
-            }
-        }
-        reconcile_search(&tx, snapshot)?;
-        tx.execute("DELETE FROM file_manifest", [])
+        for claim in &group.claim_ids {
+            tx.execute(
+                "INSERT INTO conflict_group_claims(conflict_group_id,claim_id) VALUES(?1,?2)",
+                params![group.id.as_str(), claim.as_str()],
+            )
             .map_err(database_error)?;
-        let now = Timestamp::now().to_string();
-        for file in &snapshot.files {
-            tx.execute("INSERT INTO file_manifest(path,kind,public_id,byte_size,mtime_ns,sha256,format_version,indexed_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)", params![path_text(&file.path)?, file.kind, file.public_id, file.byte_size, file.mtime_ns, file.sha256, file.format_version, now]).map_err(database_error)?;
         }
-        let generation = generation.checked_add(1).ok_or_else(payload_error)?;
-        tx.execute("UPDATE workspace_state SET schema_hash=?1,snapshot_sha256=?2,canonical_generation=?3,indexed_generation=?3,updated_at=?4,snapshot_warnings_json=?5 WHERE singleton=1", params![snapshot.schema_hash, snapshot.content_sha256, generation, now, json_text(&snapshot.warnings)?]).map_err(database_error)?;
-        tx.commit().map_err(database_error)?;
-        Ok(report(snapshot, generation, true))
     }
+    reconcile_search(tx, snapshot)?;
+    tx.execute("DELETE FROM file_manifest", [])
+        .map_err(database_error)?;
+    let now = Timestamp::now().to_string();
+    for file in &snapshot.files {
+        tx.execute("INSERT INTO file_manifest(path,kind,public_id,byte_size,mtime_ns,sha256,format_version,indexed_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)", params![path_text(&file.path)?, file.kind, file.public_id, file.byte_size, file.mtime_ns, file.sha256, file.format_version, now]).map_err(database_error)?;
+    }
+    let generation = generation.checked_add(1).ok_or_else(payload_error)?;
+    tx.execute("UPDATE workspace_state SET schema_hash=?1,snapshot_sha256=?2,canonical_generation=?3,indexed_generation=?3,updated_at=?4,snapshot_warnings_json=?5 WHERE singleton=1", params![snapshot.schema_hash, snapshot.content_sha256, generation, now, json_text(&snapshot.warnings)?]).map_err(database_error)?;
+    Ok(report(snapshot, generation, true))
 }
 
 impl SqliteStore {

@@ -325,10 +325,10 @@ fn migration_preserves_legacy_rows_without_inventing_missing_review_history() {
     store.proposal_create(&original).unwrap();
     drop(store);
     let db = Connection::open(workspace.index_path().unwrap()).unwrap();
-    db.execute_batch("DROP TABLE proposal_revisions; DELETE FROM schema_migrations WHERE version=6; PRAGMA user_version=5;").unwrap();
+    db.execute_batch("DROP TABLE proposal_applications; DROP TABLE proposal_revisions; DELETE FROM schema_migrations WHERE version>=6; PRAGMA user_version=5;").unwrap();
     drop(db);
     let store = SqliteStore::open(&workspace.index_path().unwrap()).unwrap();
-    assert_eq!(store.diagnostics().unwrap().schema_version, 6);
+    assert_eq!(store.diagnostics().unwrap().schema_version, 7);
     assert_eq!(
         store
             .proposal_get(&original.proposal.id, None)

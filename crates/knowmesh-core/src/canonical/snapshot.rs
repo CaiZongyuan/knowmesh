@@ -128,6 +128,7 @@ pub struct CanonicalSnapshot {
     pub warnings: Vec<SnapshotWarning>,
     schema: Schema,
     validated_sha256: String,
+    proposal_context: Option<crate::application::proposal::apply::ApplyContext>,
 }
 
 mod preview;
@@ -135,6 +136,11 @@ mod project;
 pub use preview::CanonicalPreview;
 
 impl CanonicalSnapshot {
+    pub fn proposal_apply_context(
+        &self,
+    ) -> Option<&crate::application::proposal::apply::ApplyContext> {
+        self.proposal_context.as_ref()
+    }
     pub(crate) fn metadata_matches(
         workspace: &Workspace,
         schema_hash: &str,
@@ -205,6 +211,10 @@ impl CanonicalSnapshot {
             warnings: vec![],
             schema,
             validated_sha256: String::new(),
+            proposal_context: transaction_id
+                .map(|id| super::transaction::proposal_context(&workspace.root, id))
+                .transpose()?
+                .flatten(),
         };
         snapshot.files.push(file_record(
             workspace,

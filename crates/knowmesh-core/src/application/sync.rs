@@ -148,11 +148,16 @@ pub fn recover(workspace: &Workspace, store: &mut dyn IndexStore) -> AppResult<R
     let mut recovered = Vec::new();
     let mut projection = None;
     for transaction in transactions {
-        writer.apply(&transaction.id)?;
-        let current = Workspace::load(&workspace.root)?;
-        let snapshot = CanonicalSnapshot::scan_committed(&current, &transaction.id)?;
-        projection = Some(store.reconcile(&snapshot)?);
-        writer.mark_indexed(&transaction.id)?;
+        if transaction.proposal.is_some() {
+            projection =
+                super::proposal::apply::resume(workspace, store, &writer, &transaction)?.projection;
+        } else {
+            writer.apply(&transaction.id)?;
+            let current = Workspace::load(&workspace.root)?;
+            let snapshot = CanonicalSnapshot::scan_committed(&current, &transaction.id)?;
+            projection = Some(store.reconcile(&snapshot)?);
+            writer.mark_indexed(&transaction.id)?;
+        }
         recovered.push(transaction.id);
     }
     let mut report = recovery_status(workspace)?;

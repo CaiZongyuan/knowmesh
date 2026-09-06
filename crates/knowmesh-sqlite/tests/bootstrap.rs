@@ -37,7 +37,7 @@ fn database_bootstrap_enables_wal_constraints_and_reopens_idempotently() {
     assert_eq!(diagnostics.journal_mode, "wal");
     assert!(diagnostics.foreign_keys);
     assert_eq!(diagnostics.busy_timeout_ms, 5000);
-    assert_eq!(diagnostics.schema_version, 6);
+    assert_eq!(diagnostics.schema_version, 7);
     assert_eq!(diagnostics.integrity, "ok");
     store
         .bind_workspace(&workspace, &sha256(b"schema"))
@@ -60,7 +60,7 @@ fn database_bootstrap_enables_wal_constraints_and_reopens_idempotently() {
             .query_row("SELECT COUNT(*) FROM schema_migrations", [], |r| r
                 .get::<_, i64>(0))
             .unwrap(),
-        6
+        7
     );
 }
 
@@ -81,7 +81,7 @@ fn old_database_migrates_without_losing_existing_rows() {
         db.execute("INSERT INTO sources (id,slug,kind,title,storage_mode,manifest_path,status,created_at,updated_at) VALUES ('fixture','fixture','paper','Preserved','managed','sources/fixture/source.yaml','registered','2026-09-05T00:00:00Z','2026-09-05T00:00:00Z')", []).unwrap();
     }
     let store = SqliteStore::open(&path).unwrap();
-    assert_eq!(store.diagnostics().unwrap().schema_version, 6);
+    assert_eq!(store.diagnostics().unwrap().schema_version, 7);
     let db = Connection::open(path).unwrap();
     assert_eq!(
         db.query_row("SELECT title FROM sources WHERE id='fixture'", [], |row| {
@@ -103,7 +103,7 @@ fn unknown_versions_and_changed_migration_checksums_are_rejected() {
         SqliteStore::open(&path).unwrap_err().code,
         "UNSUPPORTED_DATABASE_VERSION"
     );
-    db.pragma_update(None, "user_version", 6).unwrap();
+    db.pragma_update(None, "user_version", 7).unwrap();
     db.execute(
         "UPDATE schema_migrations SET checksum='changed' WHERE version=1",
         [],

@@ -869,7 +869,7 @@ PRAGMA temp_store = MEMORY;
 | Canonical projection | `sources`、`source_revisions`、`nodes`、`claims`、`relations`、`evidence`、`syntheses` | DB-derived |
 | Search projection | `chunks`、`search_units`、`search_fts_word`、`search_fts_tri`、`search_vectors` | DB-derived |
 | Graph projection | `relations`、`node_mentions`、相关索引 | DB-derived |
-| Runtime | `proposals`、`proposal_revisions`、`proposal_items`、`operation_runs`、`idempotency_keys`、`audit_events` | DB-runtime |
+| Runtime | `proposals`、`proposal_revisions`、`proposal_items`、`proposal_applications`、`operation_runs`、`idempotency_keys`、`audit_events` | DB-runtime |
 | Infrastructure | `schema_migrations`、`workspace_state`、`file_manifest` | 混合 |
 
 完整初始 DDL 见附录 A。
@@ -1109,6 +1109,14 @@ Canonical write 不是单一 SQLite 事务，必须使用可恢复文件事务�
 若第 6 步后进程崩溃，规范文件仍是权威。`doctor` 必须发现未完成 manifest，并建议/执行重新 reconcile。不得尝试把规范文件回滚到 SQLite 的旧状态。
 
 manifest 必须持久化每个目标的相对路径、操作类型、before/after hash 和可验证的 staged 内容；manifest 状态变更也采用 atomic write，并同步文件及支持该能力的平台目录。`prepared` 必须在第一个目标替换前可靠落盘。
+
+当前 [`proposal::apply`](../crates/knowmesh-core/src/application/proposal/apply/mod.rs) 已接入真实文件事务。Proposal 日志使用 version 2，额外绑定 workspace、已审核 revision、完整 ProposalRecord hash、base generation/快照/Schema、预期结果快照、文件列表和已验证来源 revision；原有来源/初始化日志继续使用 version 1。ApplyContext 最多 4 MiB，完整日志最多 8 MiB，超限不发布不可读取的日志。
+
+SQLite 在执行文件回调前取得 IMMEDIATE transaction，核对持久化审核记录与完整索引基线；文件回调仍在 workspace lock 内。全部文件到达 after 状态并扫描出预期 hash 后，在同一 DB transaction 内 reconcile、追加 applied revision/audit 和保存 Apply receipt。任何一步失败都会回滚这些 DB 变化，保留文件日志及 staging 供前滚恢复。无字节变化的已接受 Proposal 只完成 DB 状态和回执，不创建文件事务、不递增 generation。
+
+与 Proposal 日志关联的 `CanonicalSnapshot` 保留私有 context 标记；普通 `ProjectionStore::reconcile` 拒绝该快照，只有协调事务可提交其投影。Apply retry、`sync::recover` 和 Doctor 均核对日志绑定的审核 revision/hash，再执行同一 SQLite 协调路径；审核记录改变、Schema 改变、外部文件编辑或结果快照不一致均阻止完成。文件已替换但 DB 未提交时仍保留旧索引/审核状态；DB 已提交但日志未清理时复用原回执，仅核查并清理日志，不重复追加历史或 generation。
+
+恢复不能只依赖规范文件 hash：referenced 来源的外部字节不属于规范扫描清单。Builder 将本次实际校验的来源 revision 集合传给接受子集预览，Apply 固定这些 revision 的原始 metadata/storage；文件替换前后及恢复时重新按大小/hash 读取对应内容。缺失、改写的 referenced 原文与 managed blob 一样阻止完成，不因先前验证成功而跳过恢复校验。相关真实 SQLite、逐文件中间状态及恢复 fixtures 见 [`proposal_apply`](../crates/knowmesh-sqlite/tests/proposal_apply.rs)。
 
 当前 `CanonicalSnapshot` 在规范文件扫描后封存私有校验 hash；公开投影字段及公开 hash 一起被替换，也不能重新获得可 reconcile 的快照。拟议文档使用独立的 `CanonicalPreview` 只读类型，不暴露到 `CanonicalSnapshot` 的转换，避免将尚未 Apply 的知识交给索引写入端口。预览契约见 14.8 节。
 
@@ -1796,7 +1804,7 @@ Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint�
 
 无 offsets 时，必须显式指定 page、section path 或 paragraph；在全部匹配范围内查找唯一引用，每次匹配仍不得跨页/章节。`max_search_chars` 默认 100,000，允许 `1..=1,000,000`，限制单个精确 span 或本次搜索的范围总长；超过上限要求提供更窄定位，不截断后声称唯一。重复章节中的匹配和重叠匹配（例如 `aaa` 在 `aaaa` 中出现两次）均计为歧义。返回 locator 补全真实 page/section/字符区间；跨段引用的 paragraph 为空。`locator_repaired` 只表示 offsets 被移动或补全，不因补全描述字段而置为 true。
 
-失败分别返回 `EVIDENCE_REVISION_MISMATCH`、`EVIDENCE_LOCATOR_OUT_OF_BOUNDS`、`INVALID_EVIDENCE_LOCATOR`、`EVIDENCE_SCOPE_MISMATCH`、`EVIDENCE_LOCATOR_REQUIRED`、`EVIDENCE_SEARCH_LIMIT`、`EVIDENCE_QUOTE_NOT_FOUND` 或 `EVIDENCE_QUOTE_AMBIGUOUS`。非法 quote/confidence、解析产物或质量门失败沿用对应领域错误；诊断不附带原始 quote。当前 fixtures 验证 Unicode、空白映射、边界/歧义和 chunk 配置独立性；Proposal assertion 的强制接入与全量 locator validity 验收仍随 KM-047 完成，KM-044 在此之前保持未完成。
+失败分别返回 `EVIDENCE_REVISION_MISMATCH`、`EVIDENCE_LOCATOR_OUT_OF_BOUNDS`、`INVALID_EVIDENCE_LOCATOR`、`EVIDENCE_SCOPE_MISMATCH`、`EVIDENCE_LOCATOR_REQUIRED`、`EVIDENCE_SEARCH_LIMIT`、`EVIDENCE_QUOTE_NOT_FOUND` 或 `EVIDENCE_QUOTE_AMBIGUOUS`。非法 quote/confidence、解析产物或质量门失败沿用对应领域错误；诊断不附带原始 quote。当前 fixtures 验证 Unicode、空白映射、边界/歧义和 chunk 配置独立性。Builder/接受子集/真实 Apply 已强制验证所有新 Claim/Relation 的 Evidence，fixtures 覆盖有效 Compiler assertions、错误 quote/locator、绕过 Builder 的原始 approved DTO，以及恢复前 referenced 原文变化；无效项均不能写入为完成的知识。KM-044 的 Proposal locator gate 已由这些集成检查覆盖；完整 Compiler/Run 与真实模型质量仍分别由 KM-048/KM-072 验证。
 
 ### 14.6 Entity Resolution
 
@@ -1921,13 +1929,13 @@ update_source_metadata
 
 Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析和验证直接及依赖 Evidence。相同 Evidence ID 必须保留全部原字段；已有 locator 若指定 offsets，不在此阶段修复或换发 ID。错误引用、Schema/目标错误及不符合具体 op 的 payload 形成 blocking warnings，阻止 acceptance；可独立完成的有效项仍可预览。直接 Evidence IDs 每项最多 1024，冲突成员等传递引用另行验证，不膨胀该列表或截断 Evidence。诊断最多 128 条，溢出以 blocking `PROPOSAL_ISSUE_LIMIT` 表示。最终全图预览失败时清空文档输出并阻塞其余项。
 
-新建 Synthesis 必须显式提供 dependency_snapshot，引用可用 Schema Pack、已有或本 Proposal 新建的断言，以及归属正确的 source heads；每个直接引用来源都必须有生成时 head。Builder 保留所给历史 assertion hash/head，不以当前值补全或替换，freshness 另行判定。缺失快照的旧文件仍可由 Parser 读取。Ask run 产物的来源校验与快照复制、持久化工作流和实际 Apply 尚待集成；本层预览成功不构成写入授权。
+新建 Synthesis 必须显式提供 dependency_snapshot，引用可用 Schema Pack、已有或本 Proposal 新建的断言，以及归属正确的 source heads；每个直接引用来源都必须有生成时 head。Builder 保留所给历史 assertion hash/head，不以当前值补全或替换，freshness 另行判定。缺失快照的旧文件仍可由 Parser 读取。实际 Apply 已拒绝不存在的 Evidence；Ask run 产物的来源校验与快照复制仍待接入，本层预览成功不构成写入授权。
 
 [`CanonicalSnapshot::preview_documents`](../crates/knowmesh-core/src/canonical/snapshot/preview.rs) 已提供 Builder 所需的只读文档预览：基于已扫描快照接受至多 10,000 个文档、合计 64 MiB 的拟议替换。仅允许 knowledge/nodes 与 knowledge/syntheses 下的 Markdown，以及已有来源的描述元数据；单个 Markdown 上限 8 MiB、来源 manifest 上限 16 MiB。配置、原始 blob、新建来源、revision/head/removal 状态变化和已有 Node/Synthesis 身份或创建时间替换均被拒绝。
 
 预览前后检查 workspace/Schema、规范文件清单和原有内容 hash；新增文件、目标被占用、路径大小写别名、symlink 或外部编辑会使预览失败。它复用真实扫描的 Node/Claim/Relation/Evidence 投影和链接解析，重新验证整个拟议引用图；新节点/别名也会更新未修改页面中的链接解析。预览没有磁盘写入，不创建索引；相同文档实际落盘后，完整扫描得到相同逻辑 hash，文件 mtime 仅作为扫描提示。
 
-`CanonicalPreview` 只暴露只读投影和 hash，不能作为 `ProjectionStore::reconcile` 的输入。该层验证规范格式、Schema 和引用一致性，不能代替上述 Builder 的具体 payload/quote 校验、审核或文件事务；Apply 协调仍由 KM-047 接入。
+`CanonicalPreview` 只暴露只读投影和 hash，不能作为 `ProjectionStore::reconcile` 的输入。该层验证规范格式、Schema 和引用一致性，不能代替上述 Builder 的具体 payload/quote 校验、审核或文件事务；实际协调路径见 10.6 节。
 
 `update_node_summary` 的受控编辑已由 [`NodeDocument::set_summary`](../crates/knowmesh-core/src/canonical/node/summary.rs) 提供。读取与编辑共用 CommonMark 顶层章节识别：优先 `## Summary`，没有该二级节时兼容一级 Summary；引用块和代码中的标题不作为目标。多个同级目标返回 `AMBIGUOUS_NODE_SUMMARY`。替换范围截止下一顶层 H1/H2 或 HTML 块，不触及 frontmatter、其他章节和受管断言；缺少 Summary 时在首个受管块前插入，空文本可清空已有正文。
 
@@ -1957,19 +1965,21 @@ Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析�
 - 任一 item 含 invalid evidence、schema violation、ambiguous entity 时不得被 accept，除非用户先修复 payload 形成新 proposal version。
 - Proposal 每次编辑递增 `revision`，保留旧 revision，不原地隐藏历史。
 
-当前 [`domain::proposal`](../crates/knowmesh-core/src/domain/proposal/mod.rs) 已实现版本化内存快照、14.8 节的闭集 op 和审核状态契约。每次实际 review/revise/reject/stale/applied 状态变化返回新快照并递增 revision，原快照保持可用；同样的重复决策不增加 revision。Mutation 输入必须给出 `expected_revision`，不匹配返回 `PROPOSAL_REVISION_MISMATCH`。SQLite 历史存储已实现；Application 工作流、CLI/HTTP 输入与 Apply 事务协调仍随 KM-047 接入。
+当前 [`domain::proposal`](../crates/knowmesh-core/src/domain/proposal/mod.rs) 已实现版本化内存快照、14.8 节的闭集 op 和审核状态契约。每次实际 review/revise/reject/stale/applied 状态变化返回新快照并递增 revision，原快照保持可用；同样的重复决策不增加 revision。Mutation 输入必须给出 `expected_revision`，不匹配返回 `PROPOSAL_REVISION_MISMATCH`。SQLite 历史存储和 Apply 协调已实现；公开创建/编辑/审核工作流、CLI/HTTP 输入仍随 KM-047 及其适配器任务接入。
 
 [`ProposalStore`](../crates/knowmesh-core/src/ports.rs) 以 [`ProposalRecord`](../crates/knowmesh-core/src/application/proposal/record.rs) 保存完整 Proposal 和原 canonical 快照 hash。[SQLite adapter](../crates/knowmesh-sqlite/src/proposal.rs) 在同一 IMMEDIATE 事务内追加 `proposal_revisions`、更新 current header/items 并写入 audit event。新建仅接受 draft revision 1；后续保存必须匹配当前 expected_revision，并恰好增加 1。同 revision、同内容保存为 no-op；并发过期写入、跳号、身份/创建信息改写及未经协调的 applied 状态均被拒绝。Stale 不能仅通过改 state 恢复旧批准，必须先保存重验证后的 pending revision。
 
 完整历史 JSON 包含逐项审核 hash、方式、人工确认、操作者、时间、警告及基线，每条最多 20 MiB；generation 限于 SQLite 有符号 64 位范围。读取在一个只读事务内验证 JSON hash、领域约束及对应 current header 的 revision/state/generation/Schema。创建与普通审核保存要求基线匹配完整索引；记录 stale/rejected 可保留已经过期的基线。该检查不读取规范文件，文件重扫及审核后的子集验证仍由 Application 负责。普通保存不会创建文件或完成 Apply。
 
-Migration 0006 不从旧 header/items 猜造丢失的审核信息；旧行保留，无历史快照时读取返回 `PROPOSAL_HISTORY_UNAVAILABLE`。Rebuild 与备份包含全部 revision，不丢弃旧审核。选择独立追加快照表是为了保留可重读的完整历史；代价是每次 revision 重复保存完整 Proposal，current header/items 仅作为当前查询投影，不能代替历史事实。后续幂等结果与 Apply recovery 必须在此基础上协调，不能在文件提交后单独调用普通保存来伪造完成状态。
+Migration 0006 不从旧 header/items 猜造丢失的审核信息；旧行保留，无历史快照时读取返回 `PROPOSAL_HISTORY_UNAVAILABLE`。Rebuild 与备份包含全部 revision，不丢弃旧审核。选择独立追加快照表是为了保留可重读的完整历史；代价是每次 revision 重复保存完整 Proposal，current header/items 仅作为当前查询投影，不能代替历史事实。Apply 使用 10.6 节的协调事务，不能在文件提交后单独调用普通保存来伪造完成状态。
+
+当前 Core `apply::execute` 输入为 proposal_id、expected_revision、dry_run、yes。实际执行必须确认且全部项已决；dry-run 只重验证并返回精确 changed_paths，不保存审核、回执或索引。Migration 0007 的 `proposal_applications` 保存每个 Proposal 唯一的完整 ApplyContext/回执、reviewed_revision 和 JSON hash，回执最多 8 MiB。相同已审核 revision 重试返回首次结果，即使其后索引 generation 已变化；不同 revision 不复用该回执。回执与完整历史在真实 rebuild/备份后继续可读。此处按 Proposal 身份提供重复调用语义，用户自定义幂等键、自动 accept-all 组合和公开 Operation 描述仍待工作流层接入。
 
 每项 decision 为 pending/accepted/rejected，保存原因、reviewed_by/at、explicit/bulk 方式及 human_verified。Relaxed bulk 只接受 pending 项，不覆盖已拒绝项；strict、禁止 accept-all 或要求人工验证的 policy 均拒绝 bulk。Accepted 项若有 blocking warning 则返回 `PROPOSAL_ITEM_BLOCKED`；需要人工确认而未提供时返回 `HUMAN_VERIFICATION_REQUIRED`。所有项均已决且至少一项 accepted 才为 approved；pending 阻止 Apply 状态门禁，全部拒绝则为 rejected。
 
 审核 hash 绑定 item ID、op、target、payload、before hash、Evidence IDs、风险/置信度/校验问题和决策信息，并绑定 Proposal 身份、来源/Run、base generation、Schema、创建信息及 item 顺序。载荷、上下文、审核方式或确认标记被直接改变会返回 `PROPOSAL_REVIEW_STALE`。同基线、同顺序下编辑只重置变化项，其他审核可保留；基线/Schema/顺序变化或 stale 重验证重置全部决策。该 hash 用于一致性检查，不是身份认证或文件写入授权。
 
-[`prepare_accepted`](../crates/knowmesh-core/src/application/proposal/selection.rs) 已提供审核后只读重验证。调用方传入从 store 取得的 generation、原始快照 hash 与 expected_revision；Core 重新扫描 workspace，并按实际 Schema policy 检查审核，再仅对 accepted 项运行 Builder。拒绝创建依赖不会留下其拟议对象，缺失依赖返回 `PROPOSAL_ACCEPTED_ITEMS_INVALID`；generation/快照/Schema 改变返回 `STALE_PROPOSAL`。重验证若补出未经审核的 before hash/Evidence 等内容，返回 `PROPOSAL_REVALIDATION_REQUIRED`，不会静默重新接受。输出 `AcceptedPreview` 保留原 Proposal ID/revision，只暴露只读结果；索引 generation 的读取、锁内再检查、持久化及文件事务仍由 Apply coordinator 接入。
+[`prepare_accepted`](../crates/knowmesh-core/src/application/proposal/selection.rs) 已提供审核后只读重验证。调用方传入从 store 取得的 generation、原始快照 hash 与 expected_revision；Core 重新扫描 workspace，并按实际 Schema policy 检查审核，再仅对 accepted 项运行 Builder。拒绝创建依赖不会留下其拟议对象，缺失依赖返回 `PROPOSAL_ACCEPTED_ITEMS_INVALID`；generation/快照/Schema 改变返回 `STALE_PROPOSAL`。重验证若补出未经审核的 before hash/Evidence 等内容，返回 `PROPOSAL_REVALIDATION_REQUIRED`，不会静默重新接受。输出 `AcceptedPreview` 保留原 Proposal ID/revision，只暴露只读结果及已验证来源 revision 集合；10.6 节的 Apply coordinator 负责 store 读取、锁内再检查和持久化。
 
 Stale 必须重验证并形成新 revision 后才能重新审核；applied/rejected 为终态。重复终结 applied 元数据保留首次 applied_generation，不把后来索引变化当作第二次 Apply。当前层仅验证 DTO、target ID 类型、边界和审核绑定：每项 payload 必须为 JSON object 且最多 1 MiB，Proposal 最多 10,000 项、序列化 items 合计最多 16 MiB。具体 op payload Schema、真实引用有效性、当前 workspace policy、文件 hash/generation 和 Apply 幂等仍须由 Application builder/store/coordinator 验证，不能仅凭本层的 approved 标记写入规范文件。
 
@@ -3321,6 +3331,7 @@ v0.1 只有同时满足以下条件才可发布：
 | Claim 精确去重如何保留科学符号 | Statement 只折叠空白；保留大小写和 Unicode 字符差异，其他相似性进入待审核比较；旧索引重新生成 key | 名称用的 NFKC/小写会把 Co/CO 等不同含义折叠。较窄的 exact 规则增加 possible_duplicate 候选，但避免自动丢失不同断言 | 14.7 |
 | 如何预览整图而不把拟议内容索引为知识 | 预览与真实扫描共用投影校验，结果使用独立只读类型；真实快照保留私有封存 hash | 直接返回可 reconcile 的快照容易绕过 Apply；只校验公开 hash 不能阻止数据与 hash 一起被替换。独立类型增加少量访问接口，保留 FS 来源边界 | 10.6 / 14.8 |
 | 如何保留完整审核历史并阻止并发覆盖 | 追加完整 Proposal revision 快照，与 current header/items 和 audit 在同一 SQLite 事务保存；expected_revision 做并发比较 | 仅覆盖当前行会丢失旧审核内容，差量事件重放需要额外版本兼容规则；完整快照增加存储成本，但可独立校验和读取。旧数据不具备的审核信息不推断补写 | 14.9 |
+| 如何在文件提交与审核完成之间恢复 | 日志绑定已审核 revision/hash，在持有 SQLite 写事务期间提交文件，再原子保存投影、applied revision 和回执；普通 reconcile 拒绝 Proposal 日志快照 | 文件提交后再单独保存状态会留下重复 Apply 窗口；此方案增加持有 DB 写锁的时间，换取明确的并发比较和统一恢复路径。Referenced 原文另行复核，不能由规范快照代替 | 10.6 / 14.9 |
 
 
 ---
@@ -3331,7 +3342,7 @@ v0.1 只有同时满足以下条件才可发布：
 
 实现迁移的唯一源码位于 [`crates/knowmesh-sqlite/migrations/`](../crates/knowmesh-sqlite/migrations/0001_initial.sql)。下方 SQL 保留为初始逻辑基线；后续 schema 扩展使用新迁移，不修改已应用迁移。[0002](../crates/knowmesh-sqlite/migrations/0002_canonical_payloads.sql) 增加派生的 typed JSON payload 与 snapshot hash，用于保留读取契约和检查投影是否变化；[0003](../crates/knowmesh-sqlite/migrations/0003_snapshot_warnings.sql) 保存派生扫描警告，旧索引以 NULL 表示尚需补齐。这些字段不成为新的 System of Record。
 
-[0004](../crates/knowmesh-sqlite/migrations/0004_claim_normalization.sql) 将扫描完成标记置为 NULL，确保旧 Claim normalized hash 在 fast-sync 前按 14.7 节重新生成。[0005](../crates/knowmesh-sqlite/migrations/0005_node_summary_sections.sql) 使旧摘要投影重新经过顶层章节识别，避免继续使用引用块中的同名标题。[0006](../crates/knowmesh-sqlite/migrations/0006_proposal_revisions.sql) 增加 14.9 节的完整 Proposal 历史表。SQLite schema version 当前为 6；迁移保留 canonical 与 runtime 数据，重新同步仅更新派生投影。
+[0004](../crates/knowmesh-sqlite/migrations/0004_claim_normalization.sql) 将扫描完成标记置为 NULL，确保旧 Claim normalized hash 在 fast-sync 前按 14.7 节重新生成。[0005](../crates/knowmesh-sqlite/migrations/0005_node_summary_sections.sql) 使旧摘要投影重新经过顶层章节识别，避免继续使用引用块中的同名标题。[0006](../crates/knowmesh-sqlite/migrations/0006_proposal_revisions.sql) 增加完整 Proposal 历史表；[0007](../crates/knowmesh-sqlite/migrations/0007_proposal_applications.sql) 保存绑定审核 revision 的 Apply 回执，行为见 14.9 节。SQLite schema version 当前为 7；迁移保留 canonical 与 runtime 数据，重新同步仅更新派生投影。
 
 ```sql
 CREATE TABLE schema_migrations (

@@ -14,7 +14,7 @@ pub(super) fn verify(
     before: &CanonicalSnapshot,
     proposal: &mut Proposal,
     payloads: &[Option<Payload>],
-) {
+) -> BTreeSet<SourceRevisionId> {
     let mut known: BTreeMap<EvidenceId, Evidence> = before
         .evidence
         .iter()
@@ -176,6 +176,7 @@ pub(super) fn verify(
         }
     }
     let parser = BuiltinSourceParser::default();
+    let verified_revisions = required.keys().cloned().collect();
     for (revision_id, entries) in required {
         let parsed: crate::error::AppResult<_> = (|| {
             let source = before
@@ -250,4 +251,5 @@ pub(super) fn verify(
             }
         }
     }
+    verified_revisions
 }

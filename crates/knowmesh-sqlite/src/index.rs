@@ -7,6 +7,15 @@ use knowmesh_core::{
 use crate::{SqliteStore, database_error};
 
 impl IndexStore for SqliteStore {
+    fn apply_proposal(
+        &mut self,
+        context: &knowmesh_core::application::proposal::apply::ApplyContext,
+        canonical: &mut dyn FnMut() -> AppResult<
+            knowmesh_core::application::proposal::apply::CanonicalApplication,
+        >,
+    ) -> AppResult<knowmesh_core::application::proposal::apply::ApplyReport> {
+        crate::proposal::apply::commit(self, context, canonical)
+    }
     fn projection_state(&self) -> AppResult<ProjectionState> {
         let tx = self
             .connection

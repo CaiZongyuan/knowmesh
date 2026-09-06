@@ -134,7 +134,7 @@ fn unreadable_runtime_is_preserved_unless_discard_is_explicit_and_backed_up() {
         },
     )
     .unwrap();
-    assert_eq!(report.discarded_runtime_tables.len(), 6);
+    assert_eq!(report.discarded_runtime_tables.len(), 7);
     assert!(
         report
             .discarded_runtime_tables

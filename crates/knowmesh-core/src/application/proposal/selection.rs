@@ -21,6 +21,7 @@ pub struct AcceptedPreview {
     base_snapshot_sha256: String,
     preview: CanonicalPreview,
     documents: BTreeMap<PathBuf, Vec<u8>>,
+    verified_revisions: std::collections::BTreeSet<crate::domain::SourceRevisionId>,
 }
 
 impl AcceptedPreview {
@@ -38,6 +39,11 @@ impl AcceptedPreview {
     }
     pub fn documents(&self) -> &BTreeMap<PathBuf, Vec<u8>> {
         &self.documents
+    }
+    pub fn verified_source_revisions(
+        &self,
+    ) -> &std::collections::BTreeSet<crate::domain::SourceRevisionId> {
+        &self.verified_revisions
     }
 }
 
@@ -127,6 +133,7 @@ pub fn prepare_accepted(
         base_snapshot_sha256: prepared.base_snapshot_sha256,
         preview,
         documents: prepared.documents,
+        verified_revisions: prepared.verified_revisions,
     })
 }
 

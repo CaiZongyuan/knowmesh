@@ -77,19 +77,42 @@ pub fn repair_root(
     }
     let writer = WorkspaceWriter::acquire(root)?;
     let transaction = preflight(root, &access)?;
-    if let Some(transaction) = &transaction {
-        writer.apply(&transaction.id)?;
-    }
-    let workspace = Workspace::load(root)?;
-    let snapshot = match &transaction {
-        Some(transaction) => CanonicalSnapshot::scan_committed(&workspace, &transaction.id)?,
-        None => CanonicalSnapshot::scan(&workspace)?,
+    let (workspace, store, snapshot, projection) = if let Some(transaction) = &transaction
+        && transaction.proposal.is_some()
+    {
+        let workspace = Workspace::load(root)?;
+        let mut store = open_store(&workspace)?;
+        let applied = crate::application::proposal::apply::resume(
+            &workspace,
+            store.as_mut(),
+            &writer,
+            transaction,
+        )?;
+        let snapshot = CanonicalSnapshot::scan(&workspace)?;
+        (
+            workspace,
+            store,
+            snapshot,
+            applied
+                .projection
+                .ok_or_else(transaction::recovery_required)?,
+        )
+    } else {
+        if let Some(transaction) = &transaction {
+            writer.apply(&transaction.id)?;
+        }
+        let workspace = Workspace::load(root)?;
+        let snapshot = match &transaction {
+            Some(transaction) => CanonicalSnapshot::scan_committed(&workspace, &transaction.id)?,
+            None => CanonicalSnapshot::scan(&workspace)?,
+        };
+        let mut store = open_store(&workspace)?;
+        let projection = store.reconcile(&snapshot)?;
+        if let Some(transaction) = &transaction {
+            writer.mark_indexed(&transaction.id)?;
+        }
+        (workspace, store, snapshot, projection)
     };
-    let mut store = open_store(&workspace)?;
-    let projection = store.reconcile(&snapshot)?;
-    if let Some(transaction) = &transaction {
-        writer.mark_indexed(&transaction.id)?;
-    }
     let mut report = super::inspect(&workspace, IndexAccess::Ready(store.as_ref()))?;
     let mut recovery = sync::recovery_status(&workspace)?;
     if let Some(transaction) = transaction {

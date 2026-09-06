@@ -33,6 +33,11 @@ const MIGRATIONS: &[(u32, &str, &str)] = &[
         "proposal_revisions",
         include_str!("../migrations/0006_proposal_revisions.sql"),
     ),
+    (
+        7,
+        "proposal_applications",
+        include_str!("../migrations/0007_proposal_applications.sql"),
+    ),
 ];
 
 pub(crate) fn current_version() -> u32 {

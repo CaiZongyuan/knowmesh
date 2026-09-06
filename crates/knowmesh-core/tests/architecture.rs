@@ -197,6 +197,10 @@ fn proposal_transaction_ports_cannot_be_called_directly_from_adapters() {
         "fn route(store: &mut dyn knowmesh_core::ports::IndexStore) { knowmesh_core::ports::IndexStore::apply_proposal(store, context, callback); }",
     ] {
         let failures = architecture::check_source("crates/knowmesh/src/http/routes.rs", code);
-        assert!(failures.iter().any(|failure| failure.code == "PROJECTION_WRITE_CAPABILITY"));
+        assert!(
+            failures
+                .iter()
+                .any(|failure| failure.code == "PROJECTION_WRITE_CAPABILITY")
+        );
     }
 }

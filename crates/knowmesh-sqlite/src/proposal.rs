@@ -13,7 +13,19 @@ use serde::Serialize;
 
 use crate::{SqliteStore, database_error};
 
+pub(crate) mod apply;
+
 impl ProposalStore for SqliteStore {
+    fn proposal_application(
+        &self,
+        id: &ProposalId,
+    ) -> AppResult<Option<knowmesh_core::application::proposal::apply::ApplyReceipt>> {
+        let tx = self
+            .connection
+            .unchecked_transaction()
+            .map_err(database_error)?;
+        apply::receipt(&tx, id)
+    }
     fn proposal_create(&mut self, record: &ProposalRecord) -> AppResult<()> {
         record.validate()?;
         let proposal = &record.proposal;

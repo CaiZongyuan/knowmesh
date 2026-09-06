@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
+    application::proposal::apply::{ApplyContext, ApplyFile},
     domain::sha256,
     error::{AppError, AppResult, ErrorType},
 };
@@ -42,6 +43,8 @@ pub(crate) struct TransactionManifest {
     pub id: String,
     pub state: TransactionState,
     pub changes: Vec<StagedChange>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proposal: Option<ApplyContext>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -100,6 +103,38 @@ impl WorkspaceWriter {
     }
 
     pub fn prepare(&self, changes: Vec<FileChange>) -> AppResult<String> {
+        self.prepare_inner(changes, None)
+    }
+
+    pub fn prepare_proposal(
+        &self,
+        changes: Vec<FileChange>,
+        context: ApplyContext,
+    ) -> AppResult<String> {
+        context.validate()?;
+        let expected: Vec<_> = changes
+            .iter()
+            .map(|change| ApplyFile {
+                path: change.path.clone(),
+                before_sha256: change.before_sha256.clone(),
+                after_sha256: change
+                    .content
+                    .as_ref()
+                    .map(|content| crate::domain::sha256(content))
+                    .unwrap_or_default(),
+            })
+            .collect();
+        if context.files != expected {
+            return Err(invalid_journal());
+        }
+        self.prepare_inner(changes, Some(context))
+    }
+
+    fn prepare_inner(
+        &self,
+        changes: Vec<FileChange>,
+        proposal: Option<ApplyContext>,
+    ) -> AppResult<String> {
         if !self.pending()?.is_empty() {
             return Err(recovery_required());
         }
@@ -165,10 +200,11 @@ impl WorkspaceWriter {
         }
         sync_directory(&self.root.join(&staging))?;
         let manifest = TransactionManifest {
-            version: 1,
+            version: if proposal.is_some() { 2 } else { 1 },
             id: id.clone(),
             state: TransactionState::Prepared,
             changes: staged,
+            proposal,
         };
         self.save_manifest(&manifest)?;
         Ok(id)
@@ -277,6 +313,13 @@ impl WorkspaceWriter {
                 "Could not encode the recovery journal.",
             )
         })?;
+        if file.as_file().metadata().map_err(io_error)?.len() > 8 * 1024 * 1024 {
+            return Err(error(
+                ErrorType::Validation,
+                "TRANSACTION_JOURNAL_TOO_LARGE",
+                "The recovery journal exceeds its 8 MiB read limit.",
+            ));
+        }
         file.as_file().sync_all().map_err(io_error)?;
         file.persist(path).map_err(|err| io_error(err.error))?;
         sync_directory(&directory)
@@ -378,12 +421,29 @@ fn load_manifest(root: &Path, id: &str) -> AppResult<TransactionManifest> {
     let bytes = super::workspace::read_bounded(&path, 8 * 1024 * 1024)?;
     let manifest: TransactionManifest =
         serde_json::from_slice(&bytes).map_err(|_| invalid_journal())?;
-    if manifest.version != 1
-        || manifest.id != id
+    if !matches!(
+        (manifest.version, manifest.proposal.is_some()),
+        (1, false) | (2, true)
+    ) || manifest.id != id
         || manifest.changes.is_empty()
         || manifest.changes.len() > 10_000
     {
         return Err(invalid_journal());
+    }
+    if let Some(context) = &manifest.proposal {
+        context.validate().map_err(|_| invalid_journal())?;
+        let actual: Vec<_> = manifest
+            .changes
+            .iter()
+            .map(|change| ApplyFile {
+                path: change.path.clone(),
+                before_sha256: change.before_sha256.clone(),
+                after_sha256: change.after_sha256.clone().unwrap_or_default(),
+            })
+            .collect();
+        if actual != context.files {
+            return Err(invalid_journal());
+        }
     }
     let mut paths = BTreeSet::new();
     for change in &manifest.changes {
@@ -408,6 +468,10 @@ fn load_manifest(root: &Path, id: &str) -> AppResult<TransactionManifest> {
         }
     }
     Ok(manifest)
+}
+
+pub(crate) fn proposal_context(root: &Path, id: &str) -> AppResult<Option<ApplyContext>> {
+    Ok(load_manifest(root, id)?.proposal)
 }
 
 pub(crate) fn checked_path(root: &Path, relative: &Path) -> AppResult<PathBuf> {

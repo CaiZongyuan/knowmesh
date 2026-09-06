@@ -1,3 +1,4 @@
+pub mod apply;
 mod documents;
 mod evidence;
 pub mod payload;
@@ -30,6 +31,7 @@ pub struct PreparedProposal {
     pub base_snapshot_sha256: String,
     pub preview: Option<CanonicalPreview>,
     documents: BTreeMap<PathBuf, Vec<u8>>,
+    verified_revisions: std::collections::BTreeSet<crate::domain::SourceRevisionId>,
 }
 
 impl PreparedProposal {
@@ -95,7 +97,7 @@ fn prepare_snapshot(
             }
         }
     }
-    evidence::verify(workspace, &before, &mut proposal, &payloads);
+    let verified_revisions = evidence::verify(workspace, &before, &mut proposal, &payloads);
     let mut working = Documents::load(workspace, &before)?;
     let original_files: BTreeMap<_, _> = before
         .files
@@ -154,6 +156,7 @@ fn prepare_snapshot(
         base_snapshot_sha256: before.content_sha256,
         preview,
         documents,
+        verified_revisions,
     })
 }
 
