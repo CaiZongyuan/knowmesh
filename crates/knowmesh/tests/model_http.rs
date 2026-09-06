@@ -49,7 +49,9 @@ fn start_server(
         let mut length = 0;
         loop {
             let mut line = String::new();
-            if reader.read_line(&mut line).unwrap_or(0) == 0 { return; }
+            if reader.read_line(&mut line).unwrap_or(0) == 0 {
+                return;
+            }
             if let Some((name, value)) = line.split_once(':')
                 && name.eq_ignore_ascii_case("content-length")
             {
@@ -208,4 +210,60 @@ fn oversized_timed_out_and_nonterminal_responses_are_not_successful_json() {
         );
         server.join().unwrap();
     }
+}
+
+#[test]
+fn profile_identity_excludes_rotating_secrets_and_validates_endpoint_configuration() {
+    let make = |secret: &str, url: &str| {
+        let settings = CompilerSettings {
+            model: "fixture-model".into(),
+            base_url: url.into(),
+            api_key: "${FIXTURE_KEY}".into(),
+            ..Default::default()
+        };
+        let env = std::collections::BTreeMap::from([("FIXTURE_KEY".into(), secret.into())]);
+        OpenAiCompatible::new(settings.resolve(&env).unwrap(), TransportOptions::default())
+    };
+    let first = make("first-sensitive-key", "https://example.invalid/v1").unwrap();
+    let rotated = make("second-sensitive-key", "https://example.invalid/v1").unwrap();
+    assert_eq!(
+        serde_json::to_value(first.identity()).unwrap(),
+        serde_json::to_value(rotated.identity()).unwrap()
+    );
+    assert!(
+        !serde_json::to_string(&first.identity())
+            .unwrap()
+            .contains("sensitive-key")
+    );
+    for url in [
+        "file:///private",
+        "https://user:password@example.invalid",
+        "https://example.invalid?api_key=secret",
+    ] {
+        assert!(make("fixture-key", url).is_err());
+    }
+}
+
+#[test]
+fn inconsistent_usage_and_unexpected_tool_payloads_are_not_normal_completions() {
+    let body = json!({"choices":[{"message":{"content":"{}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":5,"total_tokens":1}}).to_string();
+    let (url, _, server) = start_server(200, "", body, Duration::ZERO);
+    assert_eq!(
+        provider(&url, ResponseFormat::JsonObject, 4096)
+            .complete(&request())
+            .unwrap_err()
+            .code,
+        "MODEL_INVALID_RESPONSE"
+    );
+    server.join().unwrap();
+    let body = json!({"choices":[{"message":{"content":"{}","tool_calls":[{"id":"unexpected"}]},"finish_reason":"stop"}]}).to_string();
+    let (url, _, server) = start_server(200, "", body, Duration::ZERO);
+    assert_eq!(
+        provider(&url, ResponseFormat::JsonObject, 4096)
+            .complete(&request())
+            .unwrap()
+            .stop_reason,
+        StopReason::ToolCall
+    );
+    server.join().unwrap();
 }

@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, JsonSchema)]
 struct Input {
+    #[schemars(length(min = 1))]
     question: String,
 }
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -204,4 +205,39 @@ fn budgets_prevent_calls_and_repair_cannot_reset_consumption() {
             .code,
         "MODEL_OUTPUT_TRUNCATED"
     );
+}
+
+#[test]
+fn invalid_input_and_external_schema_references_never_reach_the_provider() {
+    let provider = Fake::new(vec![]);
+    assert_eq!(
+        generate::<_, Output>(
+            &provider,
+            "Extract.",
+            &Input {
+                question: String::new()
+            },
+            &options()
+        )
+        .unwrap_err()
+        .code,
+        "MODEL_INPUT_INVALID"
+    );
+    #[derive(Debug, Deserialize)]
+    struct External;
+    impl JsonSchema for External {
+        fn schema_name() -> std::borrow::Cow<'static, str> {
+            "External".into()
+        }
+        fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+            schemars::json_schema!({"$ref":"http://127.0.0.1:1/private-schema"})
+        }
+    }
+    assert_eq!(
+        generate::<_, External>(&provider, "Extract.", &input(), &options())
+            .unwrap_err()
+            .code,
+        "MODEL_SCHEMA_INVALID"
+    );
+    assert!(provider.requests.lock().unwrap().is_empty());
 }
