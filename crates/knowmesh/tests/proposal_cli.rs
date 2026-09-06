@@ -238,3 +238,23 @@ fn edit_and_revalidate_preserve_json_preview_intent_and_refresh_external_changes
         "Edited candidate"
     );
 }
+
+#[test]
+fn proposal_cli_idempotency_returns_first_results_and_rejects_changed_input() {
+    let (_temp, workspace) = support::fixture();
+    success(call(&workspace.root, &["sync"], None));
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let mut input = json!({"proposal":{
+        "kind":"manual","base_generation":1,"schema_hash":snapshot.schema_hash,
+        "source_revision_id":null,"compiler_run_id":null,"summary":"Keyed CLI request.",
+        "items":[ProposalItem::new(PatchOp::AddAlias,snapshot.nodes[0].metadata.id.to_string(),json!({"alias":"Keyed alias"})).unwrap()]
+    }});
+    let args = ["proposal","create","--input","-","--idempotency-key","cli-request"];
+    let first = success(call(&workspace.root, &args, Some(input.clone())));
+    let replay = success(call(&workspace.root, &args, Some(input.clone())));
+    assert_eq!(first["data"], replay["data"]);
+    input["proposal"]["summary"] = json!("Changed request.");
+    let rejected = call(&workspace.root, &args, Some(input));
+    assert!(rejected.stdout.is_empty());
+    assert_eq!(serde_json::from_slice::<Value>(&rejected.stderr).unwrap()["error"]["code"], "IDEMPOTENCY_KEY_REUSED");
+}
