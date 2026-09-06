@@ -1,13 +1,51 @@
 use std::{
-    fs::{self, File},
+    fs::{self, File, OpenOptions},
     io::{self, Read, Write},
     path::Path,
+    time::{Duration, Instant},
 };
 
 use serde::{Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
 use crate::error::{AppError, AppResult, ErrorType};
+
+pub(super) struct CacheWriteLease {
+    _file: File,
+}
+
+impl CacheWriteLease {
+    pub(super) fn acquire(path: &Path) -> AppResult<Self> {
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(path)
+            .map_err(write_error)?;
+        let started = Instant::now();
+        loop {
+            match fs2::FileExt::try_lock_exclusive(&file) {
+                Ok(()) => return Ok(Self { _file: file }),
+                Err(error)
+                    if error.kind() == io::ErrorKind::WouldBlock
+                        || error.raw_os_error() == fs2::lock_contended_error().raw_os_error() =>
+                {
+                    if started.elapsed() >= Duration::from_secs(5) {
+                        return Err(AppError::new(
+                            ErrorType::Conflict,
+                            "CACHE_BUSY",
+                            "Another cache publisher is active.",
+                        )
+                        .retryable(true));
+                    }
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                Err(error) => return Err(write_error(error)),
+            }
+        }
+    }
+}
 
 pub(super) fn write_artifact<T: Serialize>(
     directory: &Path,
@@ -163,12 +201,12 @@ fn too_large() -> AppError {
         "The cache artifact exceeds its configured size limit.",
     )
 }
-fn write_error(_: io::Error) -> AppError {
+fn write_error(error: io::Error) -> AppError {
     AppError::new(
         ErrorType::Io,
         "CACHE_WRITE_FAILED",
         "Could not durably publish the cache artifact.",
-    )
+    ).with_details(serde_json::json!({"io_kind": format!("{:?}", error.kind()), "os_code": error.raw_os_error()}))
 }
 fn read_error(_: io::Error) -> AppError {
     AppError::new(

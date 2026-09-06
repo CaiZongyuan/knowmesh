@@ -1644,7 +1644,7 @@ PDF 的 page 是从 1 开始的物理页序，paragraph 在页切换时重新从
 
 当前 [`FileStageCache`](../crates/knowmesh-core/src/ingest/cache/mod.rs) 将 typed stage keys 封装为 versioned JSON 后计算 SHA-256，分别覆盖上述五类阶段；Parse key 记录 revision ID/blob hash/MIME/encoding/descriptor，Embedding key 无 ordinal/locator/文件名。模型身份仅含 provider/model/config hash，sampling、prompt、schema、Purpose 和知识上下文分别按所属阶段绑定。
 
-目录为 `.knowmesh/cache/<stage>/objects/<artifact-sha256>.json` 与 `entries/<key-sha256>.json`。产物流式序列化并同时计数/计算 hash，文件同步完成后原子安装，最后原子发布 manifest；Unix 同步新目录及替换目录项。Manifest 包含 key、artifact path/hash/size 和版本；路径固定在 cache 内，拒绝 symlink 逃逸。只读 miss 不创建目录，缺失/损坏/未来版本/错误 DTO 或自定义校验失败返回 miss；权限等真实 I/O 错误不伪装成 miss。
+目录为 `.knowmesh/cache/<stage>/objects/<artifact-sha256>.json` 与 `entries/<key-sha256>.json`。跨进程 writer lease 协调该 workspace 的缓存写入，最多等待 5 秒，超时返回 retryable `conflict/CACHE_BUSY`；读取不加该锁。产物流式序列化并同时计数/计算 hash，文件同步完成后原子安装，最后原子发布 manifest；Unix 同步新目录及替换目录项。Manifest 包含 key、artifact path/hash/size 和版本；路径固定在 cache 内，拒绝 symlink 逃逸。只读 miss 不创建目录，缺失/损坏/未来版本/错误 DTO 或自定义校验失败返回 miss；权限等真实 I/O 错误不伪装成 miss。
 
 缓存实例由调用方配置正的 artifact byte limit，超过限制返回 `CACHE_ARTIFACT_TOO_LARGE`。Checkpoint 可保存 immutable ArtifactReference，读取不依赖后来覆盖的 key manifest；旧内容寻址产物不自动删除。并发发布和失败替换 fixtures 验证旧引用仍可读取，未完成临时文件不作为命中依据。
 

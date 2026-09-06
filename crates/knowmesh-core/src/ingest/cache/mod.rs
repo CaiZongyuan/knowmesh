@@ -126,6 +126,8 @@ impl FileStageCache {
 
     pub fn store<T: Serialize>(&self, key: &StageKey, value: &T) -> AppResult<ArtifactReference> {
         let key_sha256 = key.fingerprint()?;
+        io::ensure_directory(&self.path("")?)?;
+        let _lease = io::CacheWriteLease::acquire(&self.path("cache-write.lock")?)?;
         let stage = key.stage();
         let objects = format!("cache/{}/objects", stage.name());
         let entries = format!("cache/{}/entries", stage.name());

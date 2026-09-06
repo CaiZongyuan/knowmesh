@@ -135,7 +135,8 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   Chunks preserve exact normalized source spans and never change Evidence locators.
   Validation rejects missing source text, inconsistent hashes, and boundary violations.
 - The filesystem stage cache uses typed dependency keys, content-addressed JSON,
-  streaming hash/size checks, synchronized files, and atomic manifests. Missing,
+  streaming hash/size checks, synchronized files, and atomic manifests. A bounded
+  OS writer lease coordinates publishers across processes; reads remain unlocked. Missing,
   damaged, incompatible, or invalid DTOs are misses; actual I/O failures propagate.
   Tests cover concurrent publishers, failed replacements, checkpoint references,
   symlink/path rejection, and independent stage/configuration invalidation.
