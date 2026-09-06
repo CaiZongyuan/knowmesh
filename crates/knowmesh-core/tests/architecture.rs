@@ -111,13 +111,38 @@ fn dependency_guard_uses_package_identity_even_for_renamed_dependencies() {
 #[test]
 fn guard_checks_glob_imports_qualified_mutators_and_raw_connection_returns() {
     for (path, source, code) in [
-        ("crates/knowmesh-sqlite/src/extra.rs", "fn write(c: &rusqlite::Connection) { rusqlite::Connection::execute(c, sql, []); }", "UNREGISTERED_SQL_WRITE"),
-        ("crates/knowmesh-core/src/compiler/mod.rs", "use std::fs::*; fn compile() { write(path, bytes); }", "UNREGISTERED_FILE_WRITE"),
-        ("crates/knowmesh-core/src/compiler/mod.rs", "use crate::canonical::transaction::*; fn compile() { WorkspaceWriter::acquire(root); }", "CANONICAL_WRITER_ACCESS"),
-        ("crates/knowmesh-sqlite/src/lib.rs", "pub struct SqliteStore { pub raw: rusqlite::Connection }", "PUBLIC_MUTATOR_EXPOSURE"),
-        ("crates/knowmesh-sqlite/src/lib.rs", "impl SqliteStore { pub fn raw(&self) -> &rusqlite::Connection { &self.connection } }", "PUBLIC_MUTATOR_EXPOSURE"),
+        (
+            "crates/knowmesh-sqlite/src/extra.rs",
+            "fn write(c: &rusqlite::Connection) { rusqlite::Connection::execute(c, sql, []); }",
+            "UNREGISTERED_SQL_WRITE",
+        ),
+        (
+            "crates/knowmesh-core/src/compiler/mod.rs",
+            "use std::fs::*; fn compile() { write(path, bytes); }",
+            "UNREGISTERED_FILE_WRITE",
+        ),
+        (
+            "crates/knowmesh-core/src/compiler/mod.rs",
+            "use crate::canonical::transaction::*; fn compile() { WorkspaceWriter::acquire(root); }",
+            "CANONICAL_WRITER_ACCESS",
+        ),
+        (
+            "crates/knowmesh-sqlite/src/lib.rs",
+            "pub struct SqliteStore { pub raw: rusqlite::Connection }",
+            "PUBLIC_MUTATOR_EXPOSURE",
+        ),
+        (
+            "crates/knowmesh-sqlite/src/lib.rs",
+            "impl SqliteStore { pub fn raw(&self) -> &rusqlite::Connection { &self.connection } }",
+            "PUBLIC_MUTATOR_EXPOSURE",
+        ),
     ] {
-        assert!(architecture::check_source(path, source).iter().any(|violation| violation.code == code), "{path}: {source}");
+        assert!(
+            architecture::check_source(path, source)
+                .iter()
+                .any(|violation| violation.code == code),
+            "{path}: {source}"
+        );
     }
 }
 
@@ -150,4 +175,10 @@ fn repository_respects_dependency_visibility_and_write_boundaries() {
         .unwrap();
     let violations = architecture::check_workspace(root);
     assert!(violations.is_empty(), "{violations:#?}");
+}
+
+#[test]
+fn adapters_cannot_mutate_projections_through_core_ports() {
+    let violations = architecture::check_source("crates/knowmesh/src/http/routes.rs", "fn route(store: &mut dyn knowmesh_core::ports::ProjectionStore) { store.reconcile(snapshot); }");
+    assert!(violations.iter().any(|violation| violation.code == "PROJECTION_WRITE_CAPABILITY"));
 }
