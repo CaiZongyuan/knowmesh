@@ -242,8 +242,12 @@ fn failure_after_file_changes_rolls_back_sql_and_recovers_the_reviewed_revision(
     db.execute_batch("DROP TRIGGER fail_apply_history;")
         .unwrap();
     let pending = sync::recovery_status(&workspace).unwrap();
-    let snapshot = CanonicalSnapshot::scan_committed(&workspace, &pending.transactions[0].id).unwrap();
-    assert_eq!(store.reconcile(&snapshot).unwrap_err().code, "PROPOSAL_APPLY_COORDINATOR_REQUIRED");
+    let snapshot =
+        CanonicalSnapshot::scan_committed(&workspace, &pending.transactions[0].id).unwrap();
+    assert_eq!(
+        store.reconcile(&snapshot).unwrap_err().code,
+        "PROPOSAL_APPLY_COORDINATOR_REQUIRED"
+    );
     let recovered = sync::recover(&workspace, &mut store).unwrap();
     assert_eq!(recovered.recovered_transaction_ids.len(), 1);
     assert_eq!(recovered.projection.unwrap().generation, 2);
@@ -293,4 +297,44 @@ fn recovery_refuses_to_apply_a_journal_after_its_reviewed_revision_changes() {
         .unwrap(),
         1
     );
+}
+
+#[test]
+fn recovery_rechecks_referenced_evidence_bytes_after_an_interruption() {
+    use knowmesh_core::{canonical::source::SourceFile, domain::{ClaimId, StorageMode}};
+    let (temp, workspace) = support::fixture();
+    let source_path = workspace.root.join("sources/fixture/source.yaml");
+    let mut source = SourceFile::parse("sources/fixture/source.yaml".into(), &fs::read(&source_path).unwrap()).unwrap().manifest;
+    let original = fs::read(source_path.parent().unwrap().join(&source.revisions[0].path)).unwrap();
+    let referenced_path = temp.path().join("referenced.md");
+    fs::write(&referenced_path, original).unwrap();
+    source.storage = StorageMode::Referenced;
+    source.revisions[0].path = referenced_path.to_str().unwrap().into();
+    fs::write(&source_path, serde_yaml::to_string(&source).unwrap()).unwrap();
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let mut store = SqliteStore::open(&workspace.index_path().unwrap()).unwrap();
+    store.bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash).unwrap();
+    store.reconcile(&snapshot).unwrap();
+    let mut claim = snapshot.claims[0].claim.assertion.clone();
+    claim.id = ClaimId::new();
+    claim.statement = "A newly reviewed assertion backed by the external source.".into();
+    let prepared = prepare(&workspace, &ProposalInput {
+        kind:ProposalKind::Compile, base_generation:1, schema_hash:snapshot.schema_hash,
+        source_revision_id:Some(source.current_revision_id), compiler_run_id:None, summary:"Reviewed source assertion.".into(),
+        items:vec![ProposalItem::new(PatchOp::AddClaim, snapshot.claims[0].claim.subject_node_id.to_string(), json!({"claim":claim})).unwrap()],
+    }, "author", now()).unwrap();
+    let mut record = ProposalRecord { proposal:prepared.proposal, base_snapshot_sha256:prepared.base_snapshot_sha256 };
+    store.proposal_create(&record).unwrap();
+    record.proposal = record.proposal.review(&ReviewInput { expected_revision:1,accept_all:true,decisions:vec![] }, &ReviewPolicy::default(), "reviewer", now()).unwrap();
+    store.proposal_save(1, &record).unwrap();
+    let input = ApplyInput { proposal_id:record.proposal.id.clone(),expected_revision:2,dry_run:false,yes:true };
+    let db = Connection::open(workspace.index_path().unwrap()).unwrap();
+    db.execute_batch("CREATE TRIGGER fail_apply_history BEFORE INSERT ON proposal_revisions WHEN NEW.revision=3 BEGIN SELECT RAISE(ABORT,'injected apply failure'); END;").unwrap();
+    assert!(apply::execute(&workspace, &mut store, &input, "author", now()).is_err());
+    db.execute_batch("DROP TRIGGER fail_apply_history;").unwrap();
+    fs::write(&referenced_path, "The referenced source was changed.").unwrap();
+    assert_eq!(sync::recover(&workspace, &mut store).unwrap_err().code, "SOURCE_REVISION_CHANGED");
+    assert_eq!(store.proposal_get(&input.proposal_id, None).unwrap(), record);
+    assert_eq!(store.generation().unwrap(), 1);
+    assert!(sync::recovery_status(&workspace).unwrap().recovery_required);
 }
