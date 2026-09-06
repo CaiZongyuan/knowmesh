@@ -208,6 +208,87 @@ fn parsing_rejects_revision_changes_bad_encoding_unsupported_types_and_resource_
     );
 }
 
+#[test]
+fn markdown_html_blocks_are_parsed_as_complete_blocks_and_code_examples_stay_literal() {
+    let text = "# Root\n\n<script>\nprivate instructions\n</script>\n\n<div>\n<p>Body <strong>text</strong>.</p>\n</div>\n\n```html\n<script>literal example</script>\n```\n";
+    let parsed = TextParser::default()
+        .parse(&revision(text.as_bytes(), "text/markdown"), text.as_bytes())
+        .unwrap();
+    assert!(!parsed.normalized_text.contains("private instructions"));
+    assert!(
+        parsed
+            .blocks
+            .iter()
+            .any(|block| block.text == "Body text." && block.kind == BlockKind::Paragraph)
+    );
+    assert!(
+        parsed
+            .blocks
+            .iter()
+            .any(|block| block.text == "<script>literal example</script>"
+                && block.kind == BlockKind::Code)
+    );
+    check_spans(&parsed, text);
+}
+
+#[test]
+fn parsed_artifact_validation_rejects_corrupt_spans_text_hashes_and_revision_bindings() {
+    let text = "Alpha\n\n细胞";
+    let source = revision(text.as_bytes(), "text/plain");
+    let parsed = TextParser::default()
+        .parse(&source, text.as_bytes())
+        .unwrap();
+    parsed.validate(&source).unwrap();
+    for end in [0, usize::MAX] {
+        let mut bad = parsed.clone();
+        bad.blocks[0].char_end = end;
+        assert_eq!(
+            bad.validate(&source).unwrap_err().code,
+            "INVALID_PARSED_SOURCE"
+        );
+    }
+    let mut bad = parsed.clone();
+    bad.normalized_text.push('x');
+    assert_eq!(
+        bad.validate(&source).unwrap_err().code,
+        "INVALID_PARSED_SOURCE"
+    );
+    let mut bad = parsed.clone();
+    bad.blocks[1].source_bytes.as_mut().unwrap().end = text.len() + 1;
+    assert_eq!(
+        bad.validate(&source).unwrap_err().code,
+        "INVALID_PARSED_SOURCE"
+    );
+    let mut bad = parsed.clone();
+    bad.blocks[1].id = bad.blocks[0].id.clone();
+    assert_eq!(
+        bad.validate(&source).unwrap_err().code,
+        "INVALID_PARSED_SOURCE"
+    );
+    assert_eq!(
+        parsed
+            .validate(&revision(text.as_bytes(), "text/plain"))
+            .unwrap_err()
+            .code,
+        "INVALID_PARSED_SOURCE"
+    );
+}
+
+#[test]
+fn parser_descriptors_allow_cache_keys_before_parsing_and_include_configuration() {
+    let parser = TextParser::default();
+    let first = parser.descriptor("text/markdown").unwrap();
+    let again = parser.descriptor("text/markdown").unwrap();
+    assert_eq!(first, again);
+    assert_ne!(first.name, parser.descriptor("text/html").unwrap().name);
+    let small = TextParser::new(ParseLimits { max_bytes: 1024, max_blocks: 10 }).unwrap();
+    assert_ne!(first.config_sha256, small.descriptor("text/markdown").unwrap().config_sha256);
+    let parsed = parser.parse(&revision(b"# A", "text/markdown"), b"# A").unwrap();
+    assert_eq!(parsed.parser_name, first.name);
+    assert_eq!(parsed.parser_version, first.version);
+    assert_eq!(parsed.parser_config_sha256, first.config_sha256);
+}
+
 proptest! {
     #[test]
     fn arbitrary_unicode_text_keeps_valid_character_spans(text in ".{0,512}") {
