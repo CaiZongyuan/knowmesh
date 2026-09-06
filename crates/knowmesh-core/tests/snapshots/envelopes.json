@@ -1,0 +1,57 @@
+{
+  "success": {
+    "ok": true,
+    "data": {"items": []},
+    "meta": {
+      "schema_version": "1",
+      "command": "source.list",
+      "trace_id": "run_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "duration_ms": 32
+    }
+  },
+  "page": {
+    "ok": true,
+    "data": {"items": []},
+    "meta": {
+      "schema_version": "1",
+      "command": "source.list",
+      "trace_id": "run_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "duration_ms": 32,
+      "workspace_id": "ws_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "next_cursor": "opaque-continuation"
+    }
+  },
+  "failure": {
+    "ok": false,
+    "error": {
+      "type": "not_found",
+      "code": "SOURCE_NOT_FOUND",
+      "message": "Source was not found.",
+      "hint": "Run knowmesh source list to resolve the source first.",
+      "retryable": false,
+      "param": "source_id",
+      "details": {"source_id": "src_01ARZ3NDEKTSV4RRFFQ69G5FAV"}
+    },
+    "meta": {
+      "schema_version": "1",
+      "command": "source.list",
+      "trace_id": "run_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "duration_ms": 32
+    }
+  },
+  "minimal_failure": {
+    "ok": false,
+    "error": {
+      "type": "internal",
+      "code": "INVARIANT_VIOLATION",
+      "message": "Invalid state.",
+      "retryable": false
+    },
+    "meta": {
+      "schema_version": "1",
+      "command": "source.list",
+      "trace_id": "run_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "duration_ms": 32
+    }
+  }
+}

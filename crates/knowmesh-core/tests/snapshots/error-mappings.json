@@ -1,0 +1,13 @@
+[
+  {"type": "validation", "exit": 2, "http": 400},
+  {"type": "not_found", "exit": 3, "http": 404},
+  {"type": "configuration", "exit": 3, "http": 503},
+  {"type": "io", "exit": 4, "http": 500},
+  {"type": "network", "exit": 4, "http": 502},
+  {"type": "internal", "exit": 5, "http": 500},
+  {"type": "policy", "exit": 6, "http": 403},
+  {"type": "conflict", "exit": 7, "http": 409},
+  {"type": "model", "exit": 8, "http": 502},
+  {"type": "confirmation", "exit": 10, "http": 409},
+  {"type": "cancelled", "exit": 130, "http": 409}
+]
