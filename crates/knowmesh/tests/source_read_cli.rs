@@ -110,3 +110,34 @@ fn binary_sources_have_explicit_json_encoding_and_lossless_raw_output() {
     assert!(raw.stderr.is_empty());
     assert_eq!(raw.stdout, bytes);
 }
+
+#[test]
+fn source_list_cursor_is_available_in_envelope_metadata_and_continues_the_same_query() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("workspace");
+    cargo_bin_cmd!("knowmesh")
+        .arg("init")
+        .arg(&root)
+        .assert()
+        .success();
+    let path = temp.path().join("notes.txt");
+    fs::write(&path, "Pagination fixture").unwrap();
+    for _ in 0..2 {
+        json(&root, &["source", "add", path.to_str().unwrap()]);
+    }
+    let first = json(&root, &["source", "list", "--limit", "1"]);
+    assert!(first["data"]["next_cursor"].is_string());
+    assert_eq!(first["meta"]["next_cursor"], first["data"]["next_cursor"]);
+    let cursor = first["meta"]["next_cursor"].as_str().unwrap();
+    let second = json(
+        &root,
+        &["source", "list", "--limit", "1", "--cursor", cursor],
+    );
+    assert_ne!(
+        first["data"]["items"][0]["id"],
+        second["data"]["items"][0]["id"]
+    );
+    assert_eq!(second["data"]["total"], 2);
+    assert!(second["data"]["next_cursor"].is_null());
+    assert!(second["meta"]["next_cursor"].is_null());
+}
