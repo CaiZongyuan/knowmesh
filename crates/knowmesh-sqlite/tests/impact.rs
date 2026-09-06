@@ -19,7 +19,7 @@ use knowmesh_core::{
     },
     ports::ProjectionStore,
 };
-use knowmesh_sqlite::{SqliteRebuilder, SqliteStore};
+use knowmesh_sqlite::{SqliteImpactPreview, SqliteRebuilder, SqliteStore};
 
 fn indexed(workspace: &Workspace) -> SqliteStore {
     let snapshot = CanonicalSnapshot::scan(workspace).unwrap();
@@ -311,4 +311,41 @@ fn source_changes_preserve_historical_evidence_and_impact_survives_database_rebu
             .all(|item| item.freshness.freshness == Freshness::Unknown
                 && item.freshness.current_evidence_ids.is_empty())
     );
+}
+
+#[test]
+fn removal_preview_uses_canonical_impact_without_writing_the_index_and_its_cursor_can_continue() {
+    for existing_index in [false, true] {
+        let (temp, workspace) = support::fixture();
+        let mut query = input(&workspace);
+        if existing_index { drop(indexed(&workspace)); }
+        let path = temp.path().join("knowledge/nodes/model-a.md");
+        let mut model = NodeDocument::parse(&fs::read_to_string(&path).unwrap()).unwrap();
+        for index in 0..24 {
+            let mut claim = model.claims[0].clone();
+            claim.id = knowmesh_core::domain::ClaimId::new();
+            claim.statement = format!("Synthetic assertion {index}.");
+            model.claims.push(claim);
+        }
+        fs::write(path, model.render().unwrap()).unwrap();
+        let index_path = workspace.index_path().unwrap();
+        let before = fs::read(&index_path).ok();
+        let preview = source::preview_remove_with_impact(&workspace, &source::RemoveInput { source_id: query.source_id.clone(), dry_run: true, yes: false }, &SqliteImpactPreview::new(&workspace).unwrap()).unwrap();
+        let impact = preview.impact.unwrap();
+        assert!(impact.preview);
+        assert_eq!(impact.items.len(), 20);
+        assert_eq!(impact.counts.claims, 25);
+        assert_eq!(impact.generation, if existing_index { 2 } else { 1 });
+        assert_eq!(fs::read(&index_path).ok(), before);
+        assert!(CanonicalSnapshot::scan(&workspace).unwrap().sources[0].manifest.removed_at.is_none());
+        query.cursor = impact.next_cursor;
+        assert!(query.cursor.is_some());
+        let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+        let mut store = SqliteStore::open(&index_path).unwrap();
+        store.bind_workspace(&snapshot.workspace_id, &snapshot.schema_hash).unwrap();
+        let continued = impact::execute(&workspace, &mut store, &query).unwrap();
+        assert!(!continued.preview);
+        assert_eq!(continued.items.len(), 8);
+        assert!(continued.next_cursor.is_none());
+    }
 }

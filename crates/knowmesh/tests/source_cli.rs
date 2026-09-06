@@ -63,6 +63,9 @@ fn source_and_sync_commands_preserve_dry_run_and_confirmation_contracts() {
     );
     let removal = command(&root, &["source", "remove", source_id, "--dry-run"]);
     assert_eq!(removal["data"]["dry_run"], true);
+    assert_eq!(removal["data"]["impact"]["preview"], true);
+    assert_eq!(removal["data"]["impact"]["generation"], generation);
+    assert_eq!(removal["data"]["impact"]["counts"]["claims"], 0);
     let removed = command(&root, &["source", "remove", source_id, "--yes"]);
     assert!(removed["data"]["source"]["removed_at"].is_string());
     assert_eq!(removed["data"]["projection"]["generation"], generation + 1);
