@@ -2,10 +2,13 @@ mod builder;
 mod frontmatter;
 mod html;
 mod markdown;
+mod pdf;
+mod pdf_fonts;
 mod plain;
 mod types;
 mod validate;
 
+pub use pdf::{PdfOptions, PdfParser};
 pub use types::*;
 
 use serde::Serialize;
@@ -18,6 +21,39 @@ use crate::{
 };
 
 const PARSER_VERSION: &str = "2";
+
+#[derive(Debug, Default)]
+pub struct BuiltinSourceParser {
+    text: TextParser,
+    pdf: PdfParser,
+}
+
+impl BuiltinSourceParser {
+    pub fn new(limits: ParseLimits, pdf_options: PdfOptions) -> AppResult<Self> {
+        Ok(Self {
+            text: TextParser::new(limits)?,
+            pdf: PdfParser::new(limits, pdf_options)?,
+        })
+    }
+
+    fn parser(&self, mime_type: &str) -> &dyn SourceParser {
+        if mime_type == "application/pdf" {
+            &self.pdf
+        } else {
+            &self.text
+        }
+    }
+}
+
+impl SourceParser for BuiltinSourceParser {
+    fn descriptor(&self, mime_type: &str) -> AppResult<ParserDescriptor> {
+        self.parser(mime_type).descriptor(mime_type)
+    }
+
+    fn parse(&self, revision: &SourceRevision, bytes: &[u8]) -> AppResult<ParsedSource> {
+        self.parser(&revision.mime_type).parse(revision, bytes)
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct TextParser {
@@ -113,6 +149,7 @@ fn assemble(
     let mut normalized_text = String::new();
     let mut char_position = 0;
     let mut paragraph = 0;
+    let mut previous_page = None;
     let mut blocks = Vec::new();
     if metadata.title.is_none() {
         metadata.title = builder
@@ -128,6 +165,10 @@ fn assemble(
             .map(|block| block.text.clone());
     }
     for (ordinal, draft) in builder.blocks.into_iter().enumerate() {
+        if draft.page != previous_page {
+            paragraph = 0;
+            previous_page = draft.page;
+        }
         if !normalized_text.is_empty() {
             normalized_text.push_str("\n\n");
             char_position += 2;
@@ -167,7 +208,7 @@ fn assemble(
             id: SourceBlockId::from_digest(Sha256::digest(identity).into()),
             kind: draft.kind,
             text: draft.text,
-            page: None,
+            page: draft.page,
             section_path: draft.section_path,
             paragraph: number,
             char_start,
@@ -189,6 +230,11 @@ fn assemble(
         .chars()
         .filter(|ch| *ch == '\u{fffd}')
         .count();
+    let suspicious_characters = normalized_text.chars().filter(|ch| suspicious(*ch)).count();
+    let non_whitespace = normalized_text
+        .chars()
+        .filter(|ch| !ch.is_whitespace())
+        .count();
     let mut warnings = builder.warnings;
     if visible_characters == 0 {
         warnings.push(ParseWarning {
@@ -198,6 +244,11 @@ fn assemble(
     }
     Ok(ParsedSource {
         version: 1,
+        status: if visible_characters > 0 {
+            ParseStatus::Ready
+        } else {
+            ParseStatus::Empty
+        },
         source_revision_id: revision.id.clone(),
         source_sha256: revision.sha256.clone(),
         source_encoding: revision.encoding.clone(),
@@ -215,6 +266,12 @@ fn assemble(
             } else {
                 replacement_characters as f64 / visible_characters as f64
             },
+            suspicious_characters,
+            suspicious_ratio: if non_whitespace == 0 {
+                0.0
+            } else {
+                suspicious_characters as f64 / non_whitespace as f64
+            },
             page_count: None,
             text_pages: None,
             page_map_reliable: false,
@@ -223,6 +280,13 @@ fn assemble(
         parser_version: parser.version,
         parser_config_sha256: parser.config_sha256,
     })
+}
+
+fn suspicious(ch: char) -> bool {
+    ch == '\u{fffd}'
+        || (ch.is_control() && !ch.is_whitespace())
+        || matches!(ch as u32, 0xe000..=0xf8ff | 0xf0000..=0xffffd | 0x100000..=0x10fffd | 0xfdd0..=0xfdef)
+        || (ch as u32 & 0xffff) >= 0xfffe
 }
 
 fn limit_error() -> AppError {

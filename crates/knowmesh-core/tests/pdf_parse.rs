@@ -3,7 +3,7 @@ mod fixture;
 
 use knowmesh_core::{
     domain::{SourceRevision, SourceRevisionId, sha256},
-    ingest::{ParseLimits, ParseStatus, PdfOptions, PdfParser},
+    ingest::{BuiltinSourceParser, ParseLimits, ParseStatus, PdfOptions, PdfParser},
     ports::SourceParser,
 };
 
@@ -246,5 +246,60 @@ fn explicit_unicode_maps_take_precedence_and_broken_maps_cannot_silently_fall_ba
             .warnings
             .iter()
             .any(|warning| warning.code == "PDF_TEXT_EXTRACTION_FAILED")
+    );
+}
+
+#[test]
+fn builtin_parser_dispatches_formats_and_pdf_configuration_changes_cache_identity() {
+    let parser = BuiltinSourceParser::default();
+    let bytes = fixture::bytes(fixture::document(&[Some(TEXT)], false));
+    assert_eq!(
+        parser.parse(&revision(&bytes), &bytes).unwrap().status,
+        ParseStatus::Ready
+    );
+    let text = b"# Text source";
+    let mut source = revision(text);
+    source.mime_type = "text/markdown".into();
+    assert_eq!(
+        parser.parse(&source, text).unwrap().normalized_text,
+        "Text source"
+    );
+    let original = parser.descriptor("application/pdf").unwrap();
+    let changed = PdfParser::new(
+        ParseLimits::default(),
+        PdfOptions {
+            min_visible_characters: 50,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_ne!(
+        original.config_sha256,
+        changed.descriptor("application/pdf").unwrap().config_sha256
+    );
+    for ratio in [-1.0, f64::NAN, f64::INFINITY, 1.1] {
+        assert!(
+            PdfParser::new(
+                ParseLimits::default(),
+                PdfOptions {
+                    max_suspicious_ratio: ratio,
+                    ..Default::default()
+                }
+            )
+            .is_err()
+        );
+    }
+    let limited = PdfParser::new(
+        ParseLimits::default(),
+        PdfOptions {
+            max_pages: 1,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let bytes = fixture::bytes(fixture::document(&[Some(TEXT), Some(TEXT)], false));
+    assert_eq!(
+        limited.parse(&revision(&bytes), &bytes).unwrap_err().code,
+        "SOURCE_PARSE_LIMIT"
     );
 }

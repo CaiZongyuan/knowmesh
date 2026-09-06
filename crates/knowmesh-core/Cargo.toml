@@ -26,9 +26,9 @@ unicode-normalization.workspace = true
 base64.workspace = true
 scraper.workspace = true
 encoding_rs.workspace = true
+lopdf.workspace = true
 
 [dev-dependencies]
-lopdf.workspace = true
 syn.workspace = true
 proptest.workspace = true
 tempfile.workspace = true

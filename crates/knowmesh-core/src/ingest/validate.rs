@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use super::{BlockKind, ParsedSource};
+use super::{BlockKind, ParseStatus, ParsedSource};
 use crate::{
     domain::{SourceRevision, sha256, valid_sha256},
     error::{AppError, AppResult, ErrorType},
@@ -76,6 +76,15 @@ impl ParsedSource {
         if byte_position != self.normalized_text.len()
             || self.quality.visible_characters != visible
             || self.quality.replacement_characters != replacements
+            || self.quality.suspicious_characters
+                != self
+                    .normalized_text
+                    .chars()
+                    .filter(|ch| super::suspicious(*ch))
+                    .count()
+            || !self.quality.suspicious_ratio.is_finite()
+            || !(0.0..=1.0).contains(&self.quality.suspicious_ratio)
+            || self.quality.usable_for_compile != (self.status == ParseStatus::Ready)
             || !self.quality.replacement_ratio.is_finite()
             || !(0.0..=1.0).contains(&self.quality.replacement_ratio)
             || (visible == 0 && self.quality.usable_for_compile)

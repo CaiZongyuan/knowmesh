@@ -1519,6 +1519,7 @@ pub trait SourceParser: Send + Sync {
 
 pub struct ParsedSource {
     pub version: u32,
+    pub status: ParseStatus,
     pub source_revision_id: SourceRevisionId,
     pub source_sha256: String,
     pub source_encoding: Option<TextEncoding>,
@@ -1546,7 +1547,7 @@ Markdown 使用 CommonMark/GFM 表格、列表、引用、代码块与完整 raw
 
 HTML 使用 HTML5 DOM，排除 head/script/style/template/noscript/SVG 和 hidden/aria-hidden 内容，提取段落、列表、表格、caption 和 preformatted code；不处理 CSS 布局、不加载媒体或链接。表格以 TAB 分列、LF 分行，caption 保留；嵌套表格摊平时给出 warning。TXT 保留段落内缩进/TAB，CRLF 规范化为 LF。空的提取文本标记不可编译；PDF 专用质量门仍由 13.3 节实现。
 
-显式编码已贯通文本导入、Revision metadata、内容读取与 parser，规则见 8.2 节。文本 parser version 2 加入此绑定；非法 label 返回 `UNSUPPORTED_SOURCE_ENCODING`，严格解码失败返回 `INVALID_SOURCE_ENCODING`，默认 UTF-8 导入保留既有 `UNSUPPORTED_ENCODING` code，content 读取保留 `SOURCE_CONTENT_ENCODING_INVALID`。PDF parser、分块/缓存和 Compiler 接入分别由 KM-041/KM-042/Compiler 后续任务实现。Parser version 是归一化契约：改变输出规则或升级影响输出的依赖时必须更新，不能把不同文本表示的字符区间直接混用。
+显式编码已贯通文本导入、Revision metadata、内容读取与 parser，规则见 8.2 节。文本 parser version 2 加入此绑定；非法 label 返回 `UNSUPPORTED_SOURCE_ENCODING`，严格解码失败返回 `INVALID_SOURCE_ENCODING`，默认 UTF-8 导入保留既有 `UNSUPPORTED_ENCODING` code，content 读取保留 `SOURCE_CONTENT_ENCODING_INVALID`。`BuiltinSourceParser` 通过同一 port 分派 TextParser/PdfParser，PDF 规则见 13.3 节；分块/缓存和 Compiler 接入由后续任务实现。Parser version 是归一化契约：改变输出规则或升级影响输出的依赖时必须更新，不能把不同文本表示的字符区间直接混用。
 
 ### 13.3 PDF 质量门
 
@@ -1571,6 +1572,24 @@ HTML 使用 HTML5 DOM，排除 head/script/style/template/noscript/SVG 和 hidde
   ]
 }
 ```
+
+当前 [`PdfParser`](../crates/knowmesh-core/src/ingest/pdf.rs) 使用内置 Rust `lopdf`，对已校验的 Revision bytes 逐页提取，不依赖浏览器或外部 PDF 命令。`status` 为 ready/empty/needs_ocr/blocked，只有 ready 的 `quality.usable_for_compile=true`；Compiler 必须在模型调用前检查它。加密声明（包括被库识别为原本加密的文件）一律 blocked，不接受 password 参数，不释放提取文本。
+
+PDF 的 page 是从 1 开始的物理页序，paragraph 在页切换时重新从 1 计数；字符区间仍属于整份 normalized text，不随页重置。可枚举页数与 Pages/Count 不一致时标记 `PDF_PAGE_MAP_UNRELIABLE`，不生成推测的 block.page。默认要求可靠页码；显式放宽时仍披露 warning。PDF 字体坐标和原始字节区间不作为字符定位的替代。
+
+| PdfOptions | 默认 | 行为 |
+|---|---:|---|
+| max_pages | 10,000 | 超限返回 SOURCE_PARSE_LIMIT |
+| max_decompressed_bytes | 64 MiB | 加载 object/xref streams、字体映射和每页内容时限制解压大小 |
+| max_text_bytes | 100 MiB | 限制全文提取文本总量 |
+| min_visible_characters | 40 | 非空但字符过少返回 PDF_TEXT_TOO_SHORT |
+| max_suspicious_ratio | 0.02 | 超过时返回 PDF_TEXT_GARBLED |
+| min_text_page_ratio | 0.5 | 有文本页占比不足时返回 PDF_TEXT_PAGES_INSUFFICIENT |
+| require_page_map | true | 不可靠页码阻止自动 compile |
+
+异常字符包括 replacement、非空白 control、Unicode private-use 和 noncharacter；比例按非空白字符计算。该指标检测可见编码问题，不声称识别所有语义乱码。无提取文本返回 `PDF_TEXT_LAYER_MISSING`；任何页面提取失败均阻止自动 compile，已有可定位文本仅用于检查。损坏 PDF 返回 `INVALID_PDF`，字节与 Revision 不匹配返回 `SOURCE_REVISION_CHANGED`，预算失败不返回部分成功。
+
+字体提取优先使用显式 ToUnicode 映射，预检映射类型并拒绝损坏映射或无法可靠解释的回退；对库内存中的字体字典调整优先级，不修改原始快照。没有明确编码的非标准字体需要提供可可靠提取的版本。当前按文本层顺序输出段落，不推测标题/复杂双栏或表格结构，也不提取图片文字。所有阈值随 descriptor 配置 hash 进入缓存身份；fixtures 覆盖 selectable、image-only、encrypted、异常映射、页码不一致及压缩/输出预算，真实论文质量评测仍属 22.4 节。
 
 ### 13.4 URL 安全
 

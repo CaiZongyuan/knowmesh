@@ -12,6 +12,7 @@ pub(super) struct Draft {
     pub language: Option<String>,
     pub caption: Option<String>,
     pub preserve_whitespace: bool,
+    pub page: Option<u32>,
 }
 
 impl Draft {
@@ -28,6 +29,7 @@ impl Draft {
             language: None,
             caption: None,
             preserve_whitespace: matches!(kind, BlockKind::Code | BlockKind::Table),
+            page: None,
         }
     }
 }

@@ -57,14 +57,26 @@ pub struct ExtractionQuality {
     pub visible_characters: usize,
     pub replacement_characters: usize,
     pub replacement_ratio: f64,
+    pub suspicious_characters: usize,
+    pub suspicious_ratio: f64,
     pub page_count: Option<u32>,
     pub text_pages: Option<u32>,
     pub page_map_reliable: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ParseStatus {
+    Ready,
+    Empty,
+    NeedsOcr,
+    Blocked,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ParsedSource {
     pub version: u32,
+    pub status: ParseStatus,
     pub source_revision_id: SourceRevisionId,
     pub source_sha256: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]

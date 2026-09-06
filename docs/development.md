@@ -111,8 +111,8 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   markup, hidden/script content, and raw HTML blocks. Bounded generated inputs
   exercise malformed structures and span validity. Parser descriptors support
   cache keys before parsing; artifact validation checks revision/text integrity.
-  Normalization and locator semantics live in SPEC 13.2. PDF, caching/chunking, and
-  Compiler integration remain #21/#22 and subsequent compiler issues. The parser
+  Normalization and locator semantics live in SPEC 13.2. Caching/chunking and
+  Compiler integration remain #22 and subsequent compiler issues. The parser
   itself performs no network or file I/O.
 - `source add --encoding <label>` records the explicit text encoding on each
   immutable revision. Strict decoding is shared by local/URL import validation,
@@ -121,6 +121,15 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   Duplicate hashes retain recorded encoding; conflicting reinterpretation and
   historical metadata edits are rejected. `--no-sync` uses indexed encoding.
   Defaults, labels, and error contracts live in SPEC 8.2/13.2.
+- The built-in PDF parser uses bounded `lopdf` loading and per-page text extraction.
+  Source and descriptor identity, physical page numbers, and normalized character
+  spans are retained. Selectable/image-only/encrypted fixtures, missing page maps,
+  Unicode-map precedence, garbled text, and decompression/output limits are tested.
+- PDF quality gates report ready/needs_ocr/blocked and control usable_for_compile.
+  Explicit Unicode maps are validated before extraction; broken mappings do not
+  silently become accepted fallback text. Encrypted documents return no extracted
+  text. Thresholds and supported limits live in SPEC 13.3; complex layout recovery,
+  OCR, and real-paper extraction quality are not established by synthetic fixtures.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
