@@ -79,11 +79,13 @@ fn start_server(
 }
 
 fn provider(url: &str, mode: ResponseFormat, limit: u64) -> OpenAiCompatible {
-    let mut settings = CompilerSettings::default();
-    settings.model = "fixture-model".into();
-    settings.base_url = url.into();
-    settings.api_key = "${FIXTURE_MODEL_KEY}".into();
-    settings.response_format = mode;
+    let settings = CompilerSettings {
+        model: "fixture-model".into(),
+        base_url: url.into(),
+        api_key: "${FIXTURE_MODEL_KEY}".into(),
+        response_format: mode,
+        ..Default::default()
+    };
     let env = std::collections::BTreeMap::from([(
         "FIXTURE_MODEL_KEY".into(),
         "fixture-sensitive-key".into(),
@@ -265,5 +267,51 @@ fn inconsistent_usage_and_unexpected_tool_payloads_are_not_normal_completions() 
             .stop_reason,
         StopReason::ToolCall
     );
+    server.join().unwrap();
+}
+
+#[test]
+fn profiles_support_completion_token_limits_and_http_date_retry_after() {
+    let body = json!({"choices":[{"message":{"content":"{}"},"finish_reason":"stop"}]}).to_string();
+    let (url, captured, server) = start_server(200, "", body, Duration::ZERO);
+    let settings = CompilerSettings {
+        model: "fixture-model".into(),
+        base_url: url,
+        api_key: "${FIXTURE_KEY}".into(),
+        max_tokens_parameter: knowmesh_core::model::CompletionTokenParameter::MaxCompletionTokens,
+        ..Default::default()
+    };
+    let env =
+        std::collections::BTreeMap::from([("FIXTURE_KEY".into(), "fixture-sensitive-key".into())]);
+    let adapter =
+        OpenAiCompatible::new(settings.resolve(&env).unwrap(), TransportOptions::default())
+            .unwrap();
+    adapter.complete(&request()).unwrap();
+    server.join().unwrap();
+    let request: Value = serde_json::from_str(&captured.lock().unwrap()[1]).unwrap();
+    assert_eq!(request["max_completion_tokens"], 64);
+    assert!(request.get("max_tokens").is_none());
+    let future = httpdate::fmt_http_date(std::time::SystemTime::now() + Duration::from_secs(60));
+    let (url, _, server) = start_server(
+        429,
+        &format!("Retry-After: {future}\r\n"),
+        "{}".into(),
+        Duration::ZERO,
+    );
+    let request = ModelRequest {
+        messages: vec![],
+        output_schema: json!({}),
+        schema_name: "result".into(),
+        max_output_tokens: 1,
+        temperature: None,
+        timeout_ms: 1000,
+    };
+    let error = provider(&url, ResponseFormat::JsonObject, 4096)
+        .complete(&request)
+        .unwrap_err();
+    let delay = error.details.as_ref().unwrap()["retry_after_ms"]
+        .as_u64()
+        .unwrap();
+    assert!((30_000..=60_000).contains(&delay));
     server.join().unwrap();
 }

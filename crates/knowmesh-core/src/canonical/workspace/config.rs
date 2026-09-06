@@ -76,6 +76,8 @@ pub struct CompilerSettings {
     pub api_key: String,
     pub max_concurrency: usize,
     pub prompt_version: String,
+    pub response_format: crate::model::ResponseFormat,
+    pub max_tokens_parameter: crate::model::CompletionTokenParameter,
 }
 
 impl Default for CompilerSettings {
@@ -88,6 +90,8 @@ impl Default for CompilerSettings {
             api_key: "${KNOWMESH_LLM_API_KEY}".into(),
             max_concurrency: 4,
             prompt_version: "compiler-v1".into(),
+            response_format: Default::default(),
+            max_tokens_parameter: Default::default(),
         }
     }
 }
@@ -98,6 +102,8 @@ pub struct ResolvedCompilerSettings {
     pub model: String,
     pub base_url: String,
     pub api_key: SecretString,
+    pub response_format: crate::model::ResponseFormat,
+    pub max_tokens_parameter: crate::model::CompletionTokenParameter,
 }
 
 impl CompilerSettings {
@@ -119,6 +125,8 @@ impl CompilerSettings {
             model: resolve_value(&self.model, env)?,
             base_url: resolve_value(&self.base_url, env)?,
             api_key: resolve_value(&self.api_key, env)?.into(),
+            response_format: self.response_format,
+            max_tokens_parameter: self.max_tokens_parameter,
         })
     }
 }

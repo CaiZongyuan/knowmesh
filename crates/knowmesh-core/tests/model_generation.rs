@@ -194,6 +194,7 @@ fn budgets_prevent_calls_and_repair_cannot_reset_consumption() {
     let error = generate::<_, Output>(&provider, "Extract.", &input(), &one).unwrap_err();
     assert_eq!(error.code, "MODEL_BUDGET_EXHAUSTED");
     assert_eq!(error.details.as_ref().unwrap()["usage"]["total_tokens"], 15);
+    assert_eq!(error.details.as_ref().unwrap()["usage"]["repairs"], 0);
     let truncated = Fake::new(vec![Ok(ModelResponse {
         text: "{".into(),
         stop_reason: StopReason::Length,

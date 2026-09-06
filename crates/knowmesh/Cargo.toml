@@ -15,6 +15,9 @@ clap.workspace = true
 reqwest.workspace = true
 tokio.workspace = true
 mime.workspace = true
+secrecy.workspace = true
+url.workspace = true
+httpdate.workspace = true
 
 [dev-dependencies]
 serde_yaml.workspace = true

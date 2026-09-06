@@ -41,6 +41,8 @@ scraper = { version = "0.27", default-features = false }
 encoding_rs = "0.8"
 lopdf = { version = "0.44", default-features = false }
 text-splitter = "0.32"
+jsonschema = { version = "0.54", default-features = false }
+httpdate = "1"
 
 [workspace.lints.clippy]
 all = "warn"

@@ -59,6 +59,10 @@ fn timeout_mapping_uses_the_typed_code_and_preserves_exit_and_body() {
     assert_eq!(renamed.http_status(), 502);
     let different_type = AppError::new(ErrorType::Internal, "FETCH_TIMEOUT", "Timed out.");
     assert_eq!(different_type.http_status(), 500);
+    assert_eq!(
+        AppError::new(ErrorType::Network, "MODEL_TIMEOUT", "Timed out.").http_status(),
+        504
+    );
 }
 
 #[test]

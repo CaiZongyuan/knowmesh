@@ -33,6 +33,8 @@ snapshot bytes. Native PDF text extraction includes page mapping and quality gat
 OCR and the full compilation pipeline are still pending.
 Core includes structure-aware chunking and validated stage caches; these are ready
 for the remaining Compiler integration.
+Model adapters now provide bounded structured generation with local Schema
+validation; the full compile/review/apply workflow remains in development.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

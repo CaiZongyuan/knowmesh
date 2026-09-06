@@ -12,6 +12,7 @@ Core 错误映射和 JSON envelope 已有契约快照，HTTP 服务尚待实现�
 Search 已支持中英召回、筛选、可配置 RRF、分数解释、稳定游标分页和证据 freshness；可选向量与 Graph paths 仍待接入。
 Core 已支持 Markdown/TXT/HTML 的结构化来源解析；`source add --encoding <label>` 可显式导入旧编码文本，保留原始快照字节。原生 PDF 文本提取已包含页码映射和质量门；OCR 与完整编译流水线仍待实现。
 Core 已提供结构感知分块和带校验的阶段缓存，继续接入后续 Compiler 工作流。
+模型适配器已提供有界结构化生成与本地 Schema 校验；完整 compile/review/apply 流程仍在实现中。
 Workspace 测试也检查公共 Operation 注册、依赖方向及已登记的写入边界，覆盖范围与限制见[开发文档](docs/development.md)。
 
 ```bash

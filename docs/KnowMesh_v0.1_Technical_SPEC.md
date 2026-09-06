@@ -579,6 +579,8 @@ compiler:
   api_key: ${KNOWMESH_LLM_API_KEY}
   max_concurrency: 4
   prompt_version: compiler-v1
+  response_format: json_object
+  max_tokens_parameter: max_tokens
 
 embedding:
   enabled: false
@@ -1341,7 +1343,7 @@ knowmesh
 | `confirmation` | 10 | 409 | `CONFIRMATION_REQUIRED` |
 | `cancelled` | 130 | 409 | `RUN_CANCELLED`（CLI Ctrl-C） |
 
-Core 的 `AppError::exit_code()` 与 `http_status()` 是映射的唯一实现，不依赖 HTTP framework。`network/FETCH_TIMEOUT` 特例返回 504；其他未单列 code 使用类型默认值，不根据 message、hint 或 retryable 猜测状态。配置不可用表示服务当前无法执行请求（503）；已取消操作的错误是状态冲突（409），正常读取 cancelled Run 或成功提交取消请求仍是 200，见 18.2 节。HTTP Adapter 的协议解析、认证与路由错误由传输层映射，不把上游 HTTP status 原样转发为本服务状态。
+Core 的 `AppError::exit_code()` 与 `http_status()` 是映射的唯一实现，不依赖 HTTP framework。`network/FETCH_TIMEOUT` 与 `network/MODEL_TIMEOUT` 特例返回 504；其他未单列 code 使用类型默认值，不根据 message、hint 或 retryable 猜测状态。配置不可用表示服务当前无法执行请求（503）；已取消操作的错误是状态冲突（409），正常读取 cancelled Run 或成功提交取消请求仍是 200，见 18.2 节。HTTP Adapter 的协议解析、认证与路由错误由传输层映射，不把上游 HTTP status 原样转发为本服务状态。
 
 [`wire_contract` 快照测试](../crates/knowmesh-core/tests/wire_contract.rs) 固定全部类型的映射及成功、分页、完整和最小错误 envelope，验证缺省可选字段省略、未知错误字段可忽略。当前已实现共享契约；实际 HTTP 响应接入与路由测试随 KM-060 实施。
 
@@ -1753,6 +1755,20 @@ flowchart TD
 ```
 
 输入和输出都必须使用 `schemars` 生成的 JSON Schema 校验。解析失败最多执行两次 bounded repair；之后返回 `model/STRUCTURED_OUTPUT_INVALID` 并保留 run diagnostics。
+
+当前 [`model::generate`](../crates/knowmesh-core/src/model/mod.rs) 通过 `ModelProvider` port 调用模型，以 Schemars 生成输入/输出 Schema，使用本地 `jsonschema` 校验，禁止 Schema 的外部文件/网络引用。输入 JSON 作为 user message 数据传递，固定任务说明与输出 Schema 放在 system message；不注册模型工具，不执行来源中的指令。空字段、类型或边界不满足输入 Schema 时，在 provider 调用前失败。
+
+[`OpenAiCompatible`](../crates/knowmesh/src/model_provider.rs) 从已解析的 workspace compiler profile 取得 provider/model/API root 和 SecretString。使用 `/chat/completions`，不改变用户模型名，不跟随重定向，不使用环境代理；API root 不接受内嵌凭据、query 或 fragment。`compiler.response_format` 可为 json_object（默认）、json_schema 或 schema_prompt；后者仅依赖消息中的 Schema，所有模式都执行相同的本地校验，不静默切换模式。`max_tokens_parameter` 可选择 max_tokens（默认）或 max_completion_tokens。
+
+[OpenAI 官方 Structured Outputs 文档](https://developers.openai.com/api/docs/guides/structured-outputs.md) 区分了 JSON mode 与 Schema adherence，并要求处理拒绝和不完整输出。此兼容 profile 默认采用已在项目服务中验证的 json_object + prompt Schema，见 [配置检查](configuration-checks.md)；不据 OpenAI 的能力说明推断第三方服务同样实现了原生 json_schema。
+
+`GenerationOptions` 默认最多 2 次 JSON repair、每次逻辑尝试最多 2 次瞬时错误重试、合计最多 9 个请求、总 timeout 60 s、max_output_tokens 1024、max_total_tokens 100,000。重试使用有界指数退避与 jitter，遵守 Retry-After 秒数或 HTTP date；等待超过剩余 deadline 时停止。拒绝、过滤、截断、工具调用、鉴权与请求错误不进入 JSON repair；只有完成态但 JSON/Schema/DTO 无效的输出才修复。
+
+HTTP response 默认上限 4 MiB，connect timeout 默认 10 s，检查声明和实际 body 大小；不输出服务返回的原始 error body。401/403、408/504、429、5xx 分别映射为鉴权/访问、超时、限流和暂时不可用；仅标为 retryable 的网络类错误重试。Response finish reason、refusal/tool payload 和 usage 一致性都需校验。
+
+成功或失败都保留 requests/retries/repairs、token 汇总与诊断；诊断仅记录失败类型和 response SHA-256，不放入来源/模型原文。已返回的 usage 按实际计入；缺失 usage 或未取得可用响应时，按消息 UTF-8 byte 上界估算（加固定消息余量）与请求输出上限保守扣减，标记 estimated=true，不视为精确计费记录。请求、修复与重试共享预算，不因修复重置。当前为单次 generate 的预算；跨 Run 累计、价格/费用策略及恢复落盘仍由 20.4 节接入。
+
+Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint、输出模式、token 参数与传输限制，不包含 API key；密钥轮换不改变语义缓存身份。当前已完成 fake provider 与本地 HTTP fixtures，真实 Compiler 输出质量、Evidence 校验、Proposal/Run 的集成不由本适配器测试替代。
 
 ### 14.5 Evidence 验证
 

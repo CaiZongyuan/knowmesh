@@ -28,6 +28,7 @@ scraper.workspace = true
 encoding_rs.workspace = true
 lopdf.workspace = true
 text-splitter.workspace = true
+jsonschema.workspace = true
 
 [dev-dependencies]
 syn.workspace = true

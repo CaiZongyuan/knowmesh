@@ -86,7 +86,11 @@ impl AppError {
             ErrorType::NotFound => 404,
             ErrorType::Configuration => 503,
             ErrorType::Io | ErrorType::Internal => 500,
-            ErrorType::Network if self.code == "FETCH_TIMEOUT" => 504,
+            ErrorType::Network
+                if matches!(self.code.as_str(), "FETCH_TIMEOUT" | "MODEL_TIMEOUT") =>
+            {
+                504
+            }
             ErrorType::Network | ErrorType::Model => 502,
             ErrorType::Policy => 403,
             ErrorType::Conflict | ErrorType::Confirmation | ErrorType::Cancelled => 409,

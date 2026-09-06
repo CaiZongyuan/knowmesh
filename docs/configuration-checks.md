@@ -1,6 +1,6 @@
 # 开发配置检查
 
-本文说明仓库中的配置自检脚本及 2026-09-05 的实际检查结果。当前尚无 KnowMesh 应用工程；接口连通不代表产品功能或发布验收已经完成。
+本文说明仓库中的配置自检脚本及 2026-09-05 的实际检查结果。当前 Rust CLI/Core 和模型适配器正在实现；历史接口连通不代表完整产品或发布验收已经完成，当前实现范围见[开发文档](development.md)。
 
 ## 模型接口
 
@@ -10,7 +10,7 @@
 node scripts/check-model-config.mjs
 ```
 
-脚本使用 Node.js 的 dotenv 解析器读取本地 `.env`，不会执行文件内容。变量名及示例见 [环境变量示例](../.env.example)。这些变量目前用于自检脚本，尚不是已实现的 KnowMesh CLI 配置。
+脚本使用 Node.js 的 dotenv 解析器读取本地 `.env`，不会执行文件内容。变量名及示例见 [环境变量示例](../.env.example)。这些变量用于自检脚本；应用 profile 使用 knowmesh.yaml 中明确引用的环境变量，默认名称为 KNOWMESH_COMPILER_MODEL / KNOWMESH_LLM_BASE_URL / KNOWMESH_LLM_API_KEY，不自动导入脚本变量。
 
 - `LLM_BASE_URL` 是 API 根路径；脚本补充 `/chat/completions`。
 - `EMBEDDING_BASE_URL` 是完整嵌入端点路径。
@@ -28,7 +28,7 @@ node scripts/check-model-config.mjs
 
 原嵌入地址 `/v1/embedding` 返回 HTTP 404，已将本地配置及示例修正为 `/v1/embeddings`。向量维度与规格中的 1024 维示例一致。
 
-后续模型适配器应使用经验证的 JSON 调用方式，独立执行 Schema、证据和引用校验。一次简单结构测试不能证明复杂 Compiler 输出的可靠性；仍需结构化输出 fixtures 和真实材料评测。
+当前 OpenAI-compatible 适配器默认使用经验证的 JSON object + prompt Schema，Core 独立校验 Schema 并限制修复次数；native json_schema 由 profile 显式启用。协议行为以 [SPEC 14.4](KnowMesh_v0.1_Technical_SPEC.md#144-模型结构化输出) 为准。本轮新增验证使用 fake provider 和本地 HTTP fixtures，未重复调用这里的真实服务；复杂 Compiler 输出仍需 Evidence/引用校验与真实材料评测。
 
 ## npm 与 GitHub
 

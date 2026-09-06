@@ -44,6 +44,13 @@ pub trait TokenCounter: Send + Sync {
     fn count(&self, text: &str) -> usize;
 }
 
+pub trait ModelProvider: Send + Sync {
+    fn complete(
+        &self,
+        request: &crate::model::ModelRequest,
+    ) -> AppResult<crate::model::ModelResponse>;
+}
+
 pub trait LexicalSearchStore: Send {
     fn search_lexical(
         &self,

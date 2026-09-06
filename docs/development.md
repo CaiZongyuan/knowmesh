@@ -145,6 +145,16 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   parsing; structurally corrupt entries are recomputed. Source/cache contracts live
   in SPEC 13.5/13.6. Model execution, durable Run recovery, and vector mapping remain
   under their owning issues; these helpers do not implement that complete workflow.
+- Core model generation validates Schemars input/output contracts without external
+  Schema retrieval, limits JSON repair and transient retries, and accounts for a
+  shared request/token/deadline budget. Refusal, truncation, filtering, and tool
+  responses never become successful structured output. Diagnostics omit raw content.
+- The OpenAI-compatible adapter uses the configured model and API root, keeps keys
+  in SecretString, bounds HTTP bodies, disables redirects, and handles Retry-After.
+  JSON object/native Schema/prompt-only profiles share Core validation; token-limit
+  parameter names are configurable. Tests cover profile identity, secret rotation,
+  malformed responses, rate limits, deadlines, and unknown-usage estimates. Details
+  and remaining Run/cost integration are specified in SPEC 14.4.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
