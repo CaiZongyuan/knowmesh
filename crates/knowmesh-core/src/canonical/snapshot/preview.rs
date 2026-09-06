@@ -261,7 +261,7 @@ impl CanonicalSnapshot {
             projected.syntheses.push(SynthesisProjection {
                 metadata: doc.metadata,
                 body_markdown: doc.body,
-                canonical_path: path,
+                canonical_path: file.path.clone(),
                 content_sha256: file.sha256.clone(),
             });
             projected.files.push(file);
@@ -325,8 +325,23 @@ fn projected_file(
     bytes: &[u8],
     before: Option<&FileManifest>,
 ) -> FileManifest {
+    let path = before.map_or_else(
+        || {
+            // Match markdown_files: its root is literal, and each discovered entry is joined separately.
+            let mut projected = PathBuf::from(if kind == "node" {
+                "knowledge/nodes"
+            } else {
+                "knowledge/syntheses"
+            });
+            for component in path.components().skip(2) {
+                projected.push(component.as_os_str());
+            }
+            projected
+        },
+        |file| file.path.clone(),
+    );
     FileManifest {
-        path: path.to_owned(),
+        path,
         kind: kind.into(),
         public_id: Some(id),
         byte_size: bytes.len() as u64,

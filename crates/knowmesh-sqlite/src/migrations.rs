@@ -23,6 +23,11 @@ const MIGRATIONS: &[(u32, &str, &str)] = &[
         "claim_normalization",
         include_str!("../migrations/0004_claim_normalization.sql"),
     ),
+    (
+        5,
+        "node_summary_sections",
+        include_str!("../migrations/0005_node_summary_sections.sql"),
+    ),
 ];
 
 pub(crate) fn current_version() -> u32 {

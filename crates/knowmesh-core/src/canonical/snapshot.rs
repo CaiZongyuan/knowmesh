@@ -5,12 +5,10 @@ use std::{
     time::UNIX_EPOCH,
 };
 
-use pulldown_cmark::{Event, HeadingLevel, Parser, Tag, TagEnd};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    markdown::markdown_options,
     node::NodeDocument,
     schema::Schema,
     source::SourceLibrary,
@@ -696,39 +694,6 @@ fn file_record(
         sha256: file_hash(&path)?.ok_or_else(file_changed)?,
         format_version: 1,
     })
-}
-
-fn summary(body: &str) -> String {
-    let mut in_heading = false;
-    let mut heading = String::new();
-    let mut selected = false;
-    let mut output = String::new();
-    for event in Parser::new_ext(body, markdown_options()) {
-        match event {
-            Event::Start(Tag::Heading {
-                level: HeadingLevel::H1 | HeadingLevel::H2,
-                ..
-            }) => {
-                if selected {
-                    break;
-                }
-                in_heading = true;
-                heading.clear();
-            }
-            Event::End(TagEnd::Heading(_)) if in_heading => {
-                selected = heading.eq_ignore_ascii_case("Summary");
-                in_heading = false;
-            }
-            Event::Text(text) | Event::Code(text) if in_heading => heading.push_str(&text),
-            Event::Text(text) | Event::Code(text) if selected => output.push_str(&text),
-            Event::SoftBreak | Event::HardBreak | Event::End(TagEnd::Paragraph) if selected => {
-                output.push('\n')
-            }
-            Event::Html(_) if selected => break,
-            _ => {}
-        }
-    }
-    output.trim().to_owned()
 }
 
 fn check_recovery(workspace: &Workspace, transaction_id: Option<&str>) -> AppResult<()> {

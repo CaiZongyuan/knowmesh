@@ -128,7 +128,7 @@ fn v3_claim_keys_are_recomputed_before_metadata_can_take_the_fast_path() {
             .unwrap(),
     );
     let db = rusqlite::Connection::open(&path).unwrap();
-    db.execute("DELETE FROM schema_migrations WHERE version=4", [])
+    db.execute("DELETE FROM schema_migrations WHERE version>=4", [])
         .unwrap();
     db.pragma_update(None, "user_version", 3).unwrap();
     db.execute("UPDATE claims SET normalized_hash=?1,canonical_json=json_set(canonical_json,'$.normalized_hash',?1)", [&legacy_key]).unwrap();

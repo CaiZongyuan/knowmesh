@@ -237,6 +237,15 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   snapshot cannot produce an indexable snapshot. Fixtures cover identity/source
   restrictions, new link resolution, Schema/reference failures, and external changes.
   Patch payload/quote validation and actual Apply still remain under #27/#24.
+- Node summary editing shares CommonMark section recognition with indexed summary
+  extraction. It preserves frontmatter, other sections, managed assertions, line
+  endings, indented code, and existing reference definitions. Structural injection
+  and ambiguous summary sections are rejected. Missing sections can be inserted.
+- Summary fixtures cover quoted/code headings, external reference definitions,
+  nodes named Summary, clearing/no-op edits, and protected Markdown structure.
+  Migration 0005 refreshes old derived summaries without changing canonical files.
+  Windows preview paths follow the scanner's component-by-component path layout;
+  the first preview CI exposed an otherwise different hash for new files.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
@@ -408,6 +417,7 @@ KM-023 and their owning implementation issues.
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), semantic comparison/planning | Commit `84f5bba`: missing Claim comparison context; an additional regression exposed conflicting shared Evidence payloads | `cargo +stable test -p knowmesh-core --test assertion_compare --locked`: 11 tests cover six golden scenarios, canonical rendering, and shared Evidence integrity |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), Proposal state/review | Commit `3fb7339`: missing Proposal domain module; further regressions expose unbound context/attestation metadata | `cargo +stable test -p knowmesh-core --test proposal_state --locked`: 10 state/review tests; builder/store/Apply integration remains pending |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), canonical preview | Commit `9d8b7b4`: missing document preview | `cargo +stable test -p knowmesh-core --test canonical_preview --locked`: 6 tests pass, including preview/scan equivalence and rejection of proposed data as a canonical snapshot |
+| [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), controlled summary editing | Commits `1fa51a2`, `f803758`: missing summary editor, accepted reference injection, and stale summary projections | `node_summary`: 8 focused cases; `fast_sync`: 6 cases including v3 Claim-key and v4 summary refresh |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

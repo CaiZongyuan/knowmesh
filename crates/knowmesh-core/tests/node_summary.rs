@@ -114,3 +114,43 @@ fn summary_editing_preserves_indented_code_and_can_clear_the_section() {
     NodeDocument::parse(&rendered).unwrap();
     assert!(rendered.contains("## Notes"));
 }
+
+#[test]
+fn summary_edits_preserve_reference_definitions_used_by_other_sections() {
+    let (_temp, original, _) = document();
+    let mut doc = NodeDocument::create(original.metadata, "# Model A\n\n## Summary\n\nOld summary.\n\n[shared]: https://example.test/original \"Original title\"\n\n## Notes\n\nKeep [this link][shared].").unwrap();
+    doc.set_summary("New summary.").unwrap();
+    let rendered = doc.render().unwrap();
+    assert!(rendered.contains("[shared]: https://example.test/original \"Original title\""));
+    assert!(rendered.contains("## Notes\n\nKeep [this link][shared]."));
+    NodeDocument::parse(&rendered).unwrap();
+}
+
+#[test]
+fn summary_text_resolves_reference_links_defined_outside_its_section() {
+    let (_temp, original, _) = document();
+    let mut doc = NodeDocument::create(original.metadata, "# Model A\n\n## Summary\n\nRead [the source][source].\n\n## Notes\n\n[source]: https://example.test/source").unwrap();
+    assert_eq!(doc.summary(), "Read the source.");
+    doc.set_summary("See [the source][source].").unwrap();
+    assert_eq!(doc.summary(), "See the source.");
+}
+
+#[test]
+fn a_node_named_summary_uses_its_h2_section_instead_of_the_page_title() {
+    let (_temp, original, _) = document();
+    let mut metadata = original.metadata;
+    metadata.name = "Summary".into();
+    let mut doc = NodeDocument::create(
+        metadata,
+        "# Summary\n\n## Summary\n\nActual content.\n\n## Notes\n\nKeep notes.",
+    )
+    .unwrap();
+    assert_eq!(doc.summary(), "Actual content.");
+    doc.set_summary("Updated content.").unwrap();
+    assert_eq!(doc.summary(), "Updated content.");
+    assert!(
+        doc.render()
+            .unwrap()
+            .contains("# Summary\n\n## Summary\n\nUpdated content.")
+    );
+}

@@ -1921,6 +1921,10 @@ update_source_metadata
 
 `CanonicalPreview` 只暴露只读投影和 hash，不能作为 `ProjectionStore::reconcile` 的输入。该层验证规范格式、Schema 和引用一致性，不能代替具体 patch payload 校验、来源 quote 定位、审核或文件事务；这些仍由 KM-047 的 Builder/Apply 接入。
 
+`update_node_summary` 的受控编辑已由 [`NodeDocument::set_summary`](../crates/knowmesh-core/src/canonical/node/summary.rs) 提供。读取与编辑共用 CommonMark 顶层章节识别：优先 `## Summary`，没有该二级节时兼容一级 Summary；引用块和代码中的标题不作为目标。多个同级目标返回 `AMBIGUOUS_NODE_SUMMARY`。替换范围截止下一顶层 H1/H2 或 HTML 块，不触及 frontmatter、其他章节和受管断言；缺少 Summary 时在首个受管块前插入，空文本可清空已有正文。
+
+新 Summary 最多 64 KiB，拒绝顶层 H1/H2、HTML、链接引用定义、NUL 和 Git 冲突标记；代码示例、低级标题与段落格式可保留。LF/CRLF 沿用原文件，缩进代码不被 trim 为普通段落。原 Summary 中已解析的链接定义继续保留，以免改变其他章节的引用；摘要纯文本在完整文档上下文中提取，因此可读取在其他章节定义的链接。无字节变化不产生编辑。旧索引通过 migration 0005 重新计算摘要，规范文件不被改写。
+
 每个 Proposal item 包含：
 
 ```json
@@ -3310,7 +3314,7 @@ v0.1 只有同时满足以下条件才可发布：
 
 实现迁移的唯一源码位于 [`crates/knowmesh-sqlite/migrations/`](../crates/knowmesh-sqlite/migrations/0001_initial.sql)。下方 SQL 保留为初始逻辑基线；后续 schema 扩展使用新迁移，不修改已应用迁移。[0002](../crates/knowmesh-sqlite/migrations/0002_canonical_payloads.sql) 增加派生的 typed JSON payload 与 snapshot hash，用于保留读取契约和检查投影是否变化；[0003](../crates/knowmesh-sqlite/migrations/0003_snapshot_warnings.sql) 保存派生扫描警告，旧索引以 NULL 表示尚需补齐。这些字段不成为新的 System of Record。
 
-[0004](../crates/knowmesh-sqlite/migrations/0004_claim_normalization.sql) 将扫描完成标记置为 NULL，确保旧 Claim normalized hash 在 fast-sync 前按 14.7 节重新生成。SQLite schema version 当前为 4；迁移保留 canonical 与 runtime 数据，重新同步仅更新派生投影。
+[0004](../crates/knowmesh-sqlite/migrations/0004_claim_normalization.sql) 将扫描完成标记置为 NULL，确保旧 Claim normalized hash 在 fast-sync 前按 14.7 节重新生成。[0005](../crates/knowmesh-sqlite/migrations/0005_node_summary_sections.sql) 使旧摘要投影重新经过顶层章节识别，避免继续使用引用块中的同名标题。SQLite schema version 当前为 5；迁移保留 canonical 与 runtime 数据，重新同步仅更新派生投影。
 
 ```sql
 CREATE TABLE schema_migrations (

@@ -5,7 +5,7 @@ use std::{
 
 use super::{
     CanonicalSnapshot, ClaimProjection, EvidenceProjection, FileManifest, MentionProjection,
-    NodeProjection, RelationProjection, SnapshotWarning, collect_evidence, file_changed, summary,
+    NodeProjection, RelationProjection, SnapshotWarning, collect_evidence, file_changed,
 };
 use crate::{
     canonical::node::{NodeDocument, NodeLink},
@@ -30,7 +30,7 @@ impl CanonicalSnapshot {
         }
         self.nodes.push(NodeProjection {
             metadata: document.metadata.clone(),
-            summary: summary(document.body()),
+            summary: document.summary(),
             canonical_path: path.clone(),
             content_sha256: file.sha256.clone(),
         });

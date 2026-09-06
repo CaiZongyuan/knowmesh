@@ -15,6 +15,8 @@ use crate::{
     error::AppResult,
 };
 
+mod summary;
+
 #[derive(Debug)]
 pub struct NodeDocument {
     pub metadata: NodeMetadata,
@@ -25,6 +27,7 @@ pub struct NodeDocument {
     before_claims: Vec<ClaimRecord>,
     before_relations: Vec<RelationRecord>,
     ranges: BTreeMap<&'static str, Range<usize>>,
+    summary_edit: Option<(Range<usize>, String)>,
 }
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
@@ -51,6 +54,7 @@ impl NodeDocument {
             relations,
             file,
             ranges,
+            summary_edit: None,
         };
         document.validate()?;
         Ok(document)
@@ -120,6 +124,9 @@ impl NodeDocument {
     pub fn render(&self) -> AppResult<String> {
         self.validate()?;
         let mut replacements = Vec::new();
+        if let Some(change) = &self.summary_edit {
+            replacements.push(change.clone());
+        }
         if self.metadata != self.before_metadata {
             replacements.push((
                 self.file.header.clone(),
