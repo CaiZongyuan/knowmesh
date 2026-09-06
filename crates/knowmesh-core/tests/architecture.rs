@@ -204,3 +204,14 @@ fn proposal_transaction_ports_cannot_be_called_directly_from_adapters() {
         );
     }
 }
+
+#[test]
+fn proposal_runtime_writes_must_go_through_registered_application_workflows() {
+    for source in [
+        "fn route(store: &mut dyn knowmesh_core::ports::ProposalStore) { store.proposal_create(record); }",
+        "fn route(store: &mut dyn knowmesh_core::ports::ProposalStore) { knowmesh_core::ports::ProposalStore::proposal_save(store, revision, record); }",
+    ] {
+        let violations = architecture::check_source("crates/knowmesh/src/http/routes.rs", source);
+        assert!(violations.iter().any(|violation| violation.code=="RUNTIME_WRITE_CAPABILITY"));
+    }
+}
