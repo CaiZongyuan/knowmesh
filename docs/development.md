@@ -24,8 +24,20 @@ cargo run -p knowmesh -- version
 Core owns the domain, use cases, and wire contracts. The SQLite crate implements
 storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
 
+The [architecture guard](../crates/knowmesh-core/tests/architecture.rs) runs with
+the workspace tests. Its [policy registry](../crates/knowmesh-core/tests/support/architecture-policy.json)
+owns approved composition roots, canonical/projection writers, filesystem/SQL
+writers, process users, and narrow exceptions. New write paths require reviewing
+that registry and the corresponding transaction tests. Coverage and limitations
+are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门禁与故障恢复).
+
 ## Verified Behavior
 
+- Architecture checks inspect Cargo package identities and production Rust module
+  ASTs, including `#[path]` modules, while excluding `#[cfg(test)]` modules.
+  Fixtures reject Compiler writes, direct adapter database access, unregistered
+  writes, and raw connection/writer exposure; registered reconcile/migration
+  paths pass. CLI dependency assembly returns Core ports from `runtime.rs`.
 - Typed IDs reject another object's prefix, malformed payloads, and ULID overflow;
   valid IDs survive JSON round trips without changing identity.
 - Content digests are SHA-256; timestamps serialize as RFC 3339 UTC with `Z`.
@@ -182,6 +194,7 @@ KM-023 and their owning implementation issues.
 | [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), freshness rules | Commits `5b4190e`, `4e35f48`: missing freshness evaluation and incomplete indexes mark evidence as current | `cargo +stable test --workspace --locked`: 118 tests pass, including independent evidence preservation, snapshot/hash comparison, missing dependencies, deterministic reasons, and incomplete-index precedence |
 | [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), source impact | Commit `ba7f868`: missing impact operation | `cargo +stable test --workspace --locked`: 123 tests pass, including bounded pages, query/generation cursor checks, revision ownership, multiple sources, missing snapshots, snapshot-only dependencies, and impact/freshness equivalence after rebuild |
 | [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), removal preview | Commit `2a911f6`: source removal preview has no impact query | `cargo +stable test --workspace --locked`: 124 tests pass, including preview with missing/stale indexes, unchanged index bytes and canonical removal state, and cursor continuation after synchronization |
+| [KM-004 / #5](https://github.com/CaiZongyuan/knowmesh/issues/5), architecture guard | Commits `1286326`, `7367010`, `f28795d`: missing checker, missed glob/qualified mutation/public connection cases, and adapters can invoke reconcile through Core ports | `cargo +stable test --workspace --locked`: 132 tests pass, including eight architecture tests covering dependency identities, production module discovery, registered writers, forbidden capabilities, and repository boundaries |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

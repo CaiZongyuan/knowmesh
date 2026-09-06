@@ -179,6 +179,13 @@ fn repository_respects_dependency_visibility_and_write_boundaries() {
 
 #[test]
 fn adapters_cannot_mutate_projections_through_core_ports() {
-    let violations = architecture::check_source("crates/knowmesh/src/http/routes.rs", "fn route(store: &mut dyn knowmesh_core::ports::ProjectionStore) { store.reconcile(snapshot); }");
-    assert!(violations.iter().any(|violation| violation.code == "PROJECTION_WRITE_CAPABILITY"));
+    let violations = architecture::check_source(
+        "crates/knowmesh/src/http/routes.rs",
+        "fn route(store: &mut dyn knowmesh_core::ports::ProjectionStore) { store.reconcile(snapshot); }",
+    );
+    assert!(
+        violations
+            .iter()
+            .any(|violation| violation.code == "PROJECTION_WRITE_CAPABILITY")
+    );
 }

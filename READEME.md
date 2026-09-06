@@ -18,6 +18,8 @@ repair, including interrupted initialization with missing configuration.
 Rebuild preserves runtime state and backs up the old database before
 replacement; URL fetching is pending.
 Source removal previews include affected knowledge and preserve the disk index.
+Workspace tests also check dependency direction and registered write boundaries;
+coverage and limitations are recorded in the [development guide](docs/development.md).
 
 ```bash
 cargo run -p knowmesh -- init ./my-knowledge --name "My Research"

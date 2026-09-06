@@ -7,6 +7,7 @@
 Core 库已提供规范文件解析、可恢复文件事务和原子的 SQLite 投影同步。Doctor 支持显式事务修复，包括配置尚未落盘的初始化中断；Rebuild 保留运行状态，先备份旧数据库再原子替换。URL 抓取仍待接入。
 
 来源移除预览会返回受影响的知识，且不改写磁盘索引。
+Workspace 测试也检查依赖方向及已登记的写入边界，覆盖范围与限制见[开发文档](docs/development.md)。
 
 ```bash
 cargo run -p knowmesh -- init ./my-knowledge --name "My Research"

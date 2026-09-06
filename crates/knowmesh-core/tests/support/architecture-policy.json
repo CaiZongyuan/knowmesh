@@ -1,0 +1,38 @@
+{
+  "composition_roots": ["crates/knowmesh/src/runtime.rs"],
+  "canonical_writer_users": [
+    "crates/knowmesh-core/src/canonical/transaction.rs",
+    "crates/knowmesh-core/src/canonical/workspace/mod.rs",
+    "crates/knowmesh-core/src/application/source.rs",
+    "crates/knowmesh-core/src/application/sync.rs",
+    "crates/knowmesh-core/src/application/rebuild.rs",
+    "crates/knowmesh-core/src/application/doctor/recovery.rs"
+  ],
+  "projection_users": [
+    "crates/knowmesh-core/src/ports.rs",
+    "crates/knowmesh-core/src/application/source.rs",
+    "crates/knowmesh-core/src/application/sync.rs",
+    "crates/knowmesh-core/src/application/status.rs",
+    "crates/knowmesh-core/src/application/doctor.rs",
+    "crates/knowmesh-core/src/application/doctor/recovery.rs",
+    "crates/knowmesh-core/src/application/impact.rs"
+  ],
+  "filesystem_writers": [
+    "crates/knowmesh-core/src/canonical/transaction.rs",
+    "crates/knowmesh-sqlite/src/maintenance.rs",
+    "crates/knowmesh-sqlite/src/rebuild/files.rs"
+  ],
+  "sql_writers": [
+    "crates/knowmesh-sqlite/src/lib.rs",
+    "crates/knowmesh-sqlite/src/migrations.rs",
+    "crates/knowmesh-sqlite/src/reconcile.rs",
+    "crates/knowmesh-sqlite/src/runtime.rs",
+    "crates/knowmesh-sqlite/src/rebuild.rs",
+    "crates/knowmesh-sqlite/src/impact/preview.rs"
+  ],
+  "process_users": ["crates/knowmesh-core/src/application/doctor.rs"],
+  "filesystem_exceptions": {
+    "crates/knowmesh-core/src/canonical/workspace/mod.rs": ["std::fs::create_dir_all"],
+    "crates/knowmesh/src/cli.rs": ["write_all"]
+  }
+}

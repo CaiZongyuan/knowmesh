@@ -2670,6 +2670,8 @@ Playwright 必须覆盖：
 
 这些检查属于现有 Unit/Integration/Contract/E2E 层，不新增独立测试平台。参考源码与测试入口见附录 D；测试用虚构或公开 fixture，不调用生产模型服务来制造故障。
 
+当前写入边界门禁入口为 [`architecture.rs`](../crates/knowmesh-core/tests/architecture.rs)，随 workspace tests 执行；允许的组装入口、写入模块及局部例外统一维护在 [`architecture-policy.json`](../crates/knowmesh-core/tests/support/architecture-policy.json)。检查使用 Cargo metadata 的真实包名和 `syn` AST，沿生产模块声明及 `#[path]` 扫描，跳过 `#[cfg(test)]` 模块；覆盖普通导入别名、受限通配导入、已登记的文件/SQL mutation、Core port 的 `reconcile` 调用和公开 raw connection/writer 暴露。CLI 通过 `runtime.rs` 组装 Core ports。此门禁不执行宏展开、完整 Rust 名称解析或动态 SQL 分析；新增写路径必须同时审查登记表及对应事务测试。当前验证证据与其余恢复项的实施状态见[开发文档](development.md)。
+
 ---
 
 ## 23. 实施阶段与里程碑

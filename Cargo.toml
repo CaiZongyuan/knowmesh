@@ -33,6 +33,7 @@ yaml-edit = { version = "0.3", default-features = false }
 rusqlite = { version = "0.40", default-features = false, features = ["bundled", "backup", "functions", "hooks", "fallible_uint"] }
 unicode-normalization = "0.1"
 base64 = "0.22"
+syn = { version = "2", features = ["full", "visit"] }
 
 [workspace.lints.clippy]
 all = "warn"

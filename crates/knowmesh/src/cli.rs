@@ -268,7 +268,7 @@ fn execute(
             workspace_id = Some(workspace.config.workspace.id.clone());
             serde_json::to_value(status::get(
                 &workspace,
-                &mut crate::runtime::open_store(&workspace)?,
+                crate::runtime::open_store(&workspace)?.as_mut(),
                 &status::StatusInput { no_sync },
             )?)
         }
@@ -306,7 +306,7 @@ fn execute(
             let report = if *dry_run {
                 sync::preview(&workspace)?
             } else {
-                sync::synchronize(&workspace, &mut crate::runtime::open_store(&workspace)?)?
+                sync::synchronize(&workspace, crate::runtime::open_store(&workspace)?.as_mut())?
             };
             serde_json::to_value(report)
         }
@@ -337,7 +337,7 @@ fn execute(
                     } else {
                         source::add(
                             &workspace,
-                            &mut crate::runtime::open_store(&workspace)?,
+                            crate::runtime::open_store(&workspace)?.as_mut(),
                             &input,
                             None,
                         )?
@@ -358,12 +358,12 @@ fn execute(
                         source::preview_remove_with_impact(
                             &workspace,
                             &input,
-                            &knowmesh_sqlite::SqliteImpactPreview::new(&workspace)?,
+                            &crate::runtime::impact_preview_backend(&workspace)?,
                         )?
                     } else {
                         source::remove(
                             &workspace,
-                            &mut crate::runtime::open_store(&workspace)?,
+                            crate::runtime::open_store(&workspace)?.as_mut(),
                             &input,
                         )?
                     };
@@ -377,7 +377,7 @@ fn execute(
                     cursor,
                 } => serde_json::to_value(impact::execute(
                     &workspace,
-                    &mut crate::runtime::open_store(&workspace)?,
+                    crate::runtime::open_store(&workspace)?.as_mut(),
                     &ImpactInput {
                         source_id: source_id.clone(),
                         revision: revision.clone(),
@@ -397,7 +397,7 @@ fn execute(
         } => {
             let workspace = load_workspace(root)?;
             workspace_id = Some(workspace.config.workspace.id.clone());
-            let backend = knowmesh_sqlite::SqliteRebuilder::new(&workspace)?;
+            let backend = crate::runtime::rebuild_backend(&workspace)?;
             serde_json::to_value(rebuild::execute(
                 &workspace,
                 &backend,
@@ -424,13 +424,13 @@ fn execute(
             let root = workspace_root(root, true)?;
             let store = crate::runtime::inspect_store_at(&root);
             let access = match &store {
-                Ok(Some(store)) => IndexAccess::Ready(store),
+                Ok(Some(store)) => IndexAccess::Ready(store.as_ref()),
                 Ok(None) => IndexAccess::Missing,
                 Err(error) => IndexAccess::Failed(error.clone()),
             };
             let report = if *repair {
                 doctor::repair_root(&root, access, &input, |workspace| {
-                    Ok(Box::new(crate::runtime::open_store(workspace)?))
+                    Ok(crate::runtime::open_store(workspace)?)
                 })?
             } else {
                 doctor::inspect_root(&root, access)?
