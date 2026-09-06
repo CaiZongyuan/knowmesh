@@ -264,3 +264,123 @@ node_types:
     .unwrap_err();
     assert_eq!(invalid.code, "INVALID_SCHEMA_PROPERTY");
 }
+
+#[test]
+fn identifier_adapters_preserve_namespace_semantics_and_decode_doi_urls_once() {
+    use knowmesh_core::canonical::schema::IdentifierNormalization as Rule;
+
+    assert_eq!(
+        Rule::Doi.normalize(" DOI:10.1234/AbC ").unwrap(),
+        "10.1234/abc"
+    );
+    assert_eq!(
+        Rule::Doi
+            .normalize("https://doi.org/10.1234/a%2Fb%23c")
+            .unwrap(),
+        "10.1234/a/b#c"
+    );
+    assert_eq!(
+        Rule::Doi
+            .normalize("https://doi.org/10.1234/a%252Fb")
+            .unwrap(),
+        "10.1234/a%2fb"
+    );
+    for value in [
+        "https://doi.org/10.1234/a?b",
+        "https://doi.org/10.1234/a#b",
+        "https://user@doi.org/10.1234/x",
+        "https://doi.org/10.1234/%20",
+        "https://doi.org/10.1234/%FF",
+        "10.12/x",
+    ] {
+        assert_eq!(
+            Rule::Doi.normalize(value).unwrap_err().code,
+            "INVALID_ENTITY_IDENTIFIER"
+        );
+    }
+    assert_eq!(Rule::NcbiGene.normalize("007157").unwrap(), "7157");
+    for value in ["0", "TP53", "7157.1", "7157 human"] {
+        assert!(Rule::NcbiGene.normalize(value).is_err());
+    }
+    assert_ne!(
+        Rule::Opaque.normalize("Species:A").unwrap(),
+        Rule::Opaque.normalize("species:a").unwrap()
+    );
+    let schema = schema();
+    assert!(
+        schema
+            .entity_identifiers("Gene", &BTreeMap::from([("gene_id".into(), json!("TP53"))]))
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn adding_identifier_semantics_changes_the_schema_hash_without_rewriting_property_values() {
+    let mut pack = builtin("research@1").unwrap();
+    let with_identity = Schema::compose(vec![builtin("base@1").unwrap(), pack.clone()]).unwrap();
+    pack.node_types
+        .get_mut("Paper")
+        .unwrap()
+        .properties
+        .get_mut("doi")
+        .unwrap()
+        .identifier = None;
+    let without_identity = Schema::compose(vec![builtin("base@1").unwrap(), pack]).unwrap();
+    assert_ne!(with_identity.hash, without_identity.hash);
+    let properties = BTreeMap::from([("doi".into(), json!("10.1234/UPPER"))]);
+    assert_eq!(
+        with_identity
+            .entity_identifiers("Paper", &properties)
+            .unwrap()["doi"],
+        "10.1234/upper"
+    );
+    assert!(
+        without_identity
+            .entity_identifiers("Paper", &properties)
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(properties["doi"], "10.1234/UPPER");
+}
+
+#[test]
+fn invalid_catalogs_and_inputs_fail_before_producing_decisions() {
+    let schema = schema();
+    let existing = node("Name", "Model", &[]);
+    let nodes = vec![existing.clone(), existing];
+    assert_eq!(
+        EntityResolver::new(&schema, &nodes, Default::default())
+            .err()
+            .unwrap()
+            .code,
+        "DUPLICATE_ENTITY_ID"
+    );
+    assert_eq!(
+        EntityResolver::new(
+            &schema,
+            &nodes,
+            ResolutionOptions {
+                max_catalog_nodes: 1,
+                ..Default::default()
+            },
+        )
+        .err()
+        .unwrap()
+        .code,
+        "ENTITY_CATALOG_LIMIT"
+    );
+    let nodes = vec![node("Name", "Model", &[])];
+    let resolver = EntityResolver::new(&schema, &nodes, Default::default()).unwrap();
+    assert_eq!(
+        resolver.resolve(&input(" ", "Model")).unwrap_err().code,
+        "INVALID_ENTITY_NAME"
+    );
+    assert_eq!(
+        resolver
+            .resolve(&input("Name", "Undefined"))
+            .unwrap_err()
+            .code,
+        "UNKNOWN_NODE_TYPE"
+    );
+}

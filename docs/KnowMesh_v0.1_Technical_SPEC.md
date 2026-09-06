@@ -499,6 +499,8 @@ policies:
 
 v0.1 属性支持 `string`、`number`、`integer`、`boolean`、`string_list`。`required` 默认 false；字符串可用 `pattern` 与 `max_length`，后者以 UTF-8 字节计，默认及上限为 4096。正则使用 Rust `regex` 的无回溯引擎，表达式最多 1024 字节，并限制编译大小与嵌套深度；不支持回溯引用或 lookaround。未定义属性和类型不匹配均阻止 Apply。
 
+字符串属性可显式声明 `identifier: doi | ncbi_gene | opaque`，供实体消歧提取确定性身份；非字符串属性使用该字段报 `INVALID_SCHEMA_PROPERTY`。省略该字段的属性不参与身份匹配。规则属于 schema hash，修改后使相关知识阶段缓存失效，不改写属性的原始值；具体规范化与匹配行为见 [14.6 节](#146-entity-resolution)。
+
 无向 predicate 的 source/target 类型集合必须相同。`inverse` 是反向展示名称，可为 null，不生成额外持久化边；查询方向语义见 16.1 节。多个 Pack 的策略合并采用更严格的约束：证据、引用和人工校验要求取并集，批量接受与直接 Apply 的许可取交集；任一 `strict` 或人工校验要求都关闭后两项许可。加载 Schema 仅校验和返回内存模型，不改写知识文件。
 
 ### 7.4 Research v1 内置类型
@@ -1808,6 +1810,16 @@ Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint�
 - exact normalized alias 且 node type 兼容，且不存在冲突标识符。
 
 其余情况只在 Proposal 中生成 `link_existing`、`create_new` 或 `merge_candidate`，人工决定。Top-1/Top-2 接近时不得静默选择。
+
+当前 [`EntityResolver`](../crates/knowmesh-core/src/application/entity_resolution/mod.rs) 已实现完整内存 Node catalog 上的 identifier/name/alias 确定性阶段。Catalog 校验 Node ID 唯一、metadata、已加载 Schema Pack 和属性类型，只索引 active Node；默认至多 100,000 个 Node，可降低该上限。排序后的 catalog、Schema、规则版本、输入和 options 分别参与上下文 hash；Node 输入顺序不改变结果。构造完成后复用名称/别名/标识符索引，不在每次匹配时重新遍历整个 catalog。
+
+名称与别名沿用 `normalize_name`（NFKC、小写、折叠空白）；类型兼容在 v0.1 按相同 node type 判定，不把 Pack 继承推断为 Node 子类型。标识符由 Schema 的属性名及规范化值组成：`doi` 接受原始 DOI、`doi:` 前缀和 doi.org/dx.doi.org 的 HTTP(S) URL；URL 使用结构化解析并仅解码一次 path，拒绝凭据、非默认端口、query、fragment 和非法内容。DOI registrant 为 `10.` 加 4–9 位数字，suffix 为非空 ASCII graphic 字符；匹配时 ASCII 小写。`ncbi_gene` 接受至多 20 位正十进制 ID，去掉前导零。`opaque` 只去除首尾空白，保留大小写；这些规则均拒绝空值、控制字符及超过 4096 字节的输入，不进行外部查询。
+
+内置 Research 为 Paper.doi 声明 DOI 规则。通用 Gene.gene_id 的命名空间未定义，因此保持普通属性；需要确定性 Gene ID 的自定义 Schema 应显式声明相应规则，opaque 值由该 Schema 约定完整命名空间。身份规则仅用于消歧，普通属性校验不回写或自动规范化历史字段；无效的已声明身份值在构建 catalog 或解析候选时返回 `INVALID_ENTITY_IDENTIFIER`。
+
+唯一且类型兼容、没有任何共同属性标识符冲突的 identifier match 可自动关联；否则，唯一且无冲突的 normalized alias match 可自动关联。单独的 canonical name match 仅给出 `existing` 待审核建议。重复 identifier、多个 name/alias 候选、类型不符或共同标识符冲突均返回 `ambiguous` 且不选定 Node；唯一确定性 identifier 可优先于普通名称候选。无候选返回待审核的 `new`，不自动创建或恢复 inactive Node。
+
+候选返回上限默认为 20，允许 `1..=100`。唯一性和歧义先在完整匹配集上判定，再截断展示列表，报告 `total_candidates`、`candidates_truncated`、匹配原因和 warning；仅显示 Top-1 不代表唯一。此阶段不调用 provider、不写文件或数据库。FTS/vector 候选召回、受限模型建议及 Proposal 接入仍由 KM-045/KM-047 继续实现，当前确定性阶段的测试不代表整个消歧流程完成。
 
 ### 14.7 去重与冲突
 

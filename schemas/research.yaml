@@ -8,7 +8,7 @@ node_types:
     color: '#2563EB'
     icon: file-text
     properties:
-      doi: {type: string, required: false}
+      doi: {type: string, required: false, identifier: doi}
   Method:
     label: Method
     color: '#0D9488'

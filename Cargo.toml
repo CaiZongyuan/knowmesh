@@ -28,6 +28,7 @@ proptest = "1"
 assert_cmd = "2"
 regex = "1"
 url = { version = "2", features = ["serde"] }
+percent-encoding = "2.3.2"
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
 yaml-edit = { version = "0.3", default-features = false }
 rusqlite = { version = "0.40", default-features = false, features = ["bundled", "backup", "functions", "hooks", "fallible_uint"] }

@@ -1260,6 +1260,7 @@ dependencies = [
  "fs2",
  "jsonschema",
  "lopdf",
+ "percent-encoding",
  "proptest",
  "pulldown-cmark",
  "regex",

@@ -14,6 +14,7 @@ Core 已支持 Markdown/TXT/HTML 的结构化来源解析；`source add --encodi
 Core 已提供结构感知分块和带校验的阶段缓存，继续接入后续 Compiler 工作流。
 模型适配器已提供有界结构化生成与本地 Schema 校验；完整 compile/review/apply 流程仍在实现中。
 Core Evidence verifier 已支持原文区间验证与有界定位修复，拒绝歧义引用；Proposal review/apply 的强制接入仍待完成。
+实体消歧已支持保守的标识符、名称与别名匹配；检索召回和模型建议仍待接入。
 Workspace 测试也检查公共 Operation 注册、依赖方向及已登记的写入边界，覆盖范围与限制见[开发文档](docs/development.md)。
 
 ```bash

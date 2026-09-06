@@ -20,6 +20,7 @@ sha2.workspace = true
 chrono.workspace = true
 regex.workspace = true
 url.workspace = true
+percent-encoding.workspace = true
 pulldown-cmark.workspace = true
 yaml-edit.workspace = true
 unicode-normalization.workspace = true

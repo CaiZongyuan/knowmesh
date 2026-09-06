@@ -14,6 +14,9 @@ use crate::{
     error::{AppError, AppResult, ErrorType},
 };
 
+mod identifiers;
+pub use identifiers::IdentifierNormalization;
+
 const MAX_PACKS: usize = 128;
 const MAX_TEXT_LENGTH: usize = 4096;
 
@@ -54,6 +57,8 @@ pub struct Property {
     pub required: bool,
     pub pattern: Option<String>,
     pub max_length: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identifier: Option<IdentifierNormalization>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -194,7 +199,9 @@ impl SchemaPack {
                         .max_length
                         .is_some_and(|length| length == 0 || length > MAX_TEXT_LENGTH)
                     || (property.value_type != PropertyType::String
-                        && (property.pattern.is_some() || property.max_length.is_some()))
+                        && (property.pattern.is_some()
+                            || property.max_length.is_some()
+                            || property.identifier.is_some()))
                 {
                     return Err(schema_error(
                         "INVALID_SCHEMA_PROPERTY",
@@ -472,6 +479,25 @@ impl Schema {
             }
         }
         Ok(())
+    }
+
+    pub fn entity_identifiers(
+        &self,
+        node_type: &str,
+        properties: &BTreeMap<String, Value>,
+    ) -> AppResult<BTreeMap<String, String>> {
+        self.validate_properties(node_type, properties)?;
+        let mut identifiers = BTreeMap::new();
+        for (name, value) in properties {
+            if let Some(rule) = self.node_types[node_type].properties[name].identifier {
+                identifiers.insert(
+                    name.clone(),
+                    rule.normalize(value.as_str().expect("validated string property"))
+                        .map_err(|error| error.with_param(name))?,
+                );
+            }
+        }
+        Ok(identifiers)
     }
 }
 
