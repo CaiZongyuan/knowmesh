@@ -188,6 +188,7 @@ fn blocking_issues_and_missing_human_verification_cannot_be_accepted() {
         code: "INVALID_EVIDENCE".into(),
         message: "The quote cannot be located.".into(),
         blocking: true,
+        origin: None,
     });
     let original = proposal(vec![item("A"), blocked]);
     let input = ReviewInput {

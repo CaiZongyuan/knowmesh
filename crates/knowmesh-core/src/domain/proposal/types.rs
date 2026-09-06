@@ -71,6 +71,14 @@ pub struct ProposalIssue {
     pub code: String,
     pub message: String,
     pub blocking: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origin: Option<ProposalIssueOrigin>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ProposalIssueOrigin {
+    Builder,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]

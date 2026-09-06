@@ -212,6 +212,10 @@ fn proposal_runtime_writes_must_go_through_registered_application_workflows() {
         "fn route(store: &mut dyn knowmesh_core::ports::ProposalStore) { knowmesh_core::ports::ProposalStore::proposal_save(store, revision, record); }",
     ] {
         let violations = architecture::check_source("crates/knowmesh/src/http/routes.rs", source);
-        assert!(violations.iter().any(|violation| violation.code=="RUNTIME_WRITE_CAPABILITY"));
+        assert!(
+            violations
+                .iter()
+                .any(|violation| violation.code == "RUNTIME_WRITE_CAPABILITY")
+        );
     }
 }

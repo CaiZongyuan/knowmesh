@@ -35,6 +35,19 @@ impl PatchOp {
     }
 }
 
+impl std::str::FromStr for PatchOp {
+    type Err = AppError;
+    fn from_str(value: &str) -> AppResult<Self> {
+        serde_json::from_value(serde_json::Value::String(value.into())).map_err(|_| {
+            error(
+                ErrorType::Validation,
+                "INVALID_PATCH_OPERATION",
+                "Unknown Proposal patch operation.",
+            )
+        })
+    }
+}
+
 impl ProposalItem {
     pub fn new(op: PatchOp, target_id: String, payload: serde_json::Value) -> AppResult<Self> {
         let item = Self {

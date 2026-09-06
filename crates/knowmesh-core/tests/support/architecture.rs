@@ -30,6 +30,7 @@ struct Policy {
     composition_roots: Vec<String>,
     canonical_writer_users: Vec<String>,
     projection_users: Vec<String>,
+    runtime_writer_users: Vec<String>,
     filesystem_writers: Vec<String>,
     sql_writers: Vec<String>,
     process_users: Vec<String>,
@@ -222,6 +223,18 @@ impl Guard<'_> {
         }
     }
 
+    fn runtime_write(&mut self, method: &str) {
+        if !self
+            .policy
+            .runtime_writer_users
+            .iter()
+            .chain(&self.policy.sql_writers)
+            .any(|owner| owner == self.path)
+        {
+            self.reject("RUNTIME_WRITE_CAPABILITY", method);
+        }
+    }
+
     fn connection_type(&self, ty: &Type) -> bool {
         struct Finder<'a> {
             aliases: &'a BTreeMap<String, String>,
@@ -298,6 +311,9 @@ impl<'ast> Visit<'ast> for Guard<'_> {
     fn visit_expr_call(&mut self, call: &'ast ExprCall) {
         if let Expr::Path(path) = call.func.as_ref() {
             let path = self.resolved(&path.path);
+            if let Some(method @ ("proposal_create" | "proposal_save")) = path.rsplit("::").next() {
+                self.runtime_write(method);
+            }
             if matches!(
                 path.rsplit("::").next(),
                 Some("reconcile" | "apply_proposal")
@@ -338,6 +354,9 @@ impl<'ast> Visit<'ast> for Guard<'_> {
     }
     fn visit_expr_method_call(&mut self, call: &'ast ExprMethodCall) {
         let method = call.method.to_string();
+        if matches!(method.as_str(), "proposal_create" | "proposal_save") {
+            self.runtime_write(&method);
+        }
         if [
             "write_all",
             "persist",

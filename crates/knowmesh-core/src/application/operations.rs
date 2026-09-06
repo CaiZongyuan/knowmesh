@@ -108,7 +108,7 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
     rebuild.effect = EffectLevel::DestructiveDerived;
     rebuild.supports_dry_run = true;
     rebuild.policy = "confirmed-index-replacement".into();
-    vec![
+    let mut operations = vec![
         init,
         source_add,
         source_remove,
@@ -141,7 +141,12 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
         OperationDescriptor::read::<super::schema::PackInput, crate::canonical::schema::SchemaPack>(
             "schema.pack",
         ),
-    ]
+        OperationDescriptor::read::<super::proposal::payload::SchemaInput, serde_json::Value>(
+            "schema.patch",
+        ),
+    ];
+    operations.extend(super::proposal::workflow::descriptors());
+    operations
 }
 
 pub fn describe(name: &str) -> AppResult<OperationDescriptor> {

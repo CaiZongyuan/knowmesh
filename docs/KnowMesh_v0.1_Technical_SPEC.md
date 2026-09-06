@@ -1929,6 +1929,8 @@ update_source_metadata
 
 Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析和验证直接及依赖 Evidence。相同 Evidence ID 必须保留全部原字段；已有 locator 若指定 offsets，不在此阶段修复或换发 ID。错误引用、Schema/目标错误及不符合具体 op 的 payload 形成 blocking warnings，阻止 acceptance；可独立完成的有效项仍可预览。直接 Evidence IDs 每项最多 1024，冲突成员等传递引用另行验证，不膨胀该列表或截断 Evidence。诊断最多 128 条，溢出以 blocking `PROPOSAL_ISSUE_LIMIT` 表示。最终全图预览失败时清空文档输出并阻塞其余项。
 
+Builder 生成的诊断记录可选 `origin: builder`。输入仍先通过整体边界校验，再移除并重算这些诊断，修复 payload 后不会继续沿用旧校验错误。没有 origin 的旧诊断和上游警告按显式输入保留，不因重验证清掉实体歧义；origin 参与 item 内容 hash。省略 origin 时保持旧 JSON 形状及原有审核 hash。
+
 新建 Synthesis 必须显式提供 dependency_snapshot，引用可用 Schema Pack、已有或本 Proposal 新建的断言，以及归属正确的 source heads；每个直接引用来源都必须有生成时 head。Builder 保留所给历史 assertion hash/head，不以当前值补全或替换，freshness 另行判定。缺失快照的旧文件仍可由 Parser 读取。实际 Apply 已拒绝不存在的 Evidence；Ask run 产物的来源校验与快照复制仍待接入，本层预览成功不构成写入授权。
 
 [`CanonicalSnapshot::preview_documents`](../crates/knowmesh-core/src/canonical/snapshot/preview.rs) 已提供 Builder 所需的只读文档预览：基于已扫描快照接受至多 10,000 个文档、合计 64 MiB 的拟议替换。仅允许 knowledge/nodes 与 knowledge/syntheses 下的 Markdown，以及已有来源的描述元数据；单个 Markdown 上限 8 MiB、来源 manifest 上限 16 MiB。配置、原始 blob、新建来源、revision/head/removal 状态变化和已有 Node/Synthesis 身份或创建时间替换均被拒绝。
@@ -1965,7 +1967,28 @@ Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析�
 - 任一 item 含 invalid evidence、schema violation、ambiguous entity 时不得被 accept，除非用户先修复 payload 形成新 proposal version。
 - Proposal 每次编辑递增 `revision`，保留旧 revision，不原地隐藏历史。
 
-当前 [`domain::proposal`](../crates/knowmesh-core/src/domain/proposal/mod.rs) 已实现版本化内存快照、14.8 节的闭集 op 和审核状态契约。每次实际 review/revise/reject/stale/applied 状态变化返回新快照并递增 revision，原快照保持可用；同样的重复决策不增加 revision。Mutation 输入必须给出 `expected_revision`，不匹配返回 `PROPOSAL_REVISION_MISMATCH`。SQLite 历史存储和 Apply 协调已实现；公开创建/编辑/审核工作流、CLI/HTTP 输入仍随 KM-047 及其适配器任务接入。
+当前 [`domain::proposal`](../crates/knowmesh-core/src/domain/proposal/mod.rs) 已实现版本化内存快照、14.8 节的闭集 op 和审核状态契约。每次实际 review/revise/reject/stale/applied 状态变化返回新快照并递增 revision，原快照保持可用；同样的重复决策不增加 revision。Mutation 输入必须给出 `expected_revision`，不匹配返回 `PROPOSAL_REVISION_MISMATCH`。SQLite 历史存储、Apply 协调及下述 Core/CLI 工作流已实现；用户幂等键、组合 accept-all/apply、列表和 HTTP 接入仍待完成。
+
+[`workflow`](../crates/knowmesh-core/src/application/proposal/workflow.rs) 拥有 create/get/edit/review/revalidate/reject 用例。Create 接受 `{ proposal: ProposalInput, dry_run }`，要求先 `sync` 得到与当前文件相符的完整索引，并使用其 base_generation/Schema hash；它通过 Builder 后才保存 draft。Edit 接受 `{ proposal_id, revision: ProposalRevision, dry_run }`，验证完整替换 items，再沿用领域规则重置受影响的审核。Review 接受 `{ proposal_id, review: ReviewInput, dry_run }`，重新校验 stored item 内容及实际 Schema policy；出现未经审核的派生内容变化时要求先 revalidate。
+
+实际 review 遇到过期 canonical/Schema/generation 时保存 stale revision 并返回 `STALE_PROPOSAL`；dry-run 只返回错误。`revalidate` 在实际执行时同步当前规范快照，以最新基线重算 before hashes 与 Builder 诊断，再保存新 revision；其 dry-run 仅计算预期 generation，不写索引或历史。新基线或 stale 状态使所有旧审核重置；没有实际变化的修订仍为 no-op。Get 读取当前或指定 revision 的 runtime 历史；Reject 保留旧决策并显式终结，不要求当前 Schema Pack 可解析。
+
+上述 runtime mutation 在 workspace lock 内执行，待恢复文件日志阻止新的创建/编辑/审核/拒绝；历史读取仍可用。Dry-run 不申请写锁、不保存记录。CLI 的 `proposal create/review/edit --input <file|->` 读取与对应 Operation Schema 一致的完整 JSON 请求，上限 20 MiB；`--input -` 使用 stdin，文件内的 dry_run=true 不会被缺省 CLI flag 取消。`proposal get <id> [--revision N]`、`proposal revalidate/reject/apply <id> --expected-revision N` 使用简单参数，reject 另需 reason，apply 另需 yes。CLI 记录 actor=human_cli。所有命令经 Core descriptor 注册，`schema patch <op>` 返回 14.8 节的具体 payload Schema。
+
+当前命令示例（JSON 内容按对应 Schema 填写；placeholder ID/revision 使用实际输出替换）：
+
+```bash
+knowmesh sync
+knowmesh schema command proposal.create
+knowmesh schema patch add_claim
+knowmesh proposal create --input proposal.json --dry-run
+knowmesh proposal create --input proposal.json
+knowmesh proposal get prp_01K...
+knowmesh proposal review --input review.json --dry-run
+knowmesh proposal review --input review.json
+knowmesh proposal apply prp_01K... --expected-revision 2 --dry-run
+knowmesh proposal apply prp_01K... --expected-revision 2 --yes
+```
 
 [`ProposalStore`](../crates/knowmesh-core/src/ports.rs) 以 [`ProposalRecord`](../crates/knowmesh-core/src/application/proposal/record.rs) 保存完整 Proposal 和原 canonical 快照 hash。[SQLite adapter](../crates/knowmesh-sqlite/src/proposal.rs) 在同一 IMMEDIATE 事务内追加 `proposal_revisions`、更新 current header/items 并写入 audit event。新建仅接受 draft revision 1；后续保存必须匹配当前 expected_revision，并恰好增加 1。同 revision、同内容保存为 no-op；并发过期写入、跳号、身份/创建信息改写及未经协调的 applied 状态均被拒绝。Stale 不能仅通过改 state 恢复旧批准，必须先保存重验证后的 pending revision。
 
@@ -1973,7 +1996,7 @@ Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析�
 
 Migration 0006 不从旧 header/items 猜造丢失的审核信息；旧行保留，无历史快照时读取返回 `PROPOSAL_HISTORY_UNAVAILABLE`。Rebuild 与备份包含全部 revision，不丢弃旧审核。选择独立追加快照表是为了保留可重读的完整历史；代价是每次 revision 重复保存完整 Proposal，current header/items 仅作为当前查询投影，不能代替历史事实。Apply 使用 10.6 节的协调事务，不能在文件提交后单独调用普通保存来伪造完成状态。
 
-当前 Core `apply::execute` 输入为 proposal_id、expected_revision、dry_run、yes。实际执行必须确认且全部项已决；dry-run 只重验证并返回精确 changed_paths，不保存审核、回执或索引。Migration 0007 的 `proposal_applications` 保存每个 Proposal 唯一的完整 ApplyContext/回执、reviewed_revision 和 JSON hash，回执最多 8 MiB。相同已审核 revision 重试返回首次结果，即使其后索引 generation 已变化；不同 revision 不复用该回执。回执与完整历史在真实 rebuild/备份后继续可读。此处按 Proposal 身份提供重复调用语义，用户自定义幂等键、自动 accept-all 组合和公开 Operation 描述仍待工作流层接入。
+当前 Core `apply::execute` 输入为 proposal_id、expected_revision、dry_run、yes。实际执行必须确认且全部项已决；dry-run 只重验证并返回精确 changed_paths，不保存审核、回执或索引。Migration 0007 的 `proposal_applications` 保存每个 Proposal 唯一的完整 ApplyContext/回执、reviewed_revision 和 JSON hash，回执最多 8 MiB。相同已审核 revision 重试返回首次结果，即使其后索引 generation 已变化；不同 revision 不复用该回执。回执与完整历史在真实 rebuild/备份后继续可读。此处按 Proposal 身份提供重复调用语义；用户自定义幂等键和自动 accept-all 组合尚待接入，当前 Proposal descriptors 的 supports_idempotency=false，不把现有重复 Apply 行为表述为已经支持 key。
 
 每项 decision 为 pending/accepted/rejected，保存原因、reviewed_by/at、explicit/bulk 方式及 human_verified。Relaxed bulk 只接受 pending 项，不覆盖已拒绝项；strict、禁止 accept-all 或要求人工验证的 policy 均拒绝 bulk。Accepted 项若有 blocking warning 则返回 `PROPOSAL_ITEM_BLOCKED`；需要人工确认而未提供时返回 `HUMAN_VERIFICATION_REQUIRED`。所有项均已决且至少一项 accepted 才为 approved；pending 阻止 Apply 状态门禁，全部拒绝则为 rejected。
 

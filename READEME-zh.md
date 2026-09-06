@@ -2,7 +2,7 @@
 
 基于 Rust CLI、规范 Markdown/YAML、SQLite 派生索引与 Proposal 审核的本地知识工作空间。
 
-**开发状态：** v0.1 正在实现。目前支持 `knowmesh init [path] --template research`、`knowmesh version`、`knowmesh schema list`、`knowmesh schema command <operation>`、`knowmesh schema pack <id>`，以及 `source add/list/get/content`、需确认的 `source remove`、分页 `source impact`、`sync`、`status`、`doctor`、`rebuild` 和 `search`；完整导入、知识、搜索、图谱、Proposal 和可选 Web 工作流尚未发布。npm 初始化包不包含可执行程序。
+**开发状态：** v0.1 正在实现。目前支持 `knowmesh init [path] --template research`、`knowmesh version`、`knowmesh schema list`、`knowmesh schema command <operation>`、`knowmesh schema pack <id>`、`knowmesh schema patch <op>`，以及 `source add/list/get/content`、需确认的 `source remove`、分页 `source impact`、`sync`、`status`、`doctor`、`rebuild`、`search` 和 `proposal create/get/edit/review/revalidate/reject/apply`；完整导入、知识、搜索、图谱、Proposal 和可选 Web 工作流尚未发布。npm 初始化包不包含可执行程序。
 
 Core 库已提供规范文件解析、可恢复文件事务和原子的 SQLite 投影同步。Doctor 支持显式事务修复，包括配置尚未落盘的初始化中断；Rebuild 保留运行状态，先备份旧数据库再原子替换。URL 导入会保存不可变快照，并检查地址、重定向、大小和超时；私网目标需本地 CLI 显式传入 `--allow-private-network`。
 
@@ -16,7 +16,7 @@ Core 已提供结构感知分块和带校验的阶段缓存，继续接入后续
 Core Evidence verifier 已支持原文区间验证与有界定位修复，拒绝歧义引用；Proposal Builder 在审核前重新校验来源原文。
 实体消歧已支持保守的标识符、名称、别名匹配、SQLite 候选召回与受限模型建议；Compiler/Proposal 集成仍待接入。
 规范冲突组已支持投影同步和重建保留；精确去重保留科学符号差异，受限语义比较可生成待审核的冲突计划。Compiler/Proposal/Run 集成仍在实现中。
-Proposal 状态、审核契约、严格 payload/Evidence 校验及接受子集的只读重验证已实现，Summary 编辑保留周边 Markdown；SQLite 保留完整审核历史与 Apply 回执，Core Apply/恢复已协调提交规范文件与审核状态，公开 Proposal 命令和完整 Compiler 工作流仍在接入。
+Proposal 状态、审核契约、严格 payload/Evidence 校验及接受子集的只读重验证已实现，Summary 编辑保留周边 Markdown；SQLite 保留完整审核历史与 Apply 回执，Core Apply/恢复已协调提交规范文件与审核状态。Proposal 命令支持 JSON 文件/stdin，并调用同一 Core 工作流；列表、幂等键、accept-all/apply 组合和完整 Compiler 工作流仍在接入。
 Workspace 测试也检查公共 Operation 注册、依赖方向及已登记的写入边界，覆盖范围与限制见[开发文档](docs/development.md)。
 
 ```bash

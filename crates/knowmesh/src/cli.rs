@@ -26,6 +26,9 @@ use knowmesh_core::{
 };
 use serde::Serialize;
 
+mod proposal;
+use proposal::ProposalCommand;
+
 #[derive(Parser)]
 #[command(
     name = "knowmesh",
@@ -57,6 +60,10 @@ enum OutputFormat {
 #[derive(Subcommand)]
 enum Command {
     Version,
+    Proposal {
+        #[command(subcommand)]
+        command: ProposalCommand,
+    },
     Status,
     Search {
         query: String,
@@ -203,14 +210,45 @@ impl From<StorageArg> for StorageMode {
 #[derive(Subcommand)]
 enum SchemaCommand {
     List,
-    Command { operation: String },
-    Pack { id: String },
+    Command {
+        operation: String,
+    },
+    Pack {
+        id: String,
+    },
+    Patch {
+        op: knowmesh_core::domain::proposal::PatchOp,
+    },
 }
 
 impl Command {
     fn operation_name(&self) -> &'static str {
         match self {
             Self::Version => "version",
+            Self::Proposal {
+                command: ProposalCommand::Create { .. },
+            } => "proposal.create",
+            Self::Proposal {
+                command: ProposalCommand::Get { .. },
+            } => "proposal.get",
+            Self::Proposal {
+                command: ProposalCommand::Review { .. },
+            } => "proposal.review",
+            Self::Proposal {
+                command: ProposalCommand::Edit { .. },
+            } => "proposal.edit",
+            Self::Proposal {
+                command: ProposalCommand::Revalidate { .. },
+            } => "proposal.revalidate",
+            Self::Proposal {
+                command: ProposalCommand::Reject { .. },
+            } => "proposal.reject",
+            Self::Proposal {
+                command: ProposalCommand::Apply { .. },
+            } => "proposal.apply",
+            Self::Schema {
+                command: SchemaCommand::Patch { .. },
+            } => "schema.patch",
             Self::Status => "status",
             Self::Search { .. } => "knowledge.search",
             Self::Init { .. } => "init",
@@ -360,6 +398,14 @@ fn execute(
     let mut workspace_id = None;
     let result = match command {
         Command::Version => serde_json::to_value(operations::version()),
+        Command::Proposal { command } => {
+            let workspace = load_workspace(root)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            Ok(proposal::execute(command, &workspace)?)
+        }
+        Command::Schema {
+            command: SchemaCommand::Patch { op },
+        } => serde_json::to_value(knowmesh_core::application::proposal::payload::schema(*op)),
         Command::Search {
             query,
             query_syntax,

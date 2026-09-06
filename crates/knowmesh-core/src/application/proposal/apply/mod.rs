@@ -22,6 +22,11 @@ pub fn execute(
     actor: &str,
     now: Timestamp,
 ) -> AppResult<ApplyReport> {
+    validate_input(input)?;
+    execute_validated(workspace, store, input, actor, now)
+}
+
+pub fn validate_input(input: &ApplyInput) -> AppResult<()> {
     if input.expected_revision == 0 {
         return Err(conflict(
             "PROPOSAL_REVISION_MISMATCH",
@@ -35,6 +40,16 @@ pub fn execute(
             "Applying a Proposal requires explicit confirmation.",
         ));
     }
+    Ok(())
+}
+
+fn execute_validated(
+    workspace: &Workspace,
+    store: &mut dyn ProposalStore,
+    input: &ApplyInput,
+    actor: &str,
+    now: Timestamp,
+) -> AppResult<ApplyReport> {
     if input.dry_run {
         let record = store.proposal_get(&input.proposal_id, None)?;
         let state = store.projection_state()?;

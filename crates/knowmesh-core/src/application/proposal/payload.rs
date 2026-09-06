@@ -15,6 +15,12 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
+pub struct SchemaInput {
+    pub op: crate::domain::proposal::PatchOp,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateNode {
     pub metadata: NodeMetadata,
     pub summary: String,

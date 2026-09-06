@@ -508,6 +508,7 @@ fn full_warning_lists_still_allow_builder_to_block_invalid_payloads() {
             code: format!("UPSTREAM_WARNING_{index}"),
             message: "An upstream warning.".into(),
             blocking: false,
+            origin: None,
         })
         .collect();
     let prepared = build(&workspace, vec![invalid]);
@@ -525,7 +526,11 @@ fn full_warning_lists_still_allow_builder_to_block_invalid_payloads() {
 fn rebuilding_recomputes_its_own_failures_but_keeps_upstream_blockers() {
     let (_temp, workspace) = support::fixture();
     let before = CanonicalSnapshot::scan(&workspace).unwrap();
-    let invalid = item(PatchOp::AddAlias, &before.nodes[0].metadata.id, json!({"alias":""}));
+    let invalid = item(
+        PatchOp::AddAlias,
+        &before.nodes[0].metadata.id,
+        json!({"alias":""}),
+    );
     let prepared = build(&workspace, vec![invalid]);
     blocked(&prepared, 0, "INVALID_ALIAS");
     let mut repaired = prepared.proposal.items[0].clone();

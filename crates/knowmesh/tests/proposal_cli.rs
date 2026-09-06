@@ -134,9 +134,27 @@ fn proposal_request_files_match_descriptors_and_all_commands_are_discoverable() 
         .unwrap()
         .parse()
         .unwrap();
-    let id = created["data"]["record"]["proposal"]["id"].as_str().unwrap();
-    std::fs::write(workspace.root.join("schemas/research.yaml"), "Invalid current schema").unwrap();
-    let rejected = success(call(&workspace.root, &["proposal","reject",id,"--expected-revision","1","--reason","Obsolete draft"], None));
+    let id = created["data"]["record"]["proposal"]["id"]
+        .as_str()
+        .unwrap();
+    std::fs::write(
+        workspace.root.join("schemas/research.yaml"),
+        "Invalid current schema",
+    )
+    .unwrap();
+    let rejected = success(call(
+        &workspace.root,
+        &[
+            "proposal",
+            "reject",
+            id,
+            "--expected-revision",
+            "1",
+            "--reason",
+            "Obsolete draft",
+        ],
+        None,
+    ));
     assert_eq!(rejected["data"]["record"]["proposal"]["state"], "rejected");
 }
 
@@ -155,4 +173,68 @@ fn malformed_proposal_json_has_typed_stderr_and_does_not_create_an_index() {
         "INVALID_INPUT_JSON"
     );
     assert!(!workspace.index_path().unwrap().exists());
+}
+
+#[test]
+fn edit_and_revalidate_preserve_json_preview_intent_and_refresh_external_changes() {
+    let (_temp, workspace) = support::fixture();
+    success(call(&workspace.root, &["sync"], None));
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let input = json!({"proposal":{
+        "kind":"manual","base_generation":1,"schema_hash":snapshot.schema_hash,
+        "source_revision_id":null,"compiler_run_id":null,"summary":"Editable CLI proposal.",
+        "items":[ProposalItem::new(PatchOp::AddAlias,snapshot.nodes[0].metadata.id.to_string(),json!({"alias":"Original candidate"})).unwrap()]
+    }});
+    let created = success(call(
+        &workspace.root,
+        &["proposal", "create", "--input", "-"],
+        Some(input),
+    ));
+    let record = &created["data"]["record"]["proposal"];
+    let id = record["id"].as_str().unwrap();
+    let mut items = record["items"].clone();
+    items[0]["payload"] = json!({"alias":"Edited candidate"});
+    let mut edit = json!({"proposal_id":id,"dry_run":true,"revision":{
+        "expected_revision":1,"base_generation":1,"schema_hash":snapshot.schema_hash,"summary":record["summary"],"items":items
+    }});
+    let preview = success(call(
+        &workspace.root,
+        &["proposal", "edit", "--input", "-"],
+        Some(edit.clone()),
+    ));
+    assert_eq!(preview["data"]["dry_run"], true);
+    assert_eq!(
+        success(call(&workspace.root, &["proposal", "get", id], None))["data"]["proposal"]["revision"],
+        1
+    );
+    edit["dry_run"] = json!(false);
+    assert_eq!(
+        success(call(
+            &workspace.root,
+            &["proposal", "edit", "--input", "-"],
+            Some(edit)
+        ))["data"]["record"]["proposal"]["revision"],
+        2
+    );
+    let path = workspace.root.join(&snapshot.nodes[0].canonical_path);
+    let mut doc = knowmesh_core::canonical::node::NodeDocument::parse(
+        &std::fs::read_to_string(&path).unwrap(),
+    )
+    .unwrap();
+    doc.metadata.aliases.push("External alias".into());
+    std::fs::write(path, doc.render().unwrap()).unwrap();
+    let revalidated = success(call(
+        &workspace.root,
+        &["proposal", "revalidate", id, "--expected-revision", "2"],
+        None,
+    ));
+    assert_eq!(revalidated["data"]["record"]["proposal"]["revision"], 3);
+    assert_eq!(
+        revalidated["data"]["record"]["proposal"]["base_generation"],
+        2
+    );
+    assert_eq!(
+        revalidated["data"]["record"]["proposal"]["items"][0]["payload"]["alias"],
+        "Edited candidate"
+    );
 }

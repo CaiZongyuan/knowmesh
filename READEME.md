@@ -5,9 +5,9 @@ Markdown/YAML, SQLite projections, and reviewed proposals.
 
 **Development status:** v0.1 is being implemented. The current executable supports
 `knowmesh init [path] --template research`, `knowmesh version`, and operation discovery with `knowmesh schema list` /
-`knowmesh schema command <operation>` / `knowmesh schema pack <id>`, plus local
+`knowmesh schema command <operation>` / `knowmesh schema pack <id>` / `knowmesh schema patch <op>`, plus local
 `source add/list/get/content`, confirmed `source remove`, paginated `source impact`, `sync`, `status`,
-`doctor`, `rebuild`, and `search`;
+`doctor`, `rebuild`, `search`, and `proposal create/get/edit/review/revalidate/reject/apply`;
 the complete ingestion, knowledge, search, graph, proposal,
 and optional Web workflows are not released yet. The npm bootstrap package does
 not contain an executable.
@@ -46,8 +46,9 @@ Proposal state/review contracts, typed payload/Evidence validation, and read-onl
 canonical previews are in place. Accepted subsets are revalidated against current
 files and workspace policy. Controlled summary editing preserves surrounding
 Markdown. SQLite preserves complete review revisions and Apply receipts. Core Apply
-and recovery now commit canonical changes with their review state; public Proposal
-commands and the complete Compiler workflow remain in development.
+and recovery now commit canonical changes with their review state. Proposal commands
+accept typed JSON files/stdin and use the same Core workflows. Proposal list,
+idempotency keys, combined accept-all/apply, and the full Compiler workflow remain pending.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

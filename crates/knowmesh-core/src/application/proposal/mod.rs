@@ -4,6 +4,7 @@ mod evidence;
 pub mod payload;
 mod record;
 mod selection;
+pub mod workflow;
 
 pub use record::{MAX_PROPOSAL_RECORD_BYTES, ProposalRecord};
 pub use selection::{AcceptedPreview, prepare_accepted};
@@ -18,7 +19,9 @@ use crate::{
     },
     domain::{
         Timestamp,
-        proposal::{Proposal, ProposalInput, ProposalIssue, ProposalItem, ProposalKind},
+        proposal::{
+            Proposal, ProposalInput, ProposalIssue, ProposalIssueOrigin, ProposalItem, ProposalKind,
+        },
     },
     error::{AppError, AppResult, ErrorType},
 };
@@ -87,6 +90,10 @@ fn prepare_snapshot(
         ));
     }
     let mut proposal = Proposal::new(input.clone(), actor, now)?;
+    for item in &mut proposal.items {
+        item.issues
+            .retain(|issue| issue.origin != Some(ProposalIssueOrigin::Builder));
+    }
     let mut payloads = Vec::with_capacity(proposal.items.len());
     for item in &mut proposal.items {
         match Payload::decode(item) {
@@ -170,6 +177,7 @@ fn issue(item: &mut ProposalItem, error: AppError) {
             code: error.code,
             message: error.message,
             blocking: true,
+            origin: Some(ProposalIssueOrigin::Builder),
         };
         if item.issues.len() < 128 {
             item.issues.push(issue);
@@ -178,6 +186,7 @@ fn issue(item: &mut ProposalItem, error: AppError) {
                 code: "PROPOSAL_ISSUE_LIMIT".into(),
                 message: "Additional validation failures exceeded the diagnostic limit. Fix the payload and prepare a new revision.".into(),
                 blocking: true,
+                origin: Some(ProposalIssueOrigin::Builder),
             };
         }
     }
