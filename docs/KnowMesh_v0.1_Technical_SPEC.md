@@ -1913,15 +1913,15 @@ update_source_metadata
 
 禁止模型输出任意 filesystem patch、SQL 或 shell command。
 
-`record_claim_conflict` 是显式组变更操作：target 为成员所属 Node，payload 包含完整 conflict group 和显式成员 evidence_status 变更。它必须在同一 Node 写入中维护全部成员副本，并遵守 14.7 节的身份、scope、状态与历史约束；不能借该操作修改 Claim 正文、Evidence 或 lifecycle。创建组依赖的新 Claim 必须已存在或由同一已接受 Proposal 的创建项提供，缺失/被拒绝的依赖阻止 Apply。新增 Claim 与追加 Evidence 项保留去重阶段基线，组修改单独审核；不得把组副本预先混入可独立接受的新 Claim 项，造成循环依赖或绕过组决策。Builder 已实现内存组变更；已关闭组的字段及任何既有组的 created_at 不可改写，再次记录冲突使用新组 ID。审核后子集应用仍由 KM-047 接入。
+`record_claim_conflict` 是显式组变更操作：target 为成员所属 Node，payload 包含完整 conflict group 和显式成员 evidence_status 变更。它必须在同一 Node 写入中维护全部成员副本，并遵守 14.7 节的身份、scope、状态与历史约束；不能借该操作修改 Claim 正文、Evidence 或 lifecycle。创建组依赖的新 Claim 必须已存在或由同一已接受 Proposal 的创建项提供，缺失/被拒绝的依赖阻止 Apply。新增 Claim 与追加 Evidence 项保留去重阶段基线，组修改单独审核；不得把组副本预先混入可独立接受的新 Claim 项，造成循环依赖或绕过组决策。Builder 已实现内存组变更；已关闭组的字段及任何既有组的 created_at 不可改写，再次记录冲突使用新组 ID。
 
 当前 [`proposal::prepare`](../crates/knowmesh-core/src/application/proposal/mod.rs) 已实现只读 Builder。它扫描真实 workspace，校验 Schema hash、可选来源 revision 及每项具体 payload；compile/refresh 必须声明已有来源 revision，新 Claim/Relation 必须有可验证 Evidence。输入仍使用已分配的规范 ID 和完整 metadata，返回 pending Proposal、原始快照 hash、拟议文档字节和只读预览，不写规范文件、索引或 runtime 表，不调用模型。
 
 各 op 的严格 DTO 与可生成 JSON Schema 位于 [`payload`](../crates/knowmesh-core/src/application/proposal/payload.rs)。新建 Node/Synthesis 接受 metadata 与 summary/body；其余 op 分别接收 summary、alias、完整 Claim/Relation、replacement_id、retraction reason、Evidence 数组、conflict group/member_statuses，或来源全部可编辑描述字段。target 类型、payload 内 ID、已有全局身份、Schema 属性/关系及引用必须一致。创建 Node 先于断言创建，其后执行普通编辑/生命周期、冲突组及 Synthesis；before_sha256 始终来自原 canonical 文件，不能以中间拟议状态代替。新页面标题转义 Markdown 并折叠换行；来源元数据仅能修改 title/kind/authors/identifiers/language/tags/represented_nodes。
 
-Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析和验证直接及依赖 Evidence。相同 Evidence ID 必须保留全部原字段；已有 locator 若指定 offsets，不在此阶段修复或换发 ID。错误引用、Schema/目标错误及 payload 超限形成 blocking warnings，阻止 acceptance；可独立完成的有效项仍可预览。直接 Evidence IDs 每项最多 1024，冲突成员等传递引用另行验证，不膨胀该列表或截断 Evidence。诊断最多 128 条，溢出以 blocking `PROPOSAL_ISSUE_LIMIT` 表示。最终全图预览失败时清空文档输出并阻塞其余项。
+Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析和验证直接及依赖 Evidence。相同 Evidence ID 必须保留全部原字段；已有 locator 若指定 offsets，不在此阶段修复或换发 ID。错误引用、Schema/目标错误及不符合具体 op 的 payload 形成 blocking warnings，阻止 acceptance；可独立完成的有效项仍可预览。直接 Evidence IDs 每项最多 1024，冲突成员等传递引用另行验证，不膨胀该列表或截断 Evidence。诊断最多 128 条，溢出以 blocking `PROPOSAL_ISSUE_LIMIT` 表示。最终全图预览失败时清空文档输出并阻塞其余项。
 
-新建 Synthesis 必须显式提供 dependency_snapshot，引用可用 Schema Pack、已有或本 Proposal 新建的断言，以及归属正确的 source heads；每个直接引用来源都必须有生成时 head。Builder 保留所给历史 assertion hash/head，不以当前值补全或替换，freshness 另行判定。缺失快照的旧文件仍可由 Parser 读取。Ask run 产物的来源校验与快照复制、持久化、接受子集重验证和实际 Apply 尚待集成；本层预览成功不构成写入授权。
+新建 Synthesis 必须显式提供 dependency_snapshot，引用可用 Schema Pack、已有或本 Proposal 新建的断言，以及归属正确的 source heads；每个直接引用来源都必须有生成时 head。Builder 保留所给历史 assertion hash/head，不以当前值补全或替换，freshness 另行判定。缺失快照的旧文件仍可由 Parser 读取。Ask run 产物的来源校验与快照复制、持久化和实际 Apply 尚待集成；本层预览成功不构成写入授权。
 
 [`CanonicalSnapshot::preview_documents`](../crates/knowmesh-core/src/canonical/snapshot/preview.rs) 已提供 Builder 所需的只读文档预览：基于已扫描快照接受至多 10,000 个文档、合计 64 MiB 的拟议替换。仅允许 knowledge/nodes 与 knowledge/syntheses 下的 Markdown，以及已有来源的描述元数据；单个 Markdown 上限 8 MiB、来源 manifest 上限 16 MiB。配置、原始 blob、新建来源、revision/head/removal 状态变化和已有 Node/Synthesis 身份或创建时间替换均被拒绝。
 
@@ -1962,6 +1962,8 @@ Builder 从不可变来源文件读取并校验 hash/size，按 revision 解析�
 每项 decision 为 pending/accepted/rejected，保存原因、reviewed_by/at、explicit/bulk 方式及 human_verified。Relaxed bulk 只接受 pending 项，不覆盖已拒绝项；strict、禁止 accept-all 或要求人工验证的 policy 均拒绝 bulk。Accepted 项若有 blocking warning 则返回 `PROPOSAL_ITEM_BLOCKED`；需要人工确认而未提供时返回 `HUMAN_VERIFICATION_REQUIRED`。所有项均已决且至少一项 accepted 才为 approved；pending 阻止 Apply 状态门禁，全部拒绝则为 rejected。
 
 审核 hash 绑定 item ID、op、target、payload、before hash、Evidence IDs、风险/置信度/校验问题和决策信息，并绑定 Proposal 身份、来源/Run、base generation、Schema、创建信息及 item 顺序。载荷、上下文、审核方式或确认标记被直接改变会返回 `PROPOSAL_REVIEW_STALE`。同基线、同顺序下编辑只重置变化项，其他审核可保留；基线/Schema/顺序变化或 stale 重验证重置全部决策。该 hash 用于一致性检查，不是身份认证或文件写入授权。
+
+[`prepare_accepted`](../crates/knowmesh-core/src/application/proposal/selection.rs) 已提供审核后只读重验证。调用方传入从 store 取得的 generation、原始快照 hash 与 expected_revision；Core 重新扫描 workspace，并按实际 Schema policy 检查审核，再仅对 accepted 项运行 Builder。拒绝创建依赖不会留下其拟议对象，缺失依赖返回 `PROPOSAL_ACCEPTED_ITEMS_INVALID`；generation/快照/Schema 改变返回 `STALE_PROPOSAL`。重验证若补出未经审核的 before hash/Evidence 等内容，返回 `PROPOSAL_REVALIDATION_REQUIRED`，不会静默重新接受。输出 `AcceptedPreview` 保留原 Proposal ID/revision，只暴露只读结果；索引 generation 的读取、锁内再检查、持久化及文件事务仍由 Apply coordinator 接入。
 
 Stale 必须重验证并形成新 revision 后才能重新审核；applied/rejected 为终态。重复终结 applied 元数据保留首次 applied_generation，不把后来索引变化当作第二次 Apply。当前层仅验证 DTO、target ID 类型、边界和审核绑定：每项 payload 必须为 JSON object 且最多 1 MiB，Proposal 最多 10,000 项、序列化 items 合计最多 16 MiB。具体 op payload Schema、真实引用有效性、当前 workspace policy、文件 hash/generation 和 Apply 幂等仍须由 Application builder/store/coordinator 验证，不能仅凭本层的 approved 标记写入规范文件。
 

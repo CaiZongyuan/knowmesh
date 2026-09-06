@@ -43,7 +43,8 @@ Canonical conflict groups survive projection and rebuild. Exact assertion/Eviden
 deduplication preserves scientific symbols. Bounded semantic comparison produces
 reviewable conflict plans; Compiler/Proposal/Run integration remains in development.
 Proposal state/review contracts, typed payload/Evidence validation, and read-only
-canonical previews are in place. Controlled summary editing preserves surrounding
+canonical previews are in place. Accepted subsets are revalidated against current
+files and workspace policy. Controlled summary editing preserves surrounding
 Markdown. Persistence and Apply integration remain in development.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;

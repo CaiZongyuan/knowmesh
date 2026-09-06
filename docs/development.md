@@ -236,8 +236,14 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   failures, and bounded Evidence/diagnostics. Synthesis snapshots retain supplied
   historical hashes/heads and require valid references; the Builder does not prove
   their Ask-run origin. Full payload contracts and bounds live in SPEC 14.8.
-  Accepted-subset validation, runtime history, and Apply remain #27; Ask integration
-  must supply the original run snapshot rather than reconstructing its contents.
+  Ask integration must supply the original run snapshot rather than reconstructing
+  its contents. Runtime history and Apply remain #27.
+- Accepted-subset previews rerun Builder against current files and actual Schema
+  policy. Rejected dependencies, changed generation/content, forged item hashes,
+  and reviews missing Builder-derived preconditions cannot yield an accepted preview.
+  Five fixtures cover selection, strict/human policy, and stale baselines. The helper
+  uses the generation/base hash supplied by its coordinator and never writes; store
+  reads, locks, durable Apply, and recovery integration remain #27.
 - Canonical document previews overlay Node/Synthesis Markdown and existing source
   metadata in memory. They reuse projection and link resolution, revalidate the
   complete reference graph, and check that the original file inventory/content
@@ -427,6 +433,7 @@ KM-023 and their owning implementation issues.
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), semantic comparison/planning | Commit `84f5bba`: missing Claim comparison context; an additional regression exposed conflicting shared Evidence payloads | `cargo +stable test -p knowmesh-core --test assertion_compare --locked`: 11 tests cover six golden scenarios, canonical rendering, and shared Evidence integrity |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), Proposal state/review | Commit `3fb7339`: missing Proposal domain module; further regressions expose unbound context/attestation metadata | `cargo +stable test -p knowmesh-core --test proposal_state --locked`: 10 state/review tests; builder/store/Apply integration remains pending |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), read-only Builder | Commits `8c8a5df`, `0a1f129`, `4d1fefe`: missing Builder, invalid snapshot acceptance, Evidence/diagnostic overflow, and mutable closed conflicts | `proposal_builder` and `proposal_builder_operations`: 17 tests cover all operations and actual source verification; persistence and Apply remain pending |
+| [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), accepted subset | Commit `2417e1c`: missing `prepare_accepted` helper | `proposal_selection`: 5 tests cover selected dependencies, stale content/revisions/generation, and actual workspace review policy; durable Apply remains pending |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), canonical preview | Commit `9d8b7b4`: missing document preview | `cargo +stable test -p knowmesh-core --test canonical_preview --locked`: 6 tests pass, including preview/scan equivalence and rejection of proposed data as a canonical snapshot |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), controlled summary editing | Commits `1fa51a2`, `f803758`: missing summary editor, accepted reference injection, and stale summary projections | `node_summary`: 8 focused cases; `fast_sync`: 6 cases including v3 Claim-key and v4 summary refresh |
 

@@ -1,6 +1,9 @@
 mod documents;
 mod evidence;
 pub mod payload;
+mod selection;
+
+pub use selection::{AcceptedPreview, prepare_accepted};
 
 use std::{collections::BTreeMap, path::PathBuf};
 
@@ -40,6 +43,16 @@ pub fn prepare(
     now: Timestamp,
 ) -> AppResult<PreparedProposal> {
     let before = CanonicalSnapshot::scan(workspace)?;
+    prepare_snapshot(workspace, input, actor, now, before)
+}
+
+fn prepare_snapshot(
+    workspace: &Workspace,
+    input: &ProposalInput,
+    actor: &str,
+    now: Timestamp,
+    before: CanonicalSnapshot,
+) -> AppResult<PreparedProposal> {
     let schema = Schema::load(workspace)?;
     if input.schema_hash != before.schema_hash || schema.hash != before.schema_hash {
         return Err(error(
