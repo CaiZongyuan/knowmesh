@@ -56,7 +56,9 @@ fn summary_parsing_ignores_quoted_and_code_headings_and_preserves_crlf() {
     let mut doc = NodeDocument::create(doc.metadata, "# Model A\n\n> ## Summary\n> Quoted note.\n\n```md\n## Summary\n```\n\n## Summary\n\nOld text.\n\n## Notes\n\nUntouched.").unwrap();
     let original = doc.render().unwrap().replace('\n', "\r\n");
     doc = NodeDocument::parse(&original).unwrap();
+    assert_eq!(doc.summary(), "Old text.");
     doc.set_summary("New text.\n\nSecond paragraph.").unwrap();
+    assert_eq!(doc.summary(), "New text.\nSecond paragraph.");
     assert_eq!(
         doc.render().unwrap(),
         original.replace("Old text.", "New text.\r\n\r\nSecond paragraph.")
@@ -82,6 +84,7 @@ fn duplicate_summary_sections_and_injected_document_structure_are_rejected() {
         "<!-- knowmesh:claims:begin -->",
         "<script>injected()</script>",
         "<<<<<<< branch\ntext",
+        "[shared]: https://example.invalid/replacement",
     ] {
         assert_eq!(
             doc.set_summary(text).unwrap_err().code,
@@ -92,4 +95,22 @@ fn duplicate_summary_sections_and_injected_document_structure_are_rejected() {
     doc.set_summary("```md\n## An example heading\n```\n\n### Details\n\nAllowed content.")
         .unwrap();
     NodeDocument::parse(&doc.render().unwrap()).unwrap();
+}
+
+#[test]
+fn summary_editing_preserves_indented_code_and_can_clear_the_section() {
+    let (_temp, mut doc, _) = document();
+    doc.set_summary("    example code\n    second line")
+        .unwrap();
+    assert!(
+        doc.render()
+            .unwrap()
+            .contains("    example code\n    second line")
+    );
+    assert!(doc.summary().contains("example code"));
+    doc.set_summary("").unwrap();
+    assert!(doc.summary().is_empty());
+    let rendered = doc.render().unwrap();
+    NodeDocument::parse(&rendered).unwrap();
+    assert!(rendered.contains("## Notes"));
 }

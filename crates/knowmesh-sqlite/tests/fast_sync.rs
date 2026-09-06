@@ -191,3 +191,56 @@ fn scientific_statements_with_distinct_case_keep_separate_active_claim_rows() {
         .unwrap();
     assert_eq!(count, 2);
 }
+
+#[test]
+fn v4_summary_projection_is_refreshed_without_canonical_file_changes() {
+    use knowmesh_core::domain::sha256;
+
+    let (temp, workspace) = support::fixture();
+    let node_path = temp.path().join("knowledge/nodes/model-a.md");
+    let old = NodeDocument::parse(&fs::read_to_string(&node_path).unwrap()).unwrap();
+    let mut doc = NodeDocument::create(
+        old.metadata,
+        "# Model A\n\n> ## Summary\n> Quoted material.\n\n## Summary\n\nActual summary.",
+    )
+    .unwrap();
+    doc.claims = old.claims;
+    doc.relations = old.relations;
+    fs::write(&node_path, doc.render().unwrap()).unwrap();
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let path = workspace.index_path().unwrap();
+    let mut store = SqliteStore::open(&path).unwrap();
+    store
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
+    sync::synchronize(&workspace, &mut store).unwrap();
+    drop(store);
+    let db = rusqlite::Connection::open(&path).unwrap();
+    db.execute("DELETE FROM schema_migrations WHERE version>=5", [])
+        .unwrap();
+    db.pragma_update(None, "user_version", 4).unwrap();
+    db.execute("UPDATE nodes SET summary='Quoted material.',canonical_json=json_set(canonical_json,'$.summary','Quoted material.') WHERE node_type='Model'", []).unwrap();
+    db.execute(
+        "UPDATE workspace_state SET snapshot_sha256=?1",
+        [sha256(b"legacy summary projection")],
+    )
+    .unwrap();
+    drop(db);
+    let bytes = fs::read(&node_path).unwrap();
+    let mut store = SqliteStore::open(&path).unwrap();
+    assert!(
+        !sync::fast_synchronize(&workspace, &mut store)
+            .unwrap()
+            .fast_path
+    );
+    let db = rusqlite::Connection::open(path).unwrap();
+    let summary: String = db
+        .query_row(
+            "SELECT summary FROM nodes WHERE node_type='Model'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(summary, "Actual summary.");
+    assert_eq!(fs::read(node_path).unwrap(), bytes);
+}
