@@ -56,6 +56,14 @@ pub trait ImpactStore: IndexStore {
     ) -> AppResult<crate::application::impact::ImpactData>;
 }
 
+pub trait ImpactPreviewBackend {
+    fn preview(
+        &self,
+        snapshot: &CanonicalSnapshot,
+        query: &crate::application::impact::ImpactQuery,
+    ) -> AppResult<crate::application::impact::ImpactData>;
+}
+
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct RuntimeCopyReport {
     pub table_counts: std::collections::BTreeMap<String, u64>,

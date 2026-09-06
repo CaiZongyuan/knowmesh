@@ -6,14 +6,14 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canonical::workspace::Workspace,
+    canonical::{snapshot::CanonicalSnapshot, workspace::Workspace},
     domain::{
         ClaimId, DependencySnapshot, EvidenceId, RelationId, SourceId, SourceRevisionId,
         SynthesisId,
         freshness::{FreshnessContext, FreshnessReport, assertion_freshness, synthesis_freshness},
     },
     error::{AppError, AppResult, ErrorType},
-    ports::ImpactStore,
+    ports::{ImpactPreviewBackend, ImpactStore},
 };
 
 #[derive(
@@ -134,6 +134,7 @@ pub struct ImpactItem {
 
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct ImpactReport {
+    pub preview: bool,
     pub source_id: SourceId,
     pub revision: Option<SourceRevisionId>,
     pub generation: u64,
@@ -208,18 +209,59 @@ pub fn execute(
         limit: input.limit,
         position,
     };
-    let mut data = store.source_impact(&query)?;
+    let data = store.source_impact(&query)?;
     let index_complete = status.sync_skipped.is_none()
         && !status.recovery_required
         && status.projection.generation == data.generation
         && !data.snapshot_sha256.is_empty();
+    report(input, data, index_complete, false, &fingerprint)
+}
+
+pub(super) fn preview(
+    workspace: &Workspace,
+    snapshot: &CanonicalSnapshot,
+    source_id: &SourceId,
+    backend: &dyn ImpactPreviewBackend,
+) -> AppResult<ImpactReport> {
+    let input = ImpactInput {
+        source_id: source_id.clone(),
+        revision: None,
+        kind: None,
+        limit: default_limit(),
+        cursor: None,
+        no_sync: false,
+    };
+    let query = ImpactQuery {
+        source_id: source_id.clone(),
+        revision: None,
+        kind: None,
+        limit: input.limit,
+        position: None,
+    };
+    let data = backend.preview(snapshot, &query)?;
+    report(
+        &input,
+        data,
+        true,
+        true,
+        &cursor::fingerprint(workspace, &input)?,
+    )
+}
+
+fn report(
+    input: &ImpactInput,
+    mut data: ImpactData,
+    index_complete: bool,
+    preview: bool,
+    fingerprint: &str,
+) -> AppResult<ImpactReport> {
     data.context.index_complete = index_complete;
     let next_cursor = if data.has_more {
         data.items
             .last()
             .map(|item| {
                 cursor::encode(
-                    &fingerprint,
+                    fingerprint,
                     ImpactPosition {
                         generation: data.generation,
                         snapshot_sha256: data.snapshot_sha256.clone(),
@@ -249,6 +291,7 @@ pub fn execute(
         })
         .collect();
     Ok(ImpactReport {
+        preview,
         source_id: input.source_id.clone(),
         revision: input.revision.clone(),
         generation: data.generation,

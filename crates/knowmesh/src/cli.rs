@@ -355,7 +355,11 @@ fn execute(
                         yes: *yes,
                     };
                     let report = if *dry_run {
-                        source::preview_remove(&workspace, &input)?
+                        source::preview_remove_with_impact(
+                            &workspace,
+                            &input,
+                            &knowmesh_sqlite::SqliteImpactPreview::new(&workspace)?,
+                        )?
                     } else {
                         source::remove(
                             &workspace,

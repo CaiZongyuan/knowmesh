@@ -142,7 +142,14 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   and generation/snapshot hash; stale or changed queries return typed errors.
   `--no-sync`, pending recovery, and skipped synchronization produce unknown
   freshness. Source updates/removal preserve independent Evidence, and rebuild
-  preserves impact results. Removal preview, HTTP, and Search integration are pending.
+  preserves impact results. HTTP and Search integration are pending.
+- `source remove --dry-run` includes an impact preview built from canonical files
+  in an in-memory index. It uses the same query and freshness rules, preserves the
+  disk index, and returns the first 20 dependencies before removal. The preview
+  flag distinguishes its prospective generation from a persisted index generation;
+  its cursor can continue through `source impact` after normal synchronization.
+  Existing incompatible/unreadable indexes stop preview without changes. Core's
+  lower-level Source planning helpers remain usable without an impact backend.
 
 Initialization now uses a durable file journal under `.knowmesh/transactions/`
 and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
@@ -174,6 +181,7 @@ KM-023 and their owning implementation issues.
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), initialization recovery | Commit `42db30e`: doctor cannot reach recovery without a loadable configuration | `cargo +stable test --workspace --locked`: 113 tests pass, including every initialization file boundary, invalid configuration, environment/ancestor resolution, staging corruption, external conflicts, identity checks, and repeated repair |
 | [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), freshness rules | Commits `5b4190e`, `4e35f48`: missing freshness evaluation and incomplete indexes mark evidence as current | `cargo +stable test --workspace --locked`: 118 tests pass, including independent evidence preservation, snapshot/hash comparison, missing dependencies, deterministic reasons, and incomplete-index precedence |
 | [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), source impact | Commit `ba7f868`: missing impact operation | `cargo +stable test --workspace --locked`: 123 tests pass, including bounded pages, query/generation cursor checks, revision ownership, multiple sources, missing snapshots, snapshot-only dependencies, and impact/freshness equivalence after rebuild |
+| [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), removal preview | Commit `2a911f6`: source removal preview has no impact query | `cargo +stable test --workspace --locked`: 124 tests pass, including preview with missing/stale indexes, unchanged index bytes and canonical removal state, and cursor continuation after synchronization |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
@@ -196,6 +204,8 @@ The [initialization-recovery CI run](https://github.com/CaiZongyuan/knowmesh/act
 passed on all three operating systems for commit `c97d2da`.
 The [freshness-rule CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/34000090333)
 passed on all three operating systems for commit `904bb5c`.
+The [source-impact CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/34000711119)
+passed on all three operating systems for commit `afc84f6`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked

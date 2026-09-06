@@ -10,7 +10,7 @@ use crate::{
     },
     domain::SourceId,
     error::{AppError, AppResult, ErrorType},
-    ports::{ProjectionStore, ReconcileReport},
+    ports::{ImpactPreviewBackend, ProjectionStore, ReconcileReport},
 };
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -28,6 +28,8 @@ pub struct SourceWriteReport {
     #[serde(flatten)]
     pub import: ImportReport,
     pub projection: Option<ReconcileReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub impact: Option<super::impact::ImpactReport>,
 }
 
 pub fn preview_add(
@@ -40,6 +42,7 @@ pub fn preview_add(
     Ok(SourceWriteReport {
         import: plan.report(true),
         projection: None,
+        impact: None,
     })
 }
 
@@ -59,11 +62,30 @@ pub fn add(
 }
 
 pub fn preview_remove(workspace: &Workspace, input: &RemoveInput) -> AppResult<SourceWriteReport> {
-    CanonicalSnapshot::scan(workspace)?;
+    removal_preview(workspace, input, None)
+}
+
+pub fn preview_remove_with_impact(
+    workspace: &Workspace,
+    input: &RemoveInput,
+    backend: &dyn ImpactPreviewBackend,
+) -> AppResult<SourceWriteReport> {
+    removal_preview(workspace, input, Some(backend))
+}
+
+fn removal_preview(
+    workspace: &Workspace,
+    input: &RemoveInput,
+    backend: Option<&dyn ImpactPreviewBackend>,
+) -> AppResult<SourceWriteReport> {
+    let snapshot = CanonicalSnapshot::scan(workspace)?;
     let plan = SourceLibrary::new(workspace).plan_remove(&input.source_id)?;
     Ok(SourceWriteReport {
         import: plan.report(true),
         projection: None,
+        impact: backend
+            .map(|backend| super::impact::preview(workspace, &snapshot, &input.source_id, backend))
+            .transpose()?,
     })
 }
 
@@ -111,5 +133,6 @@ fn commit(
     Ok(SourceWriteReport {
         import,
         projection: Some(projection),
+        impact: None,
     })
 }

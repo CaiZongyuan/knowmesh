@@ -1,4 +1,7 @@
 mod context;
+mod preview;
+
+pub use preview::SqliteImpactPreview;
 
 use knowmesh_core::{
     application::impact::{ImpactCounts, ImpactData, ImpactObject, ImpactQuery, ImpactRow},

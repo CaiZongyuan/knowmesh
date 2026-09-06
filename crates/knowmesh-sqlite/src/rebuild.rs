@@ -127,7 +127,7 @@ impl RebuildBackend for SqliteRebuilder {
     ) -> AppResult<RebuildReport> {
         let (original, source) = self.original(&snapshot.workspace_id)?;
         original.validate_runtime(input, &self.next)?;
-        let mut candidate = memory_candidate(snapshot)?;
+        let mut candidate = SqliteStore::from_snapshot_in_memory(snapshot)?;
         let counts = if input.discard_runtime {
             BTreeMap::new()
         } else if let Some(source) = source.as_ref() {
@@ -295,22 +295,6 @@ fn checkpoint(store: &SqliteStore) -> AppResult<()> {
         .retryable(true));
     }
     Ok(())
-}
-
-fn memory_candidate(snapshot: &CanonicalSnapshot) -> AppResult<SqliteStore> {
-    let mut connection = rusqlite::Connection::open_in_memory().map_err(database_error)?;
-    connection
-        .execute_batch("PRAGMA foreign_keys=ON;")
-        .map_err(database_error)?;
-    crate::migrations::apply(&mut connection)?;
-    let mut candidate = SqliteStore {
-        connection,
-        path: PathBuf::new(),
-        _access: None,
-    };
-    candidate.bind_workspace(&snapshot.workspace_id, &snapshot.schema_hash)?;
-    candidate.reconcile(snapshot)?;
-    Ok(candidate)
 }
 
 fn discarded(input: &RebuildInput) -> Vec<String> {

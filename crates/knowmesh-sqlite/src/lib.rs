@@ -13,6 +13,7 @@ use std::{
     time::Duration,
 };
 
+pub use impact::SqliteImpactPreview;
 pub use knowmesh_core::ports::DatabaseDiagnostics;
 use knowmesh_core::{
     domain::{Timestamp, WorkspaceId},
@@ -31,6 +32,25 @@ pub struct SqliteStore {
 }
 
 impl SqliteStore {
+    pub(crate) fn from_snapshot_in_memory(
+        snapshot: &knowmesh_core::canonical::snapshot::CanonicalSnapshot,
+    ) -> AppResult<Self> {
+        use knowmesh_core::ports::ProjectionStore;
+        let mut connection = Connection::open_in_memory().map_err(database_error)?;
+        connection
+            .execute_batch("PRAGMA foreign_keys=ON;")
+            .map_err(database_error)?;
+        migrations::apply(&mut connection)?;
+        let mut candidate = Self {
+            connection,
+            path: PathBuf::new(),
+            _access: None,
+        };
+        candidate.bind_workspace(&snapshot.workspace_id, &snapshot.schema_hash)?;
+        candidate.reconcile(snapshot)?;
+        Ok(candidate)
+    }
+
     pub fn exclusive_access(path: &Path) -> AppResult<DatabaseAccess> {
         DatabaseAccess::acquire(path, true)
     }

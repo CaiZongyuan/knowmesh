@@ -17,6 +17,7 @@ and atomic SQLite projection reconciliation. Doctor supports explicit transactio
 repair, including interrupted initialization with missing configuration.
 Rebuild preserves runtime state and backs up the old database before
 replacement; URL fetching is pending.
+Source removal previews include affected knowledge and preserve the disk index.
 
 ```bash
 cargo run -p knowmesh -- init ./my-knowledge --name "My Research"
