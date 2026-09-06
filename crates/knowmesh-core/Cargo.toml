@@ -28,6 +28,7 @@ scraper.workspace = true
 encoding_rs.workspace = true
 
 [dev-dependencies]
+lopdf.workspace = true
 syn.workspace = true
 proptest.workspace = true
 tempfile.workspace = true
