@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::domain::{SourceBlockId, SourceRevisionId};
+use crate::domain::{SourceBlockId, SourceRevisionId, TextEncoding};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -67,6 +67,8 @@ pub struct ParsedSource {
     pub version: u32,
     pub source_revision_id: SourceRevisionId,
     pub source_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_encoding: Option<TextEncoding>,
     pub normalized_text: String,
     pub text_sha256: String,
     pub metadata: ParsedMetadata,

@@ -637,6 +637,10 @@ revisions:
 
 `revisions` 只允许追加。`current_revision_id` 可以切换，但历史 revision 不得被无提示覆盖或删除。
 
+文本 Revision 可记录可选 `encoding`，通过 `source add <path-or-url> --encoding <label>` 显式指定；省略时按 UTF-8 解码。标签使用 `encoding_rs` 的 WHATWG 名称/别名并保存为标准小写名称，例如 `latin1` 保存为 `windows-1252`。快照、byte_size 和 SHA-256 始终对应导入的原始字节，解码不覆盖 original 文件；managed、referenced 和 snapshot-url 使用相同约束。PDF 不接受 encoding。
+
+解码不替换非法序列，不根据文件内容或 HTTP charset 猜测编码；存在 BOM 时必须与声明的编码一致。相同 hash 的已登记 revision 沿用其编码，不要求重复 flag；显式要求不同编码返回 `conflict/SOURCE_ENCODING_MISMATCH`，不能更改历史解释方式。新 hash 可用不同编码创建新 revision，未指定仍默认 UTF-8。历史编码属于不可变 metadata，外部改写被 reconcile 拒绝；无须更改规范格式版本，旧 manifest 缺省字段继续有效。
+
 `snapshot-url` revision 另存 `url` 字段，记录经网络适配器校验后的最终 HTTP(S) URL；不接受内嵌用户名或密码。`referenced` revision 的 `path` 是规范化绝对路径，读取时重新校验长度和 SHA-256，外部文件变化返回 `SOURCE_REVISION_CHANGED`。受管快照使用相对于来源目录的 `revisions/<revision_id>/original.<ext>` 路径，不允许指向其他 revision 或越过来源目录。
 
 `source.remove` 默认只在 manifest 写入可选 `removed_at`（RFC 3339 UTC），保留原始快照与所有引用；rebuild 必须保留此移除状态。除历史/显式 ID 查询外，来源列表及新 compile 默认排除已移除来源；影响分析和历史证据定位仍可用。引用中的 Source/Revision 不得物理删除；断言与综述只能通过独立 Proposal 更新。
@@ -1503,7 +1507,7 @@ knowmesh skills install-loader \
 - `source get <source-id>` 返回规范 Source metadata 与完整 Revision 历史，soft-remove 不影响按 ID 查询。
 - `source content <source-id>` 读取所查询索引中的 current Revision；传入 Revision ID 则读取固定历史版本。Source/revision 不存在分别返回 `SOURCE_NOT_FOUND` / `SOURCE_REVISION_NOT_FOUND`。读取本地快照或 referenced 文件，不重新抓取 URL。
 - 以上命令默认 fast sync；`--no-sync`、待恢复事务或活跃 writer 导致同步跳过时可以读取上次完整投影，返回 `index_complete=false` 和实际 generation。`--no-sync` 仍检查配置/Schema/version；content 仍按所查询 Revision 的字节数、SHA-256、路径和当前大小策略校验，变化返回 `SOURCE_REVISION_CHANGED`，不把后来变动的 manifest 当作旧 Revision 的新依据。
-- Content JSON 返回 `source_id`、完整 `revision`、`encoding` 和 `content`：文本为 `encoding=utf-8`，PDF 为 RFC 4648 标准 Base64（`encoding=base64`）。`--raw` 返回经校验的原始字节，不添加换行；与显式 `--format` 互斥，不受参数顺序影响。编码发生在校验之后，错误沿用 11.7 节。
+- Content JSON 返回 `source_id`、完整 `revision`、`encoding` 和 `content`：文本按 Revision 声明解码后输出 `encoding=utf-8` 字符串，PDF 为 RFC 4648 标准 Base64（`encoding=base64`）。文本解码保留 BOM，parser 的 normalized text 才去除开头 BOM。`--raw` 返回经校验的原始字节，不添加换行；与显式 `--format` 互斥，不受参数顺序影响。编码发生在校验之后，错误沿用 11.7 节。
 
 ### 13.2 Parser Port
 
@@ -1517,6 +1521,7 @@ pub struct ParsedSource {
     pub version: u32,
     pub source_revision_id: SourceRevisionId,
     pub source_sha256: String,
+    pub source_encoding: Option<TextEncoding>,
     pub normalized_text: String,
     pub text_sha256: String,
     pub metadata: ParsedMetadata,
@@ -1533,7 +1538,7 @@ pub struct ParsedSource {
 
 Core 的 [`TextParser`](../crates/knowmesh-core/src/ingest/mod.rs) 已提供 Markdown/TXT/HTML 的内存解析。调用前传入所选不可变 Revision 与实际字节，parser 验证 byte size 和 SHA-256；不自行读取路径、访问 URL、运行脚本或写入规范文件。`descriptor` 在解析前返回 name/version/config hash，供 13.6 节缓存键使用。当前默认输入上限 100 MiB、block 上限 100,000，构造器可指定正值（block 上限不超过 u32）；超限返回 `policy/SOURCE_PARSE_LIMIT`，不返回部分产物。
 
-字符区间统一为 `normalized_text` 的 Unicode scalar value 索引，采用 `[char_start,char_end)`；不是 UTF-8 byte offset、UTF-16 code unit 或屏幕字形数量。各 block.text 按文档顺序以两个 LF 拼接，区间必须精确覆盖对应文本。Markdown/TXT 在可定位时另给 `source_bytes` 原始 UTF-8 字节包围区间；HTML 经 DOM 修复、实体解码后不伪造原始 HTML 字节映射。开头 BOM 不进入 normalized text，原始 hash 与 byte spans 仍对应保存的字节。
+字符区间统一为 `normalized_text` 的 Unicode scalar value 索引，采用 `[char_start,char_end)`；不是 UTF-8 byte offset、UTF-16 code unit 或屏幕字形数量。各 block.text 按文档顺序以两个 LF 拼接，区间必须精确覆盖对应文本。UTF-8 Markdown/TXT 在可定位时另给 `source_bytes` 原始字节包围区间；HTML 经 DOM 修复、实体解码以及非 UTF-8 转码后均不伪造原始字节映射。开头 BOM 不进入 normalized text，原始 hash 仍对应保存的字节，产物同时绑定 Revision 的 source_encoding。
 
 `blk_` ID 从 versioned JSON 的 Revision、parser descriptor、ordinal 与 block text hash 确定性派生；其 ULID 位不表示生成时间，文档顺序以 blocks 数组为准。Paragraph 从 1 开始，文本 parser 不给 Heading 分配 paragraph；section path 随 heading level 入栈/出栈，文本来源的 page 为 null。`ParsedSource::validate` 检查版本/revision/hash、block 唯一性、连续文本覆盖、原始字节界限与基本质量指标，缓存读取仍须另校验完整产物 hash。
 
@@ -1541,7 +1546,7 @@ Markdown 使用 CommonMark/GFM 表格、列表、引用、代码块与完整 raw
 
 HTML 使用 HTML5 DOM，排除 head/script/style/template/noscript/SVG 和 hidden/aria-hidden 内容，提取段落、列表、表格、caption 和 preformatted code；不处理 CSS 布局、不加载媒体或链接。表格以 TAB 分列、LF 分行，caption 保留；嵌套表格摊平时给出 warning。TXT 保留段落内缩进/TAB，CRLF 规范化为 LF。空的提取文本标记不可编译；PDF 专用质量门仍由 13.3 节实现。
 
-当前文本输入仅支持 UTF-8；13.1 节要求的显式非 UTF-8 编码及其导入/内容读取衔接仍属 KM-040 待完成项。PDF parser、分块/缓存和 Compiler 接入分别由 KM-041/KM-042/Compiler 后续任务实现。Parser version 是归一化契约：改变输出规则或升级影响输出的依赖时必须更新，不能把不同文本表示的字符区间直接混用。
+显式编码已贯通文本导入、Revision metadata、内容读取与 parser，规则见 8.2 节。文本 parser version 2 加入此绑定；非法 label 返回 `UNSUPPORTED_SOURCE_ENCODING`，严格解码失败返回 `INVALID_SOURCE_ENCODING`，默认 UTF-8 导入保留既有 `UNSUPPORTED_ENCODING` code，content 读取保留 `SOURCE_CONTENT_ENCODING_INVALID`。PDF parser、分块/缓存和 Compiler 接入分别由 KM-041/KM-042/Compiler 后续任务实现。Parser version 是归一化契约：改变输出规则或升级影响输出的依赖时必须更新，不能把不同文本表示的字符区间直接混用。
 
 ### 13.3 PDF 质量门
 

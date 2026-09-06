@@ -10,6 +10,7 @@ fn revision(bytes: &[u8], mime: &str) -> SourceRevision {
         id: SourceRevisionId::new(),
         path: "fixture".into(),
         mime_type: mime.into(),
+        encoding: None,
         sha256: sha256(bytes),
         byte_size: bytes.len() as u64,
         captured_at: "2026-09-06T00:00:00Z".parse::<Timestamp>().unwrap(),

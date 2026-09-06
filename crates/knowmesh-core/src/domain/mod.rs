@@ -2,11 +2,13 @@ pub mod freshness;
 mod ids;
 mod knowledge;
 mod source;
+mod text_encoding;
 mod timestamp;
 
 pub use ids::*;
 pub use knowledge::*;
 pub use source::*;
+pub use text_encoding::*;
 pub use timestamp::Timestamp;
 
 use sha2::{Digest, Sha256};

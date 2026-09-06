@@ -11,6 +11,7 @@ impl ParsedSource {
         if self.version != 1
             || self.source_revision_id != revision.id
             || self.source_sha256 != revision.sha256
+            || self.source_encoding != revision.encoding
             || !valid_sha256(&self.source_sha256)
             || self.text_sha256 != sha256(self.normalized_text.as_bytes())
             || self.parser_name.is_empty()

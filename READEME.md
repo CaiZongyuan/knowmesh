@@ -27,8 +27,9 @@ still pending.
 Search supports English/Chinese retrieval, filters, configurable RRF, score
 explanations, stable cursor pagination, and evidence freshness. Optional vectors
 and Graph paths are still pending.
-Core also parses UTF-8 Markdown/TXT/HTML into structured source blocks; PDF,
-explicit legacy encoding, and the full compilation pipeline are still pending.
+Core also parses Markdown/TXT/HTML into structured source blocks. Explicit
+`source add --encoding <label>` supports legacy text while preserving original
+snapshot bytes. PDF parsing and the full compilation pipeline are still pending.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

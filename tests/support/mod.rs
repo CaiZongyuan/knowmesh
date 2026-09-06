@@ -50,6 +50,7 @@ pub fn fixture() -> (tempfile::TempDir, Workspace) {
             id: revision_id.clone(),
             path: revision_path,
             mime_type: "text/markdown".into(),
+            encoding: None,
             sha256: sha256(original.as_bytes()),
             byte_size: original.len() as u64,
             captured_at: now,

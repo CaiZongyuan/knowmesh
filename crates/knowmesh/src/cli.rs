@@ -20,7 +20,7 @@ use knowmesh_core::{
         workspace::{self, InitInput},
     },
     canonical::{source::ImportInput, workspace::Workspace},
-    domain::{RunId, SourceId, SourceRevisionId, StorageMode, WorkspaceId},
+    domain::{RunId, SourceId, SourceRevisionId, StorageMode, TextEncoding, WorkspaceId},
     error::{AppError, ErrorType},
     wire::{Failure, Metadata, Success},
 };
@@ -161,6 +161,8 @@ enum SourceCommand {
         source_id: Option<SourceId>,
         #[arg(long, value_enum)]
         storage: Option<StorageArg>,
+        #[arg(long)]
+        encoding: Option<TextEncoding>,
         #[arg(long)]
         title: Option<String>,
         #[arg(long, default_value = "document")]
@@ -488,6 +490,7 @@ fn execute(
                     path,
                     source_id,
                     storage,
+                    encoding,
                     title,
                     kind,
                     tags,
@@ -498,6 +501,7 @@ fn execute(
                         path: path.clone(),
                         source_id: source_id.clone(),
                         storage: storage.map(Into::into),
+                        encoding: encoding.clone(),
                         title: title.clone(),
                         kind: kind.clone(),
                         tags: tags.clone(),

@@ -111,9 +111,16 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   markup, hidden/script content, and raw HTML blocks. Bounded generated inputs
   exercise malformed structures and span validity. Parser descriptors support
   cache keys before parsing; artifact validation checks revision/text integrity.
-  Normalization and locator semantics live in SPEC 13.2. Explicit legacy encoding
-  remains #20; PDF, caching/chunking, and Compiler integration remain #21/#22 and
-  subsequent compiler issues. The parser itself performs no network or file I/O.
+  Normalization and locator semantics live in SPEC 13.2. PDF, caching/chunking, and
+  Compiler integration remain #21/#22 and subsequent compiler issues. The parser
+  itself performs no network or file I/O.
+- `source add --encoding <label>` records the explicit text encoding on each
+  immutable revision. Strict decoding is shared by local/URL import validation,
+  content JSON, and parser version 2. Raw snapshots and `--raw` retain the exact
+  original bytes; UTF-16/BOM and Windows-1252 fixtures verify this distinction.
+  Duplicate hashes retain recorded encoding; conflicting reinterpretation and
+  historical metadata edits are rejected. `--no-sync` uses indexed encoding.
+  Defaults, labels, and error contracts live in SPEC 8.2/13.2.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both

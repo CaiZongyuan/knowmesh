@@ -43,6 +43,7 @@ fn fetch_planning_validates_workspace_policy_before_network_and_leaves_canonical
         path: "https://example.com/paper#section".into(),
         source_id: None,
         storage: None,
+        encoding: None,
         title: None,
         kind: "paper".into(),
         tags: vec![],

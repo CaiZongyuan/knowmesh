@@ -51,6 +51,7 @@ fn source_import_preview_commit_and_recovery_share_the_same_transaction_path() {
         path: document,
         source_id: None,
         storage: Some(StorageMode::Managed),
+        encoding: None,
         title: Some("Second source".into()),
         kind: "note".into(),
         tags: vec![],

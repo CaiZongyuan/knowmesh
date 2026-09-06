@@ -133,13 +133,12 @@ impl SourceContent {
         let (encoding, content) = if self.revision.mime_type.starts_with("text/") {
             (
                 ContentEncoding::Utf8,
-                String::from_utf8(self.bytes).map_err(|_| {
-                    AppError::new(
-                        ErrorType::Validation,
-                        "SOURCE_CONTENT_ENCODING_INVALID",
-                        "Text sources must contain valid UTF-8.",
-                    )
-                })?,
+                crate::domain::decode_source_text(&self.bytes, self.revision.encoding.as_ref())
+                    .map_err(|mut error| {
+                        error.code = "SOURCE_CONTENT_ENCODING_INVALID".into();
+                        error.param = Some("revision.encoding".into());
+                        error.with_hint("Restore the original revision metadata and bytes, or import a distinct source with the correct encoding.")
+                    })?.into_owned(),
             )
         } else {
             (ContentEncoding::Base64, STANDARD.encode(self.bytes))

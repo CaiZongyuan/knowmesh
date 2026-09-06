@@ -7,10 +7,10 @@ use url::{Host, Url};
 use crate::{
     canonical::{
         snapshot::CanonicalSnapshot,
-        source::{ImportInput, ImportedContent, SourceLibrary},
+        source::{ImportInput, ImportedContent, SourceLibrary, import_encoding},
         workspace::Workspace,
     },
-    domain::{StorageMode, validate_source_url},
+    domain::{StorageMode, sha256, validate_source_url},
     error::{AppError, AppResult, ErrorType},
     ports::SourceFetcher,
 };
@@ -59,8 +59,12 @@ pub fn fetch(
             "URL inputs require snapshot-url storage.",
         ));
     }
-    if let Some(id) = &input.source_id {
-        let source = SourceLibrary::new(workspace).get(id)?;
+    let existing = input
+        .source_id
+        .as_ref()
+        .map(|id| SourceLibrary::new(workspace).get(id))
+        .transpose()?;
+    if let Some(source) = &existing {
         if source.manifest.removed_at.is_some() {
             return Err(AppError::new(
                 ErrorType::Conflict,
@@ -89,7 +93,17 @@ pub fn fetch(
     if result.bytes.len() as u64 > settings.max_file_mib * 1024 * 1024 {
         return Err(too_large());
     }
-    crate::canonical::source::validate_content(&result.mime_type, &result.bytes)?;
+    let encoding = import_encoding(
+        input,
+        existing.as_ref().map(|source| &source.manifest),
+        &result.mime_type,
+        &sha256(&result.bytes),
+    )?;
+    crate::canonical::source::validate_content(
+        &result.mime_type,
+        &result.bytes,
+        encoding.as_ref(),
+    )?;
     Ok(Some(result))
 }
 

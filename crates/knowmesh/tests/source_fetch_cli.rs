@@ -56,6 +56,10 @@ impl Server {
                     }
                 }
                 let path = request.split_whitespace().nth(1).unwrap_or("");
+                if path == "/legacy" {
+                    let _ = socket.write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/plain; charset=windows-1252\r\nContent-Length: 5\r\n\r\ncaf\xe9\n");
+                    continue;
+                }
                 let response = match path {
                     "/fake-pdf" => "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/pdf\r\nContent-Length: 9\r\n\r\nnot a pdf".into(),
                     "/unbounded" => format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n{}", "a".repeat(1024 * 1024 + 1)),
@@ -263,4 +267,50 @@ fn invalid_downloaded_bytes_are_rejected_before_a_database_is_created() {
         fs::read_dir(temp.path().join("sources")).unwrap().count(),
         0
     );
+}
+
+#[test]
+fn url_encoding_is_explicit_and_duplicate_snapshots_keep_their_recorded_encoding() {
+    let server = Server::start();
+    let temp = tempfile::tempdir().unwrap();
+    cargo_bin_cmd!("knowmesh")
+        .arg("init")
+        .arg(temp.path())
+        .assert()
+        .success();
+    let url = format!("{}/legacy", server.url);
+    let rejected = request(temp.path(), &url, &["--allow-private-network"]);
+    assert!(!rejected.status.success());
+    assert!(!temp.path().join(".knowmesh/index.sqlite3").exists());
+    let added = success(request(
+        temp.path(),
+        &url,
+        &["--allow-private-network", "--encoding", "windows-1252"],
+    ));
+    let id = added["data"]["source"]["id"].as_str().unwrap();
+    assert_eq!(added["data"]["revision"]["encoding"], "windows-1252");
+    let again = success(request(
+        temp.path(),
+        &url,
+        &["--allow-private-network", "--source-id", id],
+    ));
+    assert_eq!(again["data"]["deduplicated"], true);
+    drop(server);
+    let content = success(
+        cargo_bin_cmd!("knowmesh")
+            .arg("--workspace")
+            .arg(temp.path())
+            .args(["source", "content", id])
+            .output()
+            .unwrap(),
+    );
+    assert_eq!(content["data"]["content"], "café\n");
+    let raw = cargo_bin_cmd!("knowmesh")
+        .arg("--workspace")
+        .arg(temp.path())
+        .args(["source", "content", id, "--raw"])
+        .output()
+        .unwrap();
+    assert!(raw.status.success());
+    assert_eq!(raw.stdout, b"caf\xe9\n");
 }

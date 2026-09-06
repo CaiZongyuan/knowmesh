@@ -6,7 +6,7 @@ use std::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{NodeId, SourceId, SourceRevisionId, Timestamp};
+use super::{NodeId, SourceId, SourceRevisionId, TextEncoding, Timestamp};
 use crate::error::{AppError, AppResult, ErrorType};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -58,6 +58,8 @@ pub struct SourceRevision {
     pub id: SourceRevisionId,
     pub path: String,
     pub mime_type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub encoding: Option<TextEncoding>,
     pub sha256: String,
     pub byte_size: u64,
     pub captured_at: Timestamp,
@@ -150,6 +152,12 @@ impl SourceManifest {
                 return Err(source_error(
                     "SOURCE_TYPE_UNSUPPORTED",
                     "This revision MIME type is not supported.",
+                ));
+            }
+            if revision.encoding.is_some() && !revision.mime_type.starts_with("text/") {
+                return Err(source_error(
+                    "ENCODING_NOT_APPLICABLE",
+                    "Text encoding applies only to text source revisions.",
                 ));
             }
             if self.storage == StorageMode::SnapshotUrl && revision.url.is_none() {

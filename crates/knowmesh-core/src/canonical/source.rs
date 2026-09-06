@@ -13,8 +13,8 @@ use super::{
 };
 use crate::{
     domain::{
-        SourceId, SourceManifest, SourceRevision, SourceRevisionId, StorageMode, Timestamp, sha256,
-        source_error, validate_source_url,
+        SourceId, SourceManifest, SourceRevision, SourceRevisionId, StorageMode, TextEncoding,
+        Timestamp, decode_source_text, sha256, source_error, validate_source_url,
     },
     error::{AppError, AppResult, ErrorType},
 };
@@ -25,6 +25,8 @@ pub struct ImportInput {
     pub path: PathBuf,
     pub source_id: Option<SourceId>,
     pub storage: Option<StorageMode>,
+    #[serde(default)]
+    pub encoding: Option<TextEncoding>,
     pub title: Option<String>,
     pub kind: String,
     #[serde(default)]
@@ -291,8 +293,14 @@ impl<'a> SourceLibrary<'a> {
                 "Source exceeds the workspace file size limit.",
             ));
         }
-        let extension = validate_content(&mime, &bytes)?;
         let hash = sha256(&bytes);
+        let encoding = import_encoding(
+            input,
+            existing.as_ref().map(|file| &file.manifest),
+            &mime,
+            &hash,
+        )?;
+        let extension = validate_content(&mime, &bytes, encoding.as_ref())?;
         if let Some(file) = &existing
             && let Some(revision) = file
                 .manifest
@@ -326,6 +334,7 @@ impl<'a> SourceLibrary<'a> {
             },
             id: revision_id,
             mime_type: mime,
+            encoding,
             sha256: hash,
             byte_size: bytes.len() as u64,
             captured_at: now,
@@ -520,7 +529,11 @@ fn mime_for_extension(path: &Path) -> AppResult<&'static str> {
     }
 }
 
-pub(crate) fn validate_content(mime: &str, bytes: &[u8]) -> AppResult<&'static str> {
+pub(crate) fn validate_content(
+    mime: &str,
+    bytes: &[u8],
+    encoding: Option<&TextEncoding>,
+) -> AppResult<&'static str> {
     let extension = match mime {
         "text/markdown" => "md",
         "text/plain" => "txt",
@@ -534,19 +547,56 @@ pub(crate) fn validate_content(mime: &str, bytes: &[u8]) -> AppResult<&'static s
         }
     };
     if mime == "application/pdf" {
+        if encoding.is_some() {
+            return Err(source_error(
+                "ENCODING_NOT_APPLICABLE",
+                "Text encoding does not apply to PDF bytes.",
+            ));
+        }
         if !bytes.starts_with(b"%PDF-") {
             return Err(source_error(
                 "SOURCE_MIME_MISMATCH",
                 "The file does not contain a PDF header.",
             ));
         }
-    } else if std::str::from_utf8(bytes).is_err() {
-        return Err(source_error(
-            "UNSUPPORTED_ENCODING",
-            "Text sources must use UTF-8 encoding.",
-        ));
+    } else {
+        decode_source_text(bytes, encoding).map_err(|mut error| {
+            if encoding.is_none() {
+                error.code = "UNSUPPORTED_ENCODING".into();
+            }
+            error
+        })?;
     }
     Ok(extension)
+}
+
+pub(crate) fn import_encoding(
+    input: &ImportInput,
+    existing: Option<&SourceManifest>,
+    mime: &str,
+    hash: &str,
+) -> AppResult<Option<TextEncoding>> {
+    if input.encoding.is_some() && !mime.starts_with("text/") {
+        return Err(source_error(
+            "ENCODING_NOT_APPLICABLE",
+            "Text encoding applies only to text sources.",
+        ));
+    }
+    if let Some(revision) = existing.and_then(|source| {
+        source
+            .revisions
+            .iter()
+            .find(|revision| revision.sha256 == hash)
+    }) {
+        if let Some(requested) = &input.encoding
+            && *requested != revision.encoding.clone().unwrap_or_default()
+        {
+            return Err(AppError::new(ErrorType::Conflict, "SOURCE_ENCODING_MISMATCH", "An existing revision cannot be reinterpreted with a different encoding.")
+                .with_hint("Use the recorded encoding, or import a distinct source with the intended interpretation."));
+        }
+        return Ok(revision.encoding.clone());
+    }
+    Ok(input.encoding.clone())
 }
 
 fn encode(manifest: &SourceManifest) -> AppResult<String> {

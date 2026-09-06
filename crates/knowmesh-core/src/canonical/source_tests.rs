@@ -19,6 +19,7 @@ fn input(path: PathBuf, source_id: Option<SourceId>) -> ImportInput {
         path,
         source_id,
         storage: None,
+        encoding: None,
         title: None,
         kind: "paper".into(),
         tags: vec![],

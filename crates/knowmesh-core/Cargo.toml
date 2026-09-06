@@ -25,6 +25,7 @@ yaml-edit.workspace = true
 unicode-normalization.workspace = true
 base64.workspace = true
 scraper.workspace = true
+encoding_rs.workspace = true
 
 [dev-dependencies]
 syn.workspace = true

@@ -12,12 +12,12 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::{
-    domain::{SourceBlockId, SourceRevision, sha256},
+    domain::{SourceBlockId, SourceRevision, decode_source_text, sha256},
     error::{AppError, AppResult, ErrorType},
     ports::SourceParser,
 };
 
-const PARSER_VERSION: &str = "1";
+const PARSER_VERSION: &str = "2";
 
 #[derive(Debug, Default)]
 pub struct TextParser {
@@ -74,14 +74,8 @@ impl SourceParser for TextParser {
             ));
         }
         let parser = self.descriptor(&revision.mime_type)?;
-        let text = std::str::from_utf8(bytes).map_err(|_| {
-            AppError::new(
-                ErrorType::Validation,
-                "INVALID_SOURCE_ENCODING",
-                "Text parser input must be valid UTF-8.",
-            )
-        })?;
-        let source = text.strip_prefix('\u{feff}').unwrap_or(text);
+        let text = decode_source_text(bytes, revision.encoding.as_ref())?;
+        let source = text.strip_prefix('\u{feff}').unwrap_or(&text);
         let prefix = text.len() - source.len();
         let mut builder = builder::Builder::new(self.limits.max_blocks);
         let metadata = match revision.mime_type.as_str() {
@@ -94,6 +88,15 @@ impl SourceParser for TextParser {
             _ => unreachable!("parser dispatch was validated"),
         };
         builder.finish(Some(source.len()))?;
+        if revision
+            .encoding
+            .as_ref()
+            .is_some_and(|encoding| !encoding.is_utf8())
+        {
+            for block in &mut builder.blocks {
+                block.source_bytes = None;
+            }
+        }
         let parsed = assemble(revision, parser, prefix, metadata, builder)?;
         parsed.validate(revision)?;
         Ok(parsed)
@@ -197,6 +200,7 @@ fn assemble(
         version: 1,
         source_revision_id: revision.id.clone(),
         source_sha256: revision.sha256.clone(),
+        source_encoding: revision.encoding.clone(),
         text_sha256: sha256(normalized_text.as_bytes()),
         normalized_text,
         metadata,

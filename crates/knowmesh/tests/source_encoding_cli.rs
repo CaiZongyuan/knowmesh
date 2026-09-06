@@ -39,6 +39,10 @@ fn explicit_encoding_preserves_raw_snapshots_and_historical_read_and_parse_contr
     fs::write(&path, raw).unwrap();
     let rejected = add(&root, &path, &[]);
     assert!(!rejected.status.success());
+    assert_eq!(
+        serde_json::from_slice::<Value>(&rejected.stderr).unwrap()["error"]["code"],
+        "UNSUPPORTED_ENCODING"
+    );
     let preview = success(add(
         &root,
         &path,
@@ -157,4 +161,50 @@ fn referenced_legacy_bytes_are_verified_and_invalid_labels_or_pdf_encodings_fail
         serde_json::from_slice::<Value>(&error.stderr).unwrap()["error"]["code"],
         "ENCODING_NOT_APPLICABLE"
     );
+}
+
+#[test]
+fn synchronization_rejects_rewriting_historical_encoding_and_no_sync_uses_indexed_metadata() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("workspace");
+    cargo_bin_cmd!("knowmesh")
+        .arg("init")
+        .arg(&root)
+        .assert()
+        .success();
+    let path = temp.path().join("legacy.txt");
+    fs::write(&path, b"caf\xe9").unwrap();
+    let added = success(add(&root, &path, &["--encoding", "windows-1252"]));
+    let id = added["data"]["source"]["id"].as_str().unwrap();
+    let workspace = knowmesh_core::canonical::workspace::Workspace::load(&root).unwrap();
+    let mut source = knowmesh_core::canonical::source::SourceLibrary::new(&workspace)
+        .get(&id.parse().unwrap())
+        .unwrap();
+    source.manifest.revisions[0].encoding = Some("windows-1251".parse().unwrap());
+    fs::write(
+        root.join(source.path),
+        serde_yaml::to_string(&source.manifest).unwrap(),
+    )
+    .unwrap();
+    let sync = cargo_bin_cmd!("knowmesh")
+        .arg("--workspace")
+        .arg(&root)
+        .arg("sync")
+        .output()
+        .unwrap();
+    assert!(!sync.status.success());
+    assert_eq!(
+        serde_json::from_slice::<Value>(&sync.stderr).unwrap()["error"]["code"],
+        "IMMUTABLE_REVISION_CHANGED"
+    );
+    let content = success(
+        cargo_bin_cmd!("knowmesh")
+            .arg("--workspace")
+            .arg(&root)
+            .args(["source", "content", id, "--no-sync"])
+            .output()
+            .unwrap(),
+    );
+    assert_eq!(content["data"]["content"], "café");
+    assert_eq!(content["data"]["revision"]["encoding"], "windows-1252");
 }
