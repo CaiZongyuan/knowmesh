@@ -33,6 +33,8 @@ impl Server {
                     thread::sleep(Duration::from_millis(5));
                     continue;
                 };
+                // Accepted sockets can inherit the listener's nonblocking mode on Windows.
+                socket.set_nonblocking(false).unwrap();
                 socket
                     .set_read_timeout(Some(Duration::from_secs(2)))
                     .unwrap();
@@ -55,25 +57,25 @@ impl Server {
                 }
                 let path = request.split_whitespace().nth(1).unwrap_or("");
                 let response = match path {
-                    "/fake-pdf" => "HTTP/1.1 200 OK\r\nContent-Type: application/pdf\r\nContent-Length: 9\r\n\r\nnot a pdf".into(),
+                    "/fake-pdf" => "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/pdf\r\nContent-Length: 9\r\n\r\nnot a pdf".into(),
                     "/unbounded" => format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n{}", "a".repeat(1024 * 1024 + 1)),
-                    "/truncated" => "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 100\r\n\r\nshort".into(),
-                    "/redirect" => "HTTP/1.1 302 Found\r\nLocation: /paper\r\nContent-Length: 0\r\n\r\n".into(),
-                    "/loop" => "HTTP/1.1 302 Found\r\nLocation: /loop\r\nContent-Length: 0\r\n\r\n".into(),
-                    "/invalid" => "HTTP/1.1 302 Found\r\nLocation: file:///etc/hosts\r\nContent-Length: 0\r\n\r\n".into(),
-                    "/large" => "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 200000000\r\n\r\n".into(),
-                    "/missing" => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".into(),
+                    "/truncated" => "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: 100\r\n\r\nshort".into(),
+                    "/redirect" => "HTTP/1.1 302 Found\r\nConnection: close\r\nLocation: /paper\r\nContent-Length: 0\r\n\r\n".into(),
+                    "/loop" => "HTTP/1.1 302 Found\r\nConnection: close\r\nLocation: /loop\r\nContent-Length: 0\r\n\r\n".into(),
+                    "/invalid" => "HTTP/1.1 302 Found\r\nConnection: close\r\nLocation: file:///etc/hosts\r\nContent-Length: 0\r\n\r\n".into(),
+                    "/large" => "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: 200000000\r\n\r\n".into(),
+                    "/missing" => "HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 0\r\n\r\n".into(),
                     "/slow" => {
                         thread::sleep(Duration::from_millis(1200));
-                        "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 4\r\n\r\nslow".into()
+                        "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: 4\r\n\r\nslow".into()
                     },
                     "/slow-body" => {
-                        let _ = socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 4\r\n\r\n");
+                        let _ = socket.write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: 4\r\n\r\n");
                         thread::sleep(Duration::from_millis(1200));
                         "slow".into()
                     },
-                    "/paper" => { let body = "<h1>Fetched paper</h1><p>Synthetic evidence.</p>"; format!("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\n\r\n{body}", body.len()) },
-                    _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".into(),
+                    "/paper" => { let body = "<h1>Fetched paper</h1><p>Synthetic evidence.</p>"; format!("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\n\r\n{body}", body.len()) },
+                    _ => "HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 0\r\n\r\n".into(),
                 };
                 let _ = socket.write_all(response.as_bytes());
             }
