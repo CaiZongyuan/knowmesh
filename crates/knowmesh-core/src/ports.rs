@@ -49,6 +49,13 @@ pub trait IndexStore: ProjectionStore {
     fn diagnostics(&self) -> AppResult<DatabaseDiagnostics>;
 }
 
+pub trait ImpactStore: IndexStore {
+    fn source_impact(
+        &self,
+        query: &crate::application::impact::ImpactQuery,
+    ) -> AppResult<crate::application::impact::ImpactData>;
+}
+
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct RuntimeCopyReport {
     pub table_counts: std::collections::BTreeMap<String, u64>,

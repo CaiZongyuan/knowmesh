@@ -55,7 +55,7 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   byte-for-byte. `source add <path>` commits local managed/referenced imports;
   `source remove <id> --yes` commits soft removal. Both support `--dry-run`
   without creating a database. URL fetching, explicit idempotency keys, and
-  Source read commands/API are still pending.
+  Source list/get/content commands and HTTP APIs are still pending.
 - Core parses and renders Node and Synthesis Markdown. Unchanged documents keep
   their exact bytes; edited claims only replace their managed content. CommonMark
   source spans distinguish markers/wiki links from code examples; lossless YAML
@@ -133,7 +133,16 @@ storage ports. The executable owns CLI/HTTP adapters and dependency assembly.
   current sources separately, and derives deterministic reasons. Missing snapshots,
   missing dependencies, or incomplete synchronization produce `unknown`, even if
   another dependency has changed. Incomplete indexes cannot mark individual
-  Evidence as current. SQLite impact pagination and command integration are pending.
+  Evidence as current.
+- `source impact <id>` traverses Evidence, Claim, Relation, and Synthesis references,
+  including snapshot-only assertion and Source head dependencies. `--revision`,
+  `--kind`, `--limit`, and opaque cursors select stable `(kind,id)` pages. Counts
+  reflect all matches under the filters. One SQLite read transaction covers counts,
+  rows, and the dependencies needed for that page. Cursors bind workspace/query
+  and generation/snapshot hash; stale or changed queries return typed errors.
+  `--no-sync`, pending recovery, and skipped synchronization produce unknown
+  freshness. Source updates/removal preserve independent Evidence, and rebuild
+  preserves impact results. Removal preview, HTTP, and Search integration are pending.
 
 Initialization now uses a durable file journal under `.knowmesh/transactions/`
 and verified staging under `.knowmesh/staging/`. The Core coordinator can roll
@@ -164,6 +173,7 @@ KM-023 and their owning implementation issues.
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), atomic rebuild | Commits `8f13e4e`, `80eca4d`, `6f71b8d`: missing rebuild, CLI/preview validation gaps, and backup ordering deletes the latest backup | `cargo +stable test --workspace --locked`: 109 tests pass, including runtime recopy, corrupt-database preservation/discard, generation conflicts, failed-backup retry, retention, and simulated interruption at four replacement boundaries |
 | [KM-023 / #14](https://github.com/CaiZongyuan/knowmesh/issues/14), initialization recovery | Commit `42db30e`: doctor cannot reach recovery without a loadable configuration | `cargo +stable test --workspace --locked`: 113 tests pass, including every initialization file boundary, invalid configuration, environment/ancestor resolution, staging corruption, external conflicts, identity checks, and repeated repair |
 | [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), freshness rules | Commits `5b4190e`, `4e35f48`: missing freshness evaluation and incomplete indexes mark evidence as current | `cargo +stable test --workspace --locked`: 118 tests pass, including independent evidence preservation, snapshot/hash comparison, missing dependencies, deterministic reasons, and incomplete-index precedence |
+| [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), source impact | Commit `ba7f868`: missing impact operation | `cargo +stable test --workspace --locked`: 123 tests pass, including bounded pages, query/generation cursor checks, revision ownership, multiple sources, missing snapshots, snapshot-only dependencies, and impact/freshness equivalence after rebuild |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
@@ -184,6 +194,8 @@ The [atomic-rebuild CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs
 passed on all three operating systems for commit `18d6232`.
 The [initialization-recovery CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33999792619)
 passed on all three operating systems for commit `c97d2da`.
+The [freshness-rule CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/34000090333)
+passed on all three operating systems for commit `904bb5c`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked

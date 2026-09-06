@@ -116,6 +116,9 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
         repair,
         rebuild,
         OperationDescriptor::read::<EmptyInput, super::doctor::DoctorReport>("doctor"),
+        OperationDescriptor::read::<super::impact::ImpactInput, super::impact::ImpactReport>(
+            "source.impact",
+        ),
         OperationDescriptor::read::<super::status::StatusInput, super::status::StatusReport>(
             "status",
         ),

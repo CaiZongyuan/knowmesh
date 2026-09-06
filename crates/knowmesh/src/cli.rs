@@ -8,6 +8,7 @@ use clap::{Parser, Subcommand, ValueEnum, error::ErrorKind};
 use knowmesh_core::{
     application::{
         doctor::{self, IndexAccess, RepairInput},
+        impact::{self, ImpactInput, ImpactKind},
         operations,
         rebuild::{self, RebuildInput},
         schema::{self, PackInput},
@@ -15,7 +16,7 @@ use knowmesh_core::{
         workspace::{self, InitInput},
     },
     canonical::{source::ImportInput, workspace::Workspace},
-    domain::{RunId, SourceId, StorageMode, WorkspaceId},
+    domain::{RunId, SourceId, SourceRevisionId, StorageMode, WorkspaceId},
     error::{AppError, ErrorType},
     wire::{Failure, Metadata, Success},
 };
@@ -96,6 +97,17 @@ enum Command {
 
 #[derive(Subcommand)]
 enum SourceCommand {
+    Impact {
+        source_id: SourceId,
+        #[arg(long)]
+        revision: Option<SourceRevisionId>,
+        #[arg(long)]
+        kind: Option<ImpactKind>,
+        #[arg(long, default_value_t = 20)]
+        limit: u32,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
     Add {
         path: PathBuf,
         #[arg(long)]
@@ -169,6 +181,9 @@ impl Command {
             Self::Source {
                 command: SourceCommand::Remove { .. },
             } => "source.remove",
+            Self::Source {
+                command: SourceCommand::Impact { .. },
+            } => "source.impact",
         }
     }
 }
@@ -298,7 +313,7 @@ fn execute(
         Command::Source { command } => {
             let workspace = load_workspace(root)?;
             workspace_id = Some(workspace.config.workspace.id.clone());
-            let report = match command {
+            match command {
                 SourceCommand::Add {
                     path,
                     source_id,
@@ -317,7 +332,7 @@ fn execute(
                         tags: tags.clone(),
                         dry_run: *dry_run,
                     };
-                    if *dry_run {
+                    let report = if *dry_run {
                         source::preview_add(&workspace, &input, None)?
                     } else {
                         source::add(
@@ -326,7 +341,8 @@ fn execute(
                             &input,
                             None,
                         )?
-                    }
+                    };
+                    serde_json::to_value(report)
                 }
                 SourceCommand::Remove {
                     source_id,
@@ -338,7 +354,7 @@ fn execute(
                         dry_run: *dry_run,
                         yes: *yes,
                     };
-                    if *dry_run {
+                    let report = if *dry_run {
                         source::preview_remove(&workspace, &input)?
                     } else {
                         source::remove(
@@ -346,10 +362,28 @@ fn execute(
                             &mut crate::runtime::open_store(&workspace)?,
                             &input,
                         )?
-                    }
+                    };
+                    serde_json::to_value(report)
                 }
-            };
-            serde_json::to_value(report)
+                SourceCommand::Impact {
+                    source_id,
+                    revision,
+                    kind,
+                    limit,
+                    cursor,
+                } => serde_json::to_value(impact::execute(
+                    &workspace,
+                    &mut crate::runtime::open_store(&workspace)?,
+                    &ImpactInput {
+                        source_id: source_id.clone(),
+                        revision: revision.clone(),
+                        kind: *kind,
+                        limit: *limit,
+                        cursor: cursor.clone(),
+                        no_sync,
+                    },
+                )?),
+            }
         }
         Command::Rebuild {
             dry_run,

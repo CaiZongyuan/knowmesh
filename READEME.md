@@ -6,7 +6,8 @@ Markdown/YAML, SQLite projections, and reviewed proposals.
 **Development status:** v0.1 is being implemented. The current executable supports
 `knowmesh init [path] --template research`, `knowmesh version`, and operation discovery with `knowmesh schema list` /
 `knowmesh schema command <operation>` / `knowmesh schema pack <id>`, plus local
-`source add`, confirmed `source remove`, `sync`, `status`, `doctor`, and `rebuild`;
+`source add`, confirmed `source remove`, paginated `source impact`, `sync`, `status`,
+`doctor`, and `rebuild`;
 the complete ingestion, knowledge, search, graph, proposal,
 and optional Web workflows are not released yet. The npm bootstrap package does
 not contain an executable.

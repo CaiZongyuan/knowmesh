@@ -1773,6 +1773,8 @@ crates/knowmesh-core/prompts/synthesis-v1.md
 2. 每个 item 包含对象 ID、受影响 dependency IDs、`reasons`；结果包含 indexed generation。大影响面分页返回，不要求一次加载全部图。
 3. 仅报告已知引用与依赖，不把“受影响”解释为结论错误；其他独立来源的支持证据必须保留。`source.remove --dry-run` 复用同一影响分析。
 
+CLI 支持 `--kind claim|evidence|relation|synthesis`、`--limit <1..100>`（默认 20）、`--cursor`，计数按 source/revision/kind 筛选后的全部匹配项统计，不受当前页大小影响。item 的 `reasons` 描述依赖路径（`source_revision`、`evidence_reference`、`assertion_dependency`、`source_head`），与描述变更的 `freshness_reasons` 分开。游标绑定 workspace、来源和筛选条件，并校验 generation 与规范快照 hash；修改查询返回 `CURSOR_QUERY_MISMATCH`，索引变化返回 `CURSOR_STALE`。分页查询在一个 SQLite 读事务内读取计数、当前页与相关依赖，仅将该页需要的依赖载入 Core。
+
 `knowmesh compile source <source-id> --mode refresh` 的输入固定目标 revision，并比较该来源历史 Evidence 关联的已接受 assertions；完全相同的主张可建议追加新 Evidence，改变或矛盾的主张生成显式 Proposal item。不能仅因新版本没有再次提及旧主张就自动 retract；无法对应的旧主张只进入复核 warning。Proposal Apply 继续检查 base generation 与 before hash。
 
 Claim/Relation/Synthesis 的读取与 Search 输出增加派生字段 `freshness: current | needs_review | unknown` 及 `freshness_reasons`：
@@ -1782,7 +1784,7 @@ Claim/Relation/Synthesis 的读取与 Search 输出增加派生字段 `freshness
 - 缺少快照、依赖缺失或当前索引未完整同步时为 `unknown`，不得显示“已是最新”。`current` 只表示已记录依赖未发生上述变化，不保证科学真实性或外部世界没有新研究。
 - 多来源对象任一已使用依赖变化就提示复核，但同时返回仍有效的其他 Evidence。状态完全从规范数据派生，删除 DB 后可重建，不覆盖人工 `reviewed` 或 assertion 生命周期。
 
-判定结果保留所有已记录的 `evidence_ids`，另用 `current_evidence_ids` 表示当前完整索引中未移除且 revision 仍为 head 的证据。索引未完整同步时后者为空。`freshness_reasons` 按 code 汇总、去重并稳定排序，附相关 `dependency_ids`；`unknown` 的优先级高于 `needs_review`，但已知变化原因仍保留。Core 判定规则已实现；SQLite/命令接入进度见 [开发文档](development.md#verified-behavior)。
+判定结果保留所有已记录的 `evidence_ids`，另用 `current_evidence_ids` 表示当前完整索引中未移除且 revision 仍为 head 的证据。索引未完整同步时后者为空。`freshness_reasons` 按 code 汇总、去重并稳定排序，附相关 `dependency_ids`；`unknown` 的优先级高于 `needs_review`，但已知变化原因仍保留。`source impact --no-sync` 保守返回 `index_complete: false` 和 `unknown`；待恢复事务或同步被活跃 writer 阻止时也不声称已是最新。Core、SQLite 与 `source impact` CLI 已实现；移除预览、HTTP、Search 接入进度见 [开发文档](development.md#verified-behavior)。
 
 Ask 必须披露使用到的 `needs_review/unknown` 依赖。更新 Synthesis 时重新 Ask，并通过 `synthesis.propose` 创建新综述；v0.1 保留旧综述，不自动覆盖其正文或生成时依赖快照。
 

@@ -23,6 +23,7 @@ url.workspace = true
 pulldown-cmark.workspace = true
 yaml-edit.workspace = true
 unicode-normalization.workspace = true
+base64.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true

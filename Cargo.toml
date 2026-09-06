@@ -32,6 +32,7 @@ pulldown-cmark = { version = "0.13", default-features = false, features = ["html
 yaml-edit = { version = "0.3", default-features = false }
 rusqlite = { version = "0.40", default-features = false, features = ["bundled", "backup", "functions", "hooks", "fallible_uint"] }
 unicode-normalization = "0.1"
+base64 = "0.22"
 
 [workspace.lints.clippy]
 all = "warn"
