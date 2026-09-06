@@ -38,6 +38,10 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   Fixtures reject Compiler writes, direct adapter database access, unregistered
   writes, and raw connection/writer exposure; registered reconcile/migration
   paths pass. CLI dependency assembly returns Core ports from `runtime.rs`.
+- Operation contract tests inspect every CLI operation mapping against the Core
+  descriptor registry without executing handlers. Unknown names, dynamic mappings,
+  wildcard fallbacks, and missing mappings fail the gate. This supplements Rust's
+  exhaustive enum matching; HTTP route coverage must be added when #34 lands.
 - Typed IDs reject another object's prefix, malformed payloads, and ULID overflow;
   valid IDs survive JSON round trips without changing identity.
 - Content digests are SHA-256; timestamps serialize as RFC 3339 UTC with `Z`.
@@ -219,6 +223,7 @@ KM-023 and their owning implementation issues.
 | [KM-004 / #5](https://github.com/CaiZongyuan/knowmesh/issues/5), architecture guard | Commits `1286326`, `7367010`, `f28795d`: missing checker, missed glob/qualified mutation/public connection cases, and adapters can invoke reconcile through Core ports | `cargo +stable test --workspace --locked`: 132 tests pass, including eight architecture tests covering dependency identities, production module discovery, registered writers, forbidden capabilities, and repository boundaries |
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), [KM-050 / #30](https://github.com/CaiZongyuan/knowmesh/issues/30), [KM-051 / #31](https://github.com/CaiZongyuan/knowmesh/issues/31), Source reads | Commits `951de18`, `106794d`: missing Core/CLI reads and absent envelope continuation metadata | `cargo +stable test --workspace --locked`: 138 tests pass, including filtered pagination, query/workspace/generation mismatch, external metadata sync, historical reads after removal, content integrity, binary encoding, raw output, and format conflicts |
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), URL fetching | Commits `2983eb9`, `1d0f963`: missing fetch policy/transport/CLI override, and invalid downloaded bytes create an index before rejection | `cargo +stable test --workspace --locked`: 143 tests pass, including public/private address policy, actual DNS checks, bounded redirects/downloads/timeouts, preview without writes, MIME validation before index creation, repeat-hash imports, and offline snapshot reads |
+| [KM-003 / #4](https://github.com/CaiZongyuan/knowmesh/issues/4), public handler registration | Commit `237a7d9`: no automated coverage of the full CLI operation mapping | `cargo +stable test --workspace --locked`: 146 tests pass, including unregistered-handler fixtures and rejection of dynamic/wildcard/missing mappings |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

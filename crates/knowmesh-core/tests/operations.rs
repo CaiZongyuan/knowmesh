@@ -39,7 +39,10 @@ fn unknown_operations_have_a_stable_typed_error() {
 fn public_cli_handlers_must_all_have_application_descriptors() {
     let source = include_str!("../../knowmesh/src/cli.rs");
     let descriptors = descriptors();
-    let names = descriptors.iter().map(|operation| operation.name.as_str()).collect();
+    let names = descriptors
+        .iter()
+        .map(|operation| operation.name.as_str())
+        .collect();
     let errors = guard::check_cli(source, &names);
     assert!(errors.is_empty(), "{errors:?}");
 }
@@ -53,7 +56,11 @@ fn registration_guard_rejects_an_unregistered_handler_without_executing_it() {
             match self { Self::Version => "version", Self::Hidden => "unregistered.handler" }
         } }
     "#;
-    assert!(guard::check_cli(source, &names).iter().any(|error| error.contains("unregistered.handler")));
+    assert!(
+        guard::check_cli(source, &names)
+            .iter()
+            .any(|error| error.contains("unregistered.handler"))
+    );
     let valid = source.replace("unregistered.handler", "version");
     assert!(guard::check_cli(&valid, &names).is_empty());
 }

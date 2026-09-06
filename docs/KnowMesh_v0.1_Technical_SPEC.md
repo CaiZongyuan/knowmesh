@@ -1045,6 +1045,8 @@ pub struct OperationDescriptor {
 
 CLI/HTTP 可有各自的参数解析，但必须映射到同一个 Input DTO 与 Use Case。
 
+当前公共入口为 CLI；[`operations` 合同测试](../crates/knowmesh-core/tests/operations.rs) 使用 AST 检查 `Command::operation_name` 的全部分支是否存在于 Core descriptor registry，未注册名称、动态名称、通配 fallback 或缺失映射均使 CI 失败，包含不会被其他行为测试执行的新命令。映射保留显式、穷尽的 `match self`，Rust 编译器负责 enum 分支覆盖。HTTP 路由加入时必须沿用同一 registry，并补充 route/Operation 覆盖测试；普通 Core 公共 helper 不自动视为公共 Operation。
+
 ### 10.5 推荐 Rust 组件
 
 | 能力 | 组件 | 说明 |

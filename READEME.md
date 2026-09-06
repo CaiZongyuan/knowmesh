@@ -22,7 +22,8 @@ through `--allow-private-network`.
 Source removal previews include affected knowledge and preserve the disk index.
 Source lists support cursor pagination; content reads verify historical bytes,
 with explicit `--raw` output for text and PDFs.
-Workspace tests also check dependency direction and registered write boundaries;
+Workspace tests also check public operation registration, dependency direction,
+and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).
 
 ```bash
