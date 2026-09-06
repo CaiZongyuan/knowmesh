@@ -76,6 +76,52 @@ fn markdown_preserves_structure_sections_code_tables_and_unicode_spans() {
 }
 
 #[test]
+fn markdown_frontmatter_preserves_metadata_without_treating_it_as_body_or_configuration() {
+    let text = "---\ntitle: Metadata title\nlanguage: zh-CN\ntags: [research, cells]\nliteral: '*not-an-alias'\napi_key: '${NOT_A_REAL_SECRET}'\n---\n\n# Body title\n\nEvidence text.\n";
+    let parsed = TextParser::default()
+        .parse(&revision(text.as_bytes(), "text/markdown"), text.as_bytes())
+        .unwrap();
+    assert_eq!(parsed.metadata.title.as_deref(), Some("Metadata title"));
+    assert_eq!(parsed.metadata.language.as_deref(), Some("zh-CN"));
+    let metadata = serde_json::to_value(&parsed.metadata).unwrap();
+    assert_eq!(
+        metadata["attributes"]["tags"],
+        serde_json::json!(["research", "cells"])
+    );
+    assert_eq!(metadata["attributes"]["api_key"], "${NOT_A_REAL_SECRET}");
+    assert_eq!(metadata["attributes"]["literal"], "*not-an-alias");
+    assert_eq!(parsed.normalized_text, "Body title\n\nEvidence text.");
+    check_spans(&parsed, text);
+}
+
+#[test]
+fn frontmatter_limits_and_invalid_or_expanding_metadata_fail_before_output() {
+    for (metadata, code) in [
+        (
+            "title: [unterminated".to_owned(),
+            "INVALID_SOURCE_FRONTMATTER",
+        ),
+        (
+            "value: &value [one, two]\ncopy: *value".into(),
+            "SOURCE_FRONTMATTER_ALIAS_UNSUPPORTED",
+        ),
+        (
+            format!("title: {}", "a".repeat(65_537)),
+            "SOURCE_PARSE_LIMIT",
+        ),
+    ] {
+        let text = format!("---\n{metadata}\n---\n\nBody.\n");
+        assert_eq!(
+            TextParser::default()
+                .parse(&revision(text.as_bytes(), "text/markdown"), text.as_bytes())
+                .unwrap_err()
+                .code,
+            code
+        );
+    }
+}
+
+#[test]
 fn html5_parsing_keeps_captions_and_repairs_markup_without_executing_or_fetching_content() {
     let text = include_str!("fixtures/parse/structured.html");
     let parsed = TextParser::default()
@@ -281,9 +327,18 @@ fn parser_descriptors_allow_cache_keys_before_parsing_and_include_configuration(
     let again = parser.descriptor("text/markdown").unwrap();
     assert_eq!(first, again);
     assert_ne!(first.name, parser.descriptor("text/html").unwrap().name);
-    let small = TextParser::new(ParseLimits { max_bytes: 1024, max_blocks: 10 }).unwrap();
-    assert_ne!(first.config_sha256, small.descriptor("text/markdown").unwrap().config_sha256);
-    let parsed = parser.parse(&revision(b"# A", "text/markdown"), b"# A").unwrap();
+    let small = TextParser::new(ParseLimits {
+        max_bytes: 1024,
+        max_blocks: 10,
+    })
+    .unwrap();
+    assert_ne!(
+        first.config_sha256,
+        small.descriptor("text/markdown").unwrap().config_sha256
+    );
+    let parsed = parser
+        .parse(&revision(b"# A", "text/markdown"), b"# A")
+        .unwrap();
     assert_eq!(parsed.parser_name, first.name);
     assert_eq!(parsed.parser_version, first.version);
     assert_eq!(parsed.parser_config_sha256, first.config_sha256);
@@ -293,6 +348,39 @@ proptest! {
     #[test]
     fn arbitrary_unicode_text_keeps_valid_character_spans(text in ".{0,512}") {
         let parsed = TextParser::default().parse(&revision(text.as_bytes(), "text/plain"), text.as_bytes()).unwrap();
+        check_spans(&parsed, &text);
+    }
+
+    #[test]
+    fn malformed_html_combinations_still_produce_valid_bounded_blocks(
+        pieces in prop::collection::vec(prop_oneof![
+            Just("<p>"), Just("</p>"), Just("<h2>"), Just("</h2>"),
+            Just("<table>"), Just("<tr><td>"), Just("</table>"),
+            Just("<li>"), Just("</li>"), Just("<div>"), Just("</div>"),
+            Just("<pre>"), Just("</pre>"), Just("<script>"), Just("</script>"),
+            Just("细胞 &amp; data\n"), Just("<br>"),
+        ], 0..40)
+    ) {
+        let text = pieces.concat();
+        let source = revision(text.as_bytes(), "text/html");
+        let parsed = TextParser::default().parse(&source, text.as_bytes()).unwrap();
+        parsed.validate(&source).unwrap();
+        check_spans(&parsed, &text);
+    }
+
+    #[test]
+    fn mixed_markdown_structures_keep_valid_source_and_text_spans(
+        pieces in prop::collection::vec(prop_oneof![
+            Just("# Root\n\n"), Just("## Child\n\n"), Just("- item\n"),
+            Just("  - nested\n"), Just("> quote\n"), Just("\n```txt\n"),
+            Just("\n```\n"), Just("**bold**\n"), Just("<div>\n"),
+            Just("</div>\n"), Just("细胞 text\n"), Just("\n\n"),
+        ], 0..40)
+    ) {
+        let text = pieces.concat();
+        let source = revision(text.as_bytes(), "text/markdown");
+        let parsed = TextParser::default().parse(&source, text.as_bytes()).unwrap();
+        parsed.validate(&source).unwrap();
         check_spans(&parsed, &text);
     }
 }
