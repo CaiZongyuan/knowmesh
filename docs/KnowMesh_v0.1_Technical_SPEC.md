@@ -1310,19 +1310,23 @@ knowmesh
 
 ### 11.8 Error taxonomy 与 exit code
 
-| `error.type` | Exit | 示例 code |
-|---|---:|---|
-| `validation` | 2 | `INVALID_ARGUMENT`、`INVALID_NODE_ID` |
-| `not_found` | 3 | `NODE_NOT_FOUND`、`SOURCE_NOT_FOUND` |
-| `configuration` | 3 | `WORKSPACE_NOT_FOUND`、`MODEL_NOT_CONFIGURED`、`WEB_ASSETS_INVALID`、`WEB_API_INCOMPATIBLE` |
-| `io` | 4 | `FILE_READ_FAILED`、`DISK_FULL` |
-| `network` | 4 | `FETCH_TIMEOUT`、`PROVIDER_UNAVAILABLE` |
-| `internal` | 5 | `INVARIANT_VIOLATION`、`DECODE_FAILED` |
-| `policy` | 6 | `STRICT_REVIEW_REQUIRED`、`REMOTE_URL_DISABLED` |
-| `conflict` | 7 | `STALE_PROPOSAL`、`WORKSPACE_LOCKED` |
-| `model` | 8 | `STRUCTURED_OUTPUT_INVALID`、`CONTEXT_LIMIT` |
-| `confirmation` | 10 | `CONFIRMATION_REQUIRED` |
-| `cancelled` | 130 | `RUN_CANCELLED`（CLI Ctrl-C） |
+| `error.type` | Exit | 默认 HTTP status | 示例 code |
+|---|---:|---:|---|
+| `validation` | 2 | 400 | `INVALID_ARGUMENT`、`INVALID_NODE_ID` |
+| `not_found` | 3 | 404 | `NODE_NOT_FOUND`、`SOURCE_NOT_FOUND` |
+| `configuration` | 3 | 503 | `WORKSPACE_NOT_FOUND`、`MODEL_NOT_CONFIGURED`、`WEB_ASSETS_INVALID`、`WEB_API_INCOMPATIBLE` |
+| `io` | 4 | 500 | `FILE_READ_FAILED`、`DISK_FULL` |
+| `network` | 4 | 502 | `FETCH_TIMEOUT`、`PROVIDER_UNAVAILABLE` |
+| `internal` | 5 | 500 | `INVARIANT_VIOLATION`、`DECODE_FAILED` |
+| `policy` | 6 | 403 | `STRICT_REVIEW_REQUIRED`、`REMOTE_URL_DISABLED` |
+| `conflict` | 7 | 409 | `STALE_PROPOSAL`、`WORKSPACE_LOCKED` |
+| `model` | 8 | 502 | `STRUCTURED_OUTPUT_INVALID`、`CONTEXT_LIMIT` |
+| `confirmation` | 10 | 409 | `CONFIRMATION_REQUIRED` |
+| `cancelled` | 130 | 409 | `RUN_CANCELLED`（CLI Ctrl-C） |
+
+Core 的 `AppError::exit_code()` 与 `http_status()` 是映射的唯一实现，不依赖 HTTP framework。`network/FETCH_TIMEOUT` 特例返回 504；其他未单列 code 使用类型默认值，不根据 message、hint 或 retryable 猜测状态。配置不可用表示服务当前无法执行请求（503）；已取消操作的错误是状态冲突（409），正常读取 cancelled Run 或成功提交取消请求仍是 200，见 18.2 节。HTTP Adapter 的协议解析、认证与路由错误由传输层映射，不把上游 HTTP status 原样转发为本服务状态。
+
+[`wire_contract` 快照测试](../crates/knowmesh-core/tests/wire_contract.rs) 固定全部类型的映射及成功、分页、完整和最小错误 envelope，验证缺省可选字段省略、未知错误字段可忽略。当前已实现共享契约；实际 HTTP 响应接入与路由测试随 KM-060 实施。
 
 恢复相关 code：`conflict/RUN_ALREADY_ACTIVE`、`conflict/RUN_INPUT_CHANGED`、`conflict/TRANSACTION_RECOVERY_CONFLICT`、`validation/RUN_NOT_RESUMABLE`、`policy/RUN_BUDGET_EXHAUSTED`；具体条件见 [20.4 节](#204-operationrun)。
 
@@ -2078,6 +2082,7 @@ Evidence bundle 由 Core 确定性构建，不让模型自行选择引用 ID。�
 - OpenAPI：`GET /api/v1/openapi.json`。
 - 所有 JSON 与 CLI 共享 domain DTO，但 HTTP 使用标准 status code。
 - HTTP error body 复用 CLI `error` 对象和 `meta.trace_id`。
+- Core 错误的 status 使用 [11.8 节](#118-error-taxonomy-与-exit-code) 的共享映射，body 保持相同的 Failure envelope。
 - Axum handler 只负责 transport、认证、输入映射与 status mapping。
 
 ### 18.2 Endpoint 表

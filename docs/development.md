@@ -48,6 +48,10 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - `version` works outside a workspace and emits one JSON value on stdout.
 - Invalid CLI arguments and unsupported formats produce typed JSON on stderr,
   an empty stdout, and the corresponding nonzero exit code.
+- Core maps every error type to CLI exit and HTTP status codes, with an explicit
+  fetch-timeout override. JSON snapshots fix complete success, paginated, and error
+  envelopes, including omitted optional fields and forward-compatible error reads.
+  The mapping is defined in SPEC 11.8; actual HTTP responses remain part of #34.
 - `schema list` and `schema command <operation>` expose the Core operation
   registry, including input/output JSON schemas, policy, effect, and support flags.
 - `init [path] --name <name> --template research` creates a portable workspace;

@@ -79,4 +79,17 @@ impl AppError {
             ErrorType::Cancelled => 130,
         }
     }
+
+    pub fn http_status(&self) -> u16 {
+        match self.error_type {
+            ErrorType::Validation => 400,
+            ErrorType::NotFound => 404,
+            ErrorType::Configuration => 503,
+            ErrorType::Io | ErrorType::Internal => 500,
+            ErrorType::Network if self.code == "FETCH_TIMEOUT" => 504,
+            ErrorType::Network | ErrorType::Model => 502,
+            ErrorType::Policy => 403,
+            ErrorType::Conflict | ErrorType::Confirmation | ErrorType::Cancelled => 409,
+        }
+    }
 }

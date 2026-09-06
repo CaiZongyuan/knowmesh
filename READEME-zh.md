@@ -8,6 +8,7 @@ Core 库已提供规范文件解析、可恢复文件事务和原子的 SQLite �
 
 来源移除预览会返回受影响的知识，且不改写磁盘索引。
 来源列表支持游标分页，内容读取会校验历史字节，文本和 PDF 均可显式使用 `--raw` 输出。
+Core 错误映射和 JSON envelope 已有契约快照，HTTP 服务尚待实现。
 Workspace 测试也检查公共 Operation 注册、依赖方向及已登记的写入边界，覆盖范围与限制见[开发文档](docs/development.md)。
 
 ```bash
