@@ -128,6 +128,7 @@ fn v3_claim_keys_are_recomputed_before_metadata_can_take_the_fast_path() {
             .unwrap(),
     );
     let db = rusqlite::Connection::open(&path).unwrap();
+    db.execute("DROP TABLE proposal_revisions", []).unwrap();
     db.execute("DELETE FROM schema_migrations WHERE version>=4", [])
         .unwrap();
     db.pragma_update(None, "user_version", 3).unwrap();
@@ -216,6 +217,7 @@ fn v4_summary_projection_is_refreshed_without_canonical_file_changes() {
     sync::synchronize(&workspace, &mut store).unwrap();
     drop(store);
     let db = rusqlite::Connection::open(&path).unwrap();
+    db.execute("DROP TABLE proposal_revisions", []).unwrap();
     db.execute("DELETE FROM schema_migrations WHERE version>=5", [])
         .unwrap();
     db.pragma_update(None, "user_version", 4).unwrap();
