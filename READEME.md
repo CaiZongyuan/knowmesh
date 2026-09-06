@@ -38,7 +38,7 @@ validation; the full compile/review/apply workflow remains in development.
 Core Evidence verification checks quotes against bounded source spans and rejects
 ambiguous repairs; enforcement through Proposal review/apply is still pending.
 Entity resolution includes conservative identifier/name/alias matching and SQLite
-candidate retrieval; model suggestions and Proposal integration are still pending.
+candidate retrieval plus bounded model advice; Compiler/Proposal integration is pending.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

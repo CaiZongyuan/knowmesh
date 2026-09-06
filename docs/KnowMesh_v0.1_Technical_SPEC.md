@@ -1827,7 +1827,13 @@ Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint�
 
 词法候选沿用加权 RRF，禁用额外 boosts，展示规范化 `retrieval_score`；它不是实体相同的概率。仅有词法候选时不得自动关联；Top-1 与 Top-2 分差不超过 0.05 时保持 ambiguous。否则可提供 existing 的待审核建议。失败 FTS 通道显式报告并从 RRF 分母排除；没有可用词法通道时 `retrieval_available=false`。`retrieval_sha256` 绑定索引快照、查询所得候选、排名参数、实际通道与上限，供知识阶段缓存使用。
 
-当前向量通道仍返回 `VECTOR_DISABLED` 或 `VECTOR_UNAVAILABLE`。受限模型建议、可选向量实现及 Proposal 接入仍由 KM-045/KM-031/KM-047 继续完成；确定性和真实 SQLite fixtures 不代表整个 Compiler/Apply 流程完成。
+[`advise`](../crates/knowmesh-core/src/application/entity_resolution/advice.rs) 对尚未确定性自动关联的结果调用 `model::generate`，使用版本化 [entity-resolution-v1.md](../crates/knowmesh-core/prompts/entity-resolution-v1.md) 和闭集 `existing | new | ambiguous` 输出 Schema，复用 [14.4 节](#144-模型结构化输出) 的请求、token、deadline、修复及重试预算。名称、属性与候选报告仅作为 user message 数据；返回理由限 1–2048 字符且不能全为空白。已自动确定的结果不再次调用模型。
+
+模型只能选择本次可见候选中的 Node ID；未知 ID 返回 `ENTITY_ADVICE_TARGET_INVALID`，类型或标识符冲突等 candidate warning 阻止选择并返回 `ENTITY_ADVICE_TARGET_BLOCKED`。原报告为 ambiguous、展示被截断或召回达到上限时，模型的 existing/new 偏好仍保留为 ambiguous，不选定 Node。所有建议始终 `requires_review=true`，不执行创建、合并或 Apply。成功保留 reason、usage、诊断、report hash 与 prompt hash；语义约束失败保留 usage/诊断而不附带模型原文。
+
+建议入口检查输入 hash、候选与报告边界、选定 ID、分数和上下文 hash 结构。调用方仍须提供来自当前 catalog 或已校验缓存的报告；这些 DTO/hash 不代替 Proposal 的重新验证。知识阶段缓存还须按 13.6 节绑定 provider/model、实际参数与完整上下文。
+
+当前向量通道返回 `VECTOR_DISABLED` 或 `VECTOR_UNAVAILABLE`，可选向量实现由 KM-031 接入。确定性匹配、真实 SQLite 召回和 fake provider fixtures 已实现；Compiler 编排与 Proposal 接入仍随 KM-047/KM-048 完成，不以这些组件测试声称整个 Compiler/Apply 已通过。
 
 ### 14.7 去重与冲突
 

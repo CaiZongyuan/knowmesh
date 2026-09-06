@@ -179,8 +179,14 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - Real fixtures cover external updates, close ranking scores, literal operators,
   short Unicode aliases, missing FTS channels, and mixed or altered snapshots.
   Retrieval scores are review suggestions; context hashes retain the actual
-  channels/configuration. Bounded model advice, vectors, and the Proposal workflow
-  remain under #25/#18/#27.
+  channels/configuration.
+- Entity model advice uses a versioned prompt, closed output Schema, and the
+  shared generation budgets. Unknown or incompatible targets fail with usage
+  retained; ambiguity/truncation cannot become a silent selection or new Node.
+  Advice always requires review, and already automatic matches skip model calls.
+  Fake provider tests cover valid/new/ambiguous suggestions, invalid targets,
+  input mismatch, bounded repairs, and safe diagnostics. Optional vectors and
+  Compiler/Proposal orchestration remain #18/#27/#28.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
@@ -345,6 +351,7 @@ KM-023 and their owning implementation issues.
 | [KM-044 / #24](https://github.com/CaiZongyuan/knowmesh/issues/24), Evidence verifier component | Commit `bf76b48`: missing Evidence verifier module | `cargo +stable test -p knowmesh-core --test evidence_verify --locked`: 14 tests pass; Proposal integration remains pending |
 | [KM-045 / #25](https://github.com/CaiZongyuan/knowmesh/issues/25), deterministic entity resolution | Commit `9f26ba8`: missing entity resolution module | `cargo +stable test -p knowmesh-core --test entity_resolution --locked`: 10 tests pass |
 | [KM-045 / #25](https://github.com/CaiZongyuan/knowmesh/issues/25), entity retrieval | Commit `9e5fd6b`: missing batch entity resolution operation | `cargo +stable test -p knowmesh-sqlite --test entity_resolution --locked`: 7 tests cover real FTS retrieval, snapshot consistency, ambiguity, and degradation |
+| [KM-045 / #25](https://github.com/CaiZongyuan/knowmesh/issues/25), bounded entity model advice | Commit `4dcec77`: missing advice function | `cargo +stable test -p knowmesh-core --test entity_advice --locked`: 6 tests cover constrained decisions, review requirements, usage, and invalid output |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

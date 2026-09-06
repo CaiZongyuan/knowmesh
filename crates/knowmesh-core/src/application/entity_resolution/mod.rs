@@ -1,8 +1,10 @@
+mod advice;
 mod retrieve;
 mod types;
 
 use std::collections::{BTreeMap, BTreeSet};
 
+pub use advice::{EntityAdvice, advise};
 pub use retrieve::{EntityBatchData, EntityBatchQuery, EntityBatchReport, resolve_batch};
 pub use types::*;
 

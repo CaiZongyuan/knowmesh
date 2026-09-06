@@ -132,19 +132,22 @@ fn an_unknown_or_incompatible_model_target_is_rejected_with_usage_and_without_ra
 #[test]
 fn model_preference_cannot_silently_resolve_deterministic_ambiguity() {
     let (input, report) = fixture(2, "Canonical", "Model");
-    let provider = Fake::new(
+    for output in [
         json!({"decision":"existing", "node_id":report.candidates[0].node_id, "reason":"First candidate."}),
-    );
-    let result = advise(&input, &report, &provider, &options()).unwrap();
-    assert_eq!(result.decision, ResolutionDecision::Ambiguous);
-    assert_eq!(result.selected_node_id, None);
-    assert!(result.requires_review);
-    assert!(
-        result
-            .warnings
-            .iter()
-            .any(|warning| warning == "ENTITY_AMBIGUITY_REQUIRES_REVIEW")
-    );
+        json!({"decision":"new", "reason":"Create another entity."}),
+    ] {
+        let provider = Fake::new(output);
+        let result = advise(&input, &report, &provider, &options()).unwrap();
+        assert_eq!(result.decision, ResolutionDecision::Ambiguous);
+        assert_eq!(result.selected_node_id, None);
+        assert!(result.requires_review);
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|warning| warning == "ENTITY_AMBIGUITY_REQUIRES_REVIEW")
+        );
+    }
 }
 
 #[test]
