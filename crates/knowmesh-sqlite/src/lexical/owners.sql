@@ -1,11 +1,12 @@
-WITH search_owners AS (
+-- Reuse shared associations within a query instead of expanding each correlated filter.
+WITH search_owners AS MATERIALIZED (
     SELECT unit_id,record_type AS kind,record_id AS id FROM search_units WHERE record_type<>'chunk'
     UNION ALL
     SELECT u.unit_id,CASE c.owner_kind WHEN 'source_revision' THEN 'source' ELSE c.owner_kind END,
         CASE c.owner_kind WHEN 'source_revision' THEN r.source_id ELSE c.owner_id END
     FROM search_units u JOIN chunks c ON u.record_type='chunk' AND c.id=u.record_id
     LEFT JOIN source_revisions r ON c.owner_kind='source_revision' AND r.id=c.owner_id
-), assertion_links AS (
+), assertion_links AS MATERIALIZED (
     SELECT 'claim' AS kind,c.id AS assertion_id,c.subject_node_id AS node_id,r.source_id
     FROM claims c LEFT JOIN claim_evidence ce ON ce.claim_id=c.id
     LEFT JOIN evidence e ON e.id=ce.evidence_id LEFT JOIN source_revisions r ON r.id=e.source_revision_id
@@ -17,15 +18,15 @@ WITH search_owners AS (
     SELECT 'relation',rel.id,rel.target_node_id,r.source_id
     FROM relations rel LEFT JOIN relation_evidence re ON re.relation_id=rel.id
     LEFT JOIN evidence e ON e.id=re.evidence_id LEFT JOIN source_revisions r ON r.id=e.source_revision_id
-), node_sources AS (
+), node_sources AS MATERIALIZED (
     SELECT node_id,source_id FROM source_node_links
     UNION
     SELECT node_id,source_id FROM assertion_links WHERE source_id IS NOT NULL
-), synthesis_links AS (
+), synthesis_links AS MATERIALIZED (
     SELECT s.id AS synthesis_id,link.node_id,link.source_id FROM syntheses s
     JOIN json_each(s.dependency_snapshot_json,'$.assertions') AS a
     JOIN assertion_links link ON link.kind=json_extract(a.value,'$.kind') AND link.assertion_id=json_extract(a.value,'$.id')
-), search_nodes AS (
+), search_nodes AS MATERIALIZED (
     SELECT unit_id,id AS node_id FROM search_owners WHERE kind='node'
     UNION
     SELECT o.unit_id,c.subject_node_id FROM search_owners o JOIN claims c ON o.kind='claim' AND c.id=o.id
@@ -35,7 +36,7 @@ WITH search_owners AS (
     SELECT o.unit_id,n.node_id FROM search_owners o JOIN synthesis_nodes n ON o.kind='synthesis' AND n.synthesis_id=o.id
     UNION
     SELECT o.unit_id,n.node_id FROM search_owners o JOIN synthesis_links n ON o.kind='synthesis' AND n.synthesis_id=o.id
-), search_sources AS (
+), search_sources AS MATERIALIZED (
     SELECT unit_id,id AS source_id FROM search_owners WHERE kind='source'
     UNION
     SELECT o.unit_id,n.source_id FROM search_owners o JOIN node_sources n ON o.kind='node' AND n.node_id=o.id
@@ -52,7 +53,7 @@ WITH search_owners AS (
     UNION
     SELECT o.unit_id,n.source_id FROM search_owners o JOIN synthesis_links n ON o.kind='synthesis' AND n.synthesis_id=o.id
     WHERE n.source_id IS NOT NULL
-), search_tags AS (
+), search_tags AS MATERIALIZED (
     SELECT o.unit_id,t.value AS tag FROM search_owners o JOIN sources s ON o.kind='source' AND s.id=o.id
     JOIN json_each(s.tags_json) AS t
     UNION

@@ -165,6 +165,8 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   one/two-character recall, including long/short mixed terms.
 - Candidate queries apply all Search filters before per-channel limits,
   retain empty successful channels, and return stable ranks/public identities.
+  Shared ownership/dependency CTEs are materialized once per query to limit repeated
+  expansion inside correlated filters; large-corpus latency still requires #42.
   Advanced syntax is opt-in; query bounds and SQLite execution interruption apply
   to both modes. Error paths release the progress callback for later queries.
   Contract details live in SPEC 9.3/15.6.
