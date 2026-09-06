@@ -6,7 +6,7 @@ Markdown/YAML, SQLite projections, and reviewed proposals.
 **Development status:** v0.1 is being implemented. The current executable supports
 `knowmesh init [path] --template research`, `knowmesh version`, and operation discovery with `knowmesh schema list` /
 `knowmesh schema command <operation>` / `knowmesh schema pack <id>`, plus local
-`source add`, confirmed `source remove`, paginated `source impact`, `sync`, `status`,
+`source add/list/get/content`, confirmed `source remove`, paginated `source impact`, `sync`, `status`,
 `doctor`, and `rebuild`;
 the complete ingestion, knowledge, search, graph, proposal,
 and optional Web workflows are not released yet. The npm bootstrap package does
@@ -18,6 +18,8 @@ repair, including interrupted initialization with missing configuration.
 Rebuild preserves runtime state and backs up the old database before
 replacement; URL fetching is pending.
 Source removal previews include affected knowledge and preserve the disk index.
+Source lists support cursor pagination; content reads verify historical bytes,
+with explicit `--raw` output for text and PDFs.
 Workspace tests also check dependency direction and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).
 

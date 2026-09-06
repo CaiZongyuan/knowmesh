@@ -154,9 +154,15 @@ impl Guard<'_> {
             self.reject("CANONICAL_WRITER_ACCESS", path);
         }
         if core
-            && path
-                .split("::")
-                .any(|part| ["ProjectionStore", "IndexStore", "ImpactStore"].contains(&part))
+            && path.split("::").any(|part| {
+                [
+                    "ProjectionStore",
+                    "IndexStore",
+                    "ImpactStore",
+                    "SourceReadStore",
+                ]
+                .contains(&part)
+            })
             && !self
                 .policy
                 .projection_users

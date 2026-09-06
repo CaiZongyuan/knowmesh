@@ -67,7 +67,17 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   byte-for-byte. `source add <path>` commits local managed/referenced imports;
   `source remove <id> --yes` commits soft removal. Both support `--dry-run`
   without creating a database. URL fetching, explicit idempotency keys, and
-  Source list/get/content commands and HTTP APIs are still pending.
+  HTTP APIs are still pending.
+- `source list/get/content` share fast synchronization and report the actual index
+  generation/completeness. Lists return bounded summaries with exact kind/tag
+  filters and opt-in removed sources. Cursors bind workspace, filters, and index
+  generation/hash; page counts and rows use one SQLite read transaction. CLI
+  envelopes expose continuation through `meta.next_cursor` as well as the result DTO.
+- Source detail preserves revision history after soft removal. Content accepts a
+  Source ID for its indexed head or a Revision ID for fixed historical content;
+  reads verify indexed size/hash even with `--no-sync`. JSON uses UTF-8 for text
+  and Base64 for PDFs. `source content --raw` emits exact bytes and rejects an
+  explicit `--format` in any argument order. See SPEC 13.1.1 for the read contract.
 - Core parses and renders Node and Synthesis Markdown. Unchanged documents keep
   their exact bytes; edited claims only replace their managed content. CommonMark
   source spans distinguish markers/wiki links from code examples; lossless YAML
@@ -195,6 +205,7 @@ KM-023 and their owning implementation issues.
 | [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), source impact | Commit `ba7f868`: missing impact operation | `cargo +stable test --workspace --locked`: 123 tests pass, including bounded pages, query/generation cursor checks, revision ownership, multiple sources, missing snapshots, snapshot-only dependencies, and impact/freshness equivalence after rebuild |
 | [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), removal preview | Commit `2a911f6`: source removal preview has no impact query | `cargo +stable test --workspace --locked`: 124 tests pass, including preview with missing/stale indexes, unchanged index bytes and canonical removal state, and cursor continuation after synchronization |
 | [KM-004 / #5](https://github.com/CaiZongyuan/knowmesh/issues/5), architecture guard | Commits `1286326`, `7367010`, `f28795d`: missing checker, missed glob/qualified mutation/public connection cases, and adapters can invoke reconcile through Core ports | `cargo +stable test --workspace --locked`: 132 tests pass, including eight architecture tests covering dependency identities, production module discovery, registered writers, forbidden capabilities, and repository boundaries |
+| [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), [KM-050 / #30](https://github.com/CaiZongyuan/knowmesh/issues/30), [KM-051 / #31](https://github.com/CaiZongyuan/knowmesh/issues/31), Source reads | Commits `951de18`, `106794d`: missing Core/CLI reads and absent envelope continuation metadata | `cargo +stable test --workspace --locked`: 138 tests pass, including filtered pagination, query/workspace/generation mismatch, external metadata sync, historical reads after removal, content integrity, binary encoding, raw output, and format conflicts |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
@@ -219,6 +230,8 @@ The [freshness-rule CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs
 passed on all three operating systems for commit `904bb5c`.
 The [source-impact CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/34000711119)
 passed on all three operating systems for commit `afc84f6`.
+The [architecture-gate CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/34002031716)
+passed on all three operating systems for commit `037cac0`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked

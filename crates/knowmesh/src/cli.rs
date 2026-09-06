@@ -12,7 +12,9 @@ use knowmesh_core::{
         operations,
         rebuild::{self, RebuildInput},
         schema::{self, PackInput},
-        source, status, sync,
+        source,
+        source_read::{self, ContentId, ContentInput},
+        status, sync,
         workspace::{self, InitInput},
     },
     canonical::{source::ImportInput, workspace::Workspace},
@@ -31,8 +33,8 @@ use serde::Serialize;
 struct Cli {
     #[arg(long, global = true)]
     workspace: Option<PathBuf>,
-    #[arg(long, global = true, value_enum, default_value = "json")]
-    format: OutputFormat,
+    #[arg(long, global = true, value_enum)]
+    format: Option<OutputFormat>,
     #[arg(long, global = true)]
     trace_id: Option<RunId>,
     #[arg(long, global = true)]
@@ -97,6 +99,26 @@ enum Command {
 
 #[derive(Subcommand)]
 enum SourceCommand {
+    List {
+        #[arg(long)]
+        include_removed: bool,
+        #[arg(long)]
+        kind: Option<String>,
+        #[arg(long)]
+        tag: Option<String>,
+        #[arg(long, default_value_t = 20)]
+        limit: u32,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
+    Get {
+        source_id: SourceId,
+    },
+    Content {
+        id: ContentId,
+        #[arg(long, conflicts_with = "format")]
+        raw: bool,
+    },
     Impact {
         source_id: SourceId,
         #[arg(long)]
@@ -176,6 +198,15 @@ impl Command {
             Self::Doctor { repair: true, .. } => "doctor.repair",
             Self::Doctor { .. } => "doctor",
             Self::Source {
+                command: SourceCommand::List { .. },
+            } => "source.list",
+            Self::Source {
+                command: SourceCommand::Get { .. },
+            } => "source.get",
+            Self::Source {
+                command: SourceCommand::Content { .. },
+            } => "source.content",
+            Self::Source {
                 command: SourceCommand::Add { .. },
             } => "source.add",
             Self::Source {
@@ -213,7 +244,39 @@ pub fn run() -> u8 {
     };
     let trace = cli.trace_id.unwrap_or(trace);
     let command = cli.command.operation_name();
-    if !matches!(cli.format, OutputFormat::Json | OutputFormat::Pretty) {
+    if let Command::Source {
+        command: SourceCommand::Content { id, raw: true },
+    } = &cli.command
+    {
+        if cli.format.is_some() {
+            return fail(
+                AppError::new(
+                    ErrorType::Validation,
+                    "INVALID_ARGUMENT",
+                    "--raw and --format cannot be combined.",
+                )
+                .with_param("format"),
+                command,
+                trace,
+                start,
+            );
+        }
+        let result = read_content(cli.workspace, id.clone(), cli.no_sync).and_then(|content| {
+            io::stdout().lock().write_all(&content.bytes).map_err(|_| {
+                AppError::new(
+                    ErrorType::Io,
+                    "OUTPUT_WRITE_FAILED",
+                    "Could not write source content.",
+                )
+            })
+        });
+        return match result {
+            Ok(()) => 0,
+            Err(error) => fail(error, command, trace, start),
+        };
+    }
+    let format = cli.format.unwrap_or(OutputFormat::Json);
+    if !matches!(format, OutputFormat::Json | OutputFormat::Pretty) {
         return fail(
             AppError::new(
                 ErrorType::Validation,
@@ -233,11 +296,15 @@ pub fn run() -> u8 {
     };
     let mut meta = Metadata::new(command, trace.clone(), elapsed_ms(start));
     meta.workspace_id = workspace_id;
+    meta.next_cursor = data
+        .get("next_cursor")
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_owned);
     let envelope = Success::new(data, meta);
     let result = write_json(
         io::stdout().lock(),
         &envelope,
-        matches!(cli.format, OutputFormat::Pretty),
+        matches!(format, OutputFormat::Pretty),
     );
     match result {
         Ok(()) => 0,
@@ -314,6 +381,43 @@ fn execute(
             let workspace = load_workspace(root)?;
             workspace_id = Some(workspace.config.workspace.id.clone());
             match command {
+                SourceCommand::List {
+                    include_removed,
+                    kind,
+                    tag,
+                    limit,
+                    cursor,
+                } => serde_json::to_value(source_read::list(
+                    &workspace,
+                    crate::runtime::open_source_store(&workspace)?.as_mut(),
+                    &source_read::ListInput {
+                        include_removed: *include_removed,
+                        kind: kind.clone(),
+                        tag: tag.clone(),
+                        limit: *limit,
+                        cursor: cursor.clone(),
+                        no_sync,
+                    },
+                )?),
+                SourceCommand::Get { source_id } => serde_json::to_value(source_read::get(
+                    &workspace,
+                    crate::runtime::open_source_store(&workspace)?.as_mut(),
+                    &source_read::GetInput {
+                        source_id: source_id.clone(),
+                        no_sync,
+                    },
+                )?),
+                SourceCommand::Content { id, .. } => serde_json::to_value(
+                    source_read::content(
+                        &workspace,
+                        crate::runtime::open_source_store(&workspace)?.as_mut(),
+                        &ContentInput {
+                            id: id.clone(),
+                            no_sync,
+                        },
+                    )?
+                    .into_report()?,
+                ),
                 SourceCommand::Add {
                     path,
                     source_id,
@@ -450,6 +554,19 @@ fn execute(
 
 fn load_workspace(root: Option<PathBuf>) -> Result<Workspace, AppError> {
     Workspace::load(&workspace_root(root, false)?)
+}
+
+fn read_content(
+    root: Option<PathBuf>,
+    id: ContentId,
+    no_sync: bool,
+) -> Result<source_read::SourceContent, AppError> {
+    let workspace = load_workspace(root)?;
+    source_read::content(
+        &workspace,
+        crate::runtime::open_source_store(&workspace)?.as_mut(),
+        &ContentInput { id, no_sync },
+    )
 }
 
 fn workspace_root(root: Option<PathBuf>, recovery: bool) -> Result<PathBuf, AppError> {

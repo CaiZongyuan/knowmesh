@@ -15,7 +15,8 @@
     "crates/knowmesh-core/src/application/status.rs",
     "crates/knowmesh-core/src/application/doctor.rs",
     "crates/knowmesh-core/src/application/doctor/recovery.rs",
-    "crates/knowmesh-core/src/application/impact.rs"
+    "crates/knowmesh-core/src/application/impact.rs",
+    "crates/knowmesh-core/src/application/source_read.rs"
   ],
   "filesystem_writers": [
     "crates/knowmesh-core/src/canonical/transaction.rs",

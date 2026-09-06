@@ -1223,6 +1223,9 @@ knowmesh
 |---|---|---|---|---:|---:|
 | `init` | path、template、name | workspace metadata、created paths | canonical-write | 是 | 是 |
 | `source.add` | path/url、可选 source_id、storage、metadata | Source、Revision、warnings | canonical-write | 是 | 是 |
+| `source.list` | kind/tag、include_removed、cursor、limit | bounded summaries、total、generation | read | 不适用 | 不适用 |
+| `source.get` | source id | Source manifest、revision history、generation | read | 不适用 | 不适用 |
+| `source.content` | source/revision id | verified bytes、revision、encoding | read | 不适用 | 不适用 |
 | `source.remove` | source id、mode | affected files/assertions | canonical-write | 是 | 是 |
 | `source.impact` | source id、revision/filter、cursor | affected assertions/syntheses、reasons、generation | read | 不适用 | 不适用 |
 | `source.compile` | source id、profile | Proposal、warnings、run | runtime-write | 否 | 是 |
@@ -1470,6 +1473,14 @@ knowmesh skills install-loader \
 | PDF 文本层 | 是 | 内置 Rust parser；可选外部 parser adapter | 不承诺复杂双栏表格完美恢复 |
 | 扫描 PDF | 否 | 检测并返回 `needs_ocr` | OCR 延后 |
 | DOCX/PPTX/EPUB | 否 | 后续 adapter | v0.1 明确拒绝 |
+
+#### 13.1.1 来源读取
+
+- `source list` 按 Source ID 升序返回摘要，默认隐藏 soft-removed 来源；`--include-removed` 包含历史来源，`--kind` 和 `--tag` 使用精确匹配。每页遵守 11.11 节，返回过滤后的 `total`。游标绑定 workspace、operation、过滤条件和索引 generation/snapshot hash；索引变化返回 `conflict/CURSOR_STALE`。页数据、计数和索引版本在同一 read transaction 中读取。
+- `source get <source-id>` 返回规范 Source metadata 与完整 Revision 历史，soft-remove 不影响按 ID 查询。
+- `source content <source-id>` 读取所查询索引中的 current Revision；传入 Revision ID 则读取固定历史版本。Source/revision 不存在分别返回 `SOURCE_NOT_FOUND` / `SOURCE_REVISION_NOT_FOUND`。读取本地快照或 referenced 文件，不重新抓取 URL。
+- 以上命令默认 fast sync；`--no-sync`、待恢复事务或活跃 writer 导致同步跳过时可以读取上次完整投影，返回 `index_complete=false` 和实际 generation。`--no-sync` 仍检查配置/Schema/version；content 仍按所查询 Revision 的字节数、SHA-256、路径和当前大小策略校验，变化返回 `SOURCE_REVISION_CHANGED`，不把后来变动的 manifest 当作旧 Revision 的新依据。
+- Content JSON 返回 `source_id`、完整 `revision`、`encoding` 和 `content`：文本为 `encoding=utf-8`，PDF 为 RFC 4648 标准 Base64（`encoding=base64`）。`--raw` 返回经校验的原始字节，不添加换行；与显式 `--format` 互斥，不受参数顺序影响。编码发生在校验之后，错误沿用 11.7 节。
 
 ### 13.2 Parser Port
 

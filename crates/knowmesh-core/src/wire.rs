@@ -16,6 +16,8 @@ pub struct Metadata {
     pub duration_ms: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workspace_id: Option<WorkspaceId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
 }
 
 impl Metadata {
@@ -26,6 +28,7 @@ impl Metadata {
             trace_id,
             duration_ms,
             workspace_id: None,
+            next_cursor: None,
         }
     }
 }

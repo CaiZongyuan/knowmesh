@@ -3,15 +3,23 @@ use std::path::Path;
 use knowmesh_core::{
     canonical::{schema::Schema, workspace::Workspace},
     error::{AppError, AppResult, ErrorType},
-    ports::{ImpactPreviewBackend, ImpactStore, IndexStore, RebuildBackend},
+    ports::{ImpactPreviewBackend, ImpactStore, IndexStore, RebuildBackend, SourceReadStore},
 };
 use knowmesh_sqlite::SqliteStore;
 
 pub fn open_store(workspace: &Workspace) -> AppResult<Box<dyn ImpactStore>> {
+    Ok(Box::new(configured_store(workspace)?))
+}
+
+pub fn open_source_store(workspace: &Workspace) -> AppResult<Box<dyn SourceReadStore>> {
+    Ok(Box::new(configured_store(workspace)?))
+}
+
+fn configured_store(workspace: &Workspace) -> AppResult<SqliteStore> {
     let schema = Schema::load(workspace)?;
     let store = SqliteStore::open(&workspace.index_path()?)?;
     store.bind_workspace(&workspace.config.workspace.id, &schema.hash)?;
-    Ok(Box::new(store))
+    Ok(store)
 }
 
 pub fn rebuild_backend(workspace: &Workspace) -> AppResult<impl RebuildBackend> {

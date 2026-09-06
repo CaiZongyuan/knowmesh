@@ -56,6 +56,17 @@ pub trait ImpactStore: IndexStore {
     ) -> AppResult<crate::application::impact::ImpactData>;
 }
 
+pub trait SourceReadStore: IndexStore {
+    fn source_list(
+        &self,
+        query: &crate::application::source_read::ListQuery,
+    ) -> AppResult<crate::application::source_read::ListData>;
+    fn source_get(
+        &self,
+        id: &crate::application::source_read::ContentId,
+    ) -> AppResult<crate::application::source_read::SourceData>;
+}
+
 pub trait ImpactPreviewBackend {
     fn preview(
         &self,

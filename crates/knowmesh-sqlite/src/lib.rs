@@ -7,6 +7,7 @@ mod migrations;
 mod rebuild;
 mod reconcile;
 mod runtime;
+mod source_read;
 
 use std::{
     path::{Path, PathBuf},

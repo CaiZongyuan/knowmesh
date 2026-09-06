@@ -2,11 +2,12 @@
 
 基于 Rust CLI、规范 Markdown/YAML、SQLite 派生索引与 Proposal 审核的本地知识工作空间。
 
-**开发状态：** v0.1 正在实现。目前支持 `knowmesh init [path] --template research`、`knowmesh version`、`knowmesh schema list`、`knowmesh schema command <operation>`、`knowmesh schema pack <id>`，以及本地 `source add`、需确认的 `source remove`、分页 `source impact`、`sync`、`status`、`doctor` 和 `rebuild`；完整导入、知识、搜索、图谱、Proposal 和可选 Web 工作流尚未发布。npm 初始化包不包含可执行程序。
+**开发状态：** v0.1 正在实现。目前支持 `knowmesh init [path] --template research`、`knowmesh version`、`knowmesh schema list`、`knowmesh schema command <operation>`、`knowmesh schema pack <id>`，以及 `source add/list/get/content`、需确认的 `source remove`、分页 `source impact`、`sync`、`status`、`doctor` 和 `rebuild`；完整导入、知识、搜索、图谱、Proposal 和可选 Web 工作流尚未发布。npm 初始化包不包含可执行程序。
 
 Core 库已提供规范文件解析、可恢复文件事务和原子的 SQLite 投影同步。Doctor 支持显式事务修复，包括配置尚未落盘的初始化中断；Rebuild 保留运行状态，先备份旧数据库再原子替换。URL 抓取仍待接入。
 
 来源移除预览会返回受影响的知识，且不改写磁盘索引。
+来源列表支持游标分页，内容读取会校验历史字节，文本和 PDF 均可显式使用 `--raw` 输出。
 Workspace 测试也检查依赖方向及已登记的写入边界，覆盖范围与限制见[开发文档](docs/development.md)。
 
 ```bash

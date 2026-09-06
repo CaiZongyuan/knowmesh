@@ -447,8 +447,17 @@ impl<'a> SourceLibrary<'a> {
         revision_id: &SourceRevisionId,
     ) -> AppResult<Vec<u8>> {
         let file = self.get(&source.id)?;
-        let revision = file
-            .manifest
+        self.content_at(&file.path, &file.manifest, revision_id)
+    }
+
+    pub(crate) fn content_at(
+        &self,
+        manifest_path: &Path,
+        manifest: &SourceManifest,
+        revision_id: &SourceRevisionId,
+    ) -> AppResult<Vec<u8>> {
+        manifest.validate()?;
+        let revision = manifest
             .revisions
             .iter()
             .find(|revision| &revision.id == revision_id)
@@ -459,13 +468,12 @@ impl<'a> SourceLibrary<'a> {
                     "The revision does not belong to this source.",
                 )
             })?;
-        let path = if file.manifest.storage == StorageMode::Referenced {
+        let path = if manifest.storage == StorageMode::Referenced {
             PathBuf::from(&revision.path)
         } else {
             checked_path(
                 &self.workspace.root,
-                &file
-                    .path
+                &manifest_path
                     .parent()
                     .ok_or_else(|| {
                         source_error("INVALID_REVISION_PATH", "Missing source directory.")
