@@ -522,6 +522,24 @@ fn full_warning_lists_still_allow_builder_to_block_invalid_payloads() {
 }
 
 #[test]
+fn rebuilding_recomputes_its_own_failures_but_keeps_upstream_blockers() {
+    let (_temp, workspace) = support::fixture();
+    let before = CanonicalSnapshot::scan(&workspace).unwrap();
+    let invalid = item(PatchOp::AddAlias, &before.nodes[0].metadata.id, json!({"alias":""}));
+    let prepared = build(&workspace, vec![invalid]);
+    blocked(&prepared, 0, "INVALID_ALIAS");
+    let mut repaired = prepared.proposal.items[0].clone();
+    repaired.payload = json!({"alias":"Repaired alias"});
+    let repaired = build(&workspace, vec![repaired]);
+    unblocked(&repaired);
+    let mut upstream = repaired.proposal.items[0].clone();
+    upstream.issues = vec![serde_json::from_value(json!({"code":"AMBIGUOUS_ENTITY","message":"Resolve the upstream entity choice.","blocking":true})).unwrap()];
+    let retained = build(&workspace, vec![upstream]);
+    blocked(&retained, 0, "AMBIGUOUS_ENTITY");
+    assert!(retained.documents().is_empty());
+}
+
+#[test]
 fn source_metadata_cannot_modify_revision_storage_or_unrelated_identity_fields() {
     let (_temp, workspace) = support::fixture();
     let before = CanonicalSnapshot::scan(&workspace).unwrap();
