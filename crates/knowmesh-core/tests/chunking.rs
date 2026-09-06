@@ -126,6 +126,12 @@ fn chunk_configuration_changes_do_not_mutate_evidence_locator_coordinates() {
         corrupt.validate(&revision, &parsed).unwrap_err().code,
         "INVALID_CHUNK_ARTIFACT"
     );
+    let mut missing = short.clone();
+    missing.chunks.pop();
+    assert_eq!(
+        missing.validate(&revision, &parsed).unwrap_err().code,
+        "INVALID_CHUNK_ARTIFACT"
+    );
 }
 
 #[test]
