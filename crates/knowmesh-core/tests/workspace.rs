@@ -102,6 +102,43 @@ fn future_config_versions_are_rejected_before_use() {
 }
 
 #[test]
+fn search_ranking_settings_round_trip_and_reject_invalid_weights_and_bounds() {
+    let temp = tempfile::tempdir().unwrap();
+    initialize(temp.path(), &InitOptions::default()).unwrap();
+    let path = temp.path().join("knowmesh.yaml");
+    let mut config: serde_json::Value =
+        serde_json::to_value(Workspace::load(temp.path()).unwrap().config).unwrap();
+    config["search"]["word_weight"] = 1.2.into();
+    config["search"]["trigram_weight"] = 0.7.into();
+    config["search"]["vector_weight"] = 1.5.into();
+    config["search"]["candidate_limit"] = 250.into();
+    config["search"]["lexical_timeout_ms"] = 500.into();
+    config["search"]["boosts_enabled"] = false.into();
+    fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    let loaded = Workspace::load(temp.path()).unwrap();
+    assert_eq!(
+        serde_json::to_value(loaded.config).unwrap()["search"],
+        config["search"]
+    );
+    for (field, invalid) in [
+        ("word_weight", serde_json::json!(0)),
+        ("trigram_weight", serde_json::json!(-1)),
+        ("vector_weight", serde_json::Value::Null),
+        ("candidate_limit", serde_json::json!(501)),
+        ("lexical_timeout_ms", serde_json::json!(0)),
+    ] {
+        let mut bad = config.clone();
+        bad["search"][field] = invalid;
+        fs::write(&path, serde_json::to_vec(&bad).unwrap()).unwrap();
+        assert_eq!(
+            Workspace::load(temp.path()).unwrap_err().code,
+            "INVALID_CONFIGURATION",
+            "{field}"
+        );
+    }
+}
+
+#[test]
 fn purpose_is_optional_but_configured_files_are_bounded_and_confined() {
     let temp = tempfile::tempdir().unwrap();
     initialize(temp.path(), &InitOptions::default()).unwrap();
