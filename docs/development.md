@@ -218,6 +218,16 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   cover pagination, stale context, model repair bounds, overlapping groups, and limits.
   These checks establish controller behavior, not real-model judgment quality (#42).
   SPEC 14.7/14.8 define the remaining Proposal/Run integration (#27/#28).
+- The Proposal domain now models closed patch names, immutable revision transitions,
+  per-item review, bulk/strict policy, human confirmation, and finalized/stale states.
+  Review hashes bind both item content and Proposal context, including decision
+  metadata; changes cannot silently reuse an older approval. Same-input review is
+  a no-op, while rebase or item-order changes reset decisions.
+- Proposal state fixtures cover typed targets, blocked acceptance, preserved
+  rejections, stale revisions, edited payloads, attestation changes, and JSON
+  round trips. This is the in-memory state layer only: runtime history, typed patch
+  payload validation, real Evidence checking, and canonical Apply remain #27.
+  The contract and limits live in SPEC 14.9.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
@@ -387,6 +397,7 @@ KM-023 and their owning implementation issues.
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), conflict projection | Commit `f8856dd`: missing group rows and projection behavior; adding groups also exposed the old rebuild hash inventory | `cargo +stable test -p knowmesh-sqlite --test conflict_groups --locked`: 3 tests pass, including actual rebuild and transaction rollback |
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), exact deduplication | Commits `ddc74a8`, `f31a49e`: missing deduplication module; scientific symbols collapse and legacy keys skip reindexing | `assertion_dedup`: 11 tests pass; `fast_sync`: 5 tests pass, including two normalization/migration regressions |
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), semantic comparison/planning | Commit `84f5bba`: missing Claim comparison context; an additional regression exposed conflicting shared Evidence payloads | `cargo +stable test -p knowmesh-core --test assertion_compare --locked`: 11 tests cover six golden scenarios, canonical rendering, and shared Evidence integrity |
+| [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), Proposal state/review | Commit `3fb7339`: missing Proposal domain module; further regressions expose unbound context/attestation metadata | `cargo +stable test -p knowmesh-core --test proposal_state --locked`: 10 state/review tests; builder/store/Apply integration remains pending |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,

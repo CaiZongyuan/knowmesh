@@ -42,6 +42,8 @@ candidate retrieval plus bounded model advice; Compiler/Proposal integration is 
 Canonical conflict groups survive projection and rebuild. Exact assertion/Evidence
 deduplication preserves scientific symbols. Bounded semantic comparison produces
 reviewable conflict plans; Compiler/Proposal/Run integration remains in development.
+Proposal state and review contracts are in place; persistence and canonical Apply
+are still being implemented.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

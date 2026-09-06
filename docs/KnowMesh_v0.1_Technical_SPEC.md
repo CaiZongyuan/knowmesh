@@ -1937,6 +1937,14 @@ update_source_metadata
 - 任一 item 含 invalid evidence、schema violation、ambiguous entity 时不得被 accept，除非用户先修复 payload 形成新 proposal version。
 - Proposal 每次编辑递增 `revision`，保留旧 revision，不原地隐藏历史。
 
+当前 [`domain::proposal`](../crates/knowmesh-core/src/domain/proposal/mod.rs) 已实现版本化内存快照、14.8 节的闭集 op 和审核状态契约。每次实际 review/revise/reject/stale/applied 状态变化返回新快照并递增 revision，原快照保持可用；同样的重复决策不增加 revision。Mutation 输入必须给出 `expected_revision`，不匹配返回 `PROPOSAL_REVISION_MISMATCH`。数据库保存这些历史快照、CLI/HTTP 输入与事务协调仍随 KM-047 接入。
+
+每项 decision 为 pending/accepted/rejected，保存原因、reviewed_by/at、explicit/bulk 方式及 human_verified。Relaxed bulk 只接受 pending 项，不覆盖已拒绝项；strict、禁止 accept-all 或要求人工验证的 policy 均拒绝 bulk。Accepted 项若有 blocking warning 则返回 `PROPOSAL_ITEM_BLOCKED`；需要人工确认而未提供时返回 `HUMAN_VERIFICATION_REQUIRED`。所有项均已决且至少一项 accepted 才为 approved；pending 阻止 Apply 状态门禁，全部拒绝则为 rejected。
+
+审核 hash 绑定 item ID、op、target、payload、before hash、Evidence IDs、风险/置信度/校验问题和决策信息，并绑定 Proposal 身份、来源/Run、base generation、Schema、创建信息及 item 顺序。载荷、上下文、审核方式或确认标记被直接改变会返回 `PROPOSAL_REVIEW_STALE`。同基线、同顺序下编辑只重置变化项，其他审核可保留；基线/Schema/顺序变化或 stale 重验证重置全部决策。该 hash 用于一致性检查，不是身份认证或文件写入授权。
+
+Stale 必须重验证并形成新 revision 后才能重新审核；applied/rejected 为终态。重复终结 applied 元数据保留首次 applied_generation，不把后来索引变化当作第二次 Apply。当前层仅验证 DTO、target ID 类型、边界和审核绑定：每项 payload 必须为 JSON object 且最多 1 MiB，Proposal 最多 10,000 项、序列化 items 合计最多 16 MiB。具体 op payload Schema、真实引用有效性、当前 workspace policy、文件 hash/generation 和 Apply 幂等仍须由 Application builder/store/coordinator 验证，不能仅凭本层的 approved 标记写入规范文件。
+
 ### 14.10 Compiler Prompt Contract
 
 System prompt 至少包含：

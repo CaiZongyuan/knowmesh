@@ -327,6 +327,60 @@ fn changing_approved_payload_without_revision_invalidates_its_review_hash() {
 }
 
 #[test]
+fn approval_hashes_also_bind_the_proposal_context_and_item_order() {
+    let original = proposal(vec![item("A"), item("B")]);
+    let approved = original
+        .review(
+            &ReviewInput {
+                expected_revision: 1,
+                accept_all: true,
+                decisions: vec![],
+            },
+            &ReviewPolicy::default(),
+            "reviewer",
+            time(),
+        )
+        .unwrap();
+    for change in 0..4 {
+        let mut altered = approved.clone();
+        match change {
+            0 => altered.base_generation += 1,
+            1 => altered.schema_hash = sha256(b"other schema"),
+            2 => altered.kind = ProposalKind::Compile,
+            _ => altered.items.reverse(),
+        }
+        assert_eq!(
+            altered.validate().unwrap_err().code,
+            "PROPOSAL_REVIEW_STALE"
+        );
+    }
+}
+
+#[test]
+fn review_method_and_human_attestation_cannot_be_changed_without_a_new_decision() {
+    let original = proposal(vec![item("A")]);
+    let approved = original
+        .review(
+            &ReviewInput {
+                expected_revision: 1,
+                accept_all: true,
+                decisions: vec![],
+            },
+            &ReviewPolicy::default(),
+            "reviewer",
+            time(),
+        )
+        .unwrap();
+    let mut altered = approved;
+    altered.items[0].review_method = Some(knowmesh_core::domain::proposal::ReviewMethod::Explicit);
+    altered.items[0].human_verified = true;
+    assert_eq!(
+        altered.validate().unwrap_err().code,
+        "PROPOSAL_REVIEW_STALE"
+    );
+}
+
+#[test]
 fn no_op_reviews_keep_revision_and_terminal_proposals_cannot_be_edited() {
     let original = proposal(vec![item("A")]);
     let approved = original
@@ -354,12 +408,13 @@ fn no_op_reviews_keep_revision_and_terminal_proposals_cannot_be_edited() {
         )
         .unwrap();
     assert_eq!(unchanged.revision, 2);
-    let applied = approved.mark_applied(2, 5, time()).unwrap();
+    let applied = approved.mark_applied(2, 5, "applier", time()).unwrap();
     assert_eq!(applied.state, ProposalState::Applied);
     assert_eq!(applied.applied_generation, Some(5));
+    assert_eq!(applied.updated_by, "applier");
     assert_eq!(
         applied
-            .mark_applied(2, 99, time())
+            .mark_applied(2, 99, "other", time())
             .unwrap()
             .applied_generation,
         Some(5)
@@ -380,4 +435,66 @@ fn no_op_reviews_keep_revision_and_terminal_proposals_cannot_be_edited() {
             .code,
         "PROPOSAL_FINALIZED"
     );
+}
+
+#[test]
+fn stale_state_requires_revalidation_and_rejection_preserves_the_last_decisions() {
+    let original = proposal(vec![item("A")]);
+    let approved = original
+        .review(
+            &ReviewInput {
+                expected_revision: 1,
+                accept_all: true,
+                decisions: vec![],
+            },
+            &ReviewPolicy::default(),
+            "reviewer",
+            time(),
+        )
+        .unwrap();
+    let stale = approved
+        .mark_stale(2, "A target changed.", "validator", time())
+        .unwrap();
+    assert_eq!(stale.state, ProposalState::Stale);
+    assert_eq!(stale.items[0].decision, Decision::Accepted);
+    assert_eq!(
+        stale
+            .review(
+                &ReviewInput {
+                    expected_revision: 3,
+                    accept_all: true,
+                    decisions: vec![]
+                },
+                &ReviewPolicy::default(),
+                "reviewer",
+                time()
+            )
+            .unwrap_err()
+            .code,
+        "STALE_PROPOSAL"
+    );
+    let revised = stale
+        .revise(
+            &ProposalRevision {
+                expected_revision: 3,
+                base_generation: 2,
+                schema_hash: stale.schema_hash.clone(),
+                summary: stale.summary.clone(),
+                items: stale.items.clone(),
+            },
+            "editor",
+            time(),
+        )
+        .unwrap();
+    assert_eq!(revised.items[0].decision, Decision::Pending);
+    let rejected = stale
+        .reject(3, "Superseded by another proposal.", "reviewer", time())
+        .unwrap();
+    assert_eq!(rejected.state, ProposalState::Rejected);
+    assert_eq!(rejected.items[0].decision, Decision::Accepted);
+    assert!(rejected.require_approved(&ReviewPolicy::default()).is_err());
+    let encoded = serde_json::to_value(&rejected).unwrap();
+    let decoded: Proposal = serde_json::from_value(encoded.clone()).unwrap();
+    decoded.validate().unwrap();
+    assert_eq!(serde_json::to_value(decoded).unwrap(), encoded);
 }

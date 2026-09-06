@@ -2,6 +2,7 @@ mod conflicts;
 pub mod freshness;
 mod ids;
 mod knowledge;
+pub mod proposal;
 mod source;
 mod text_encoding;
 mod timestamp;
