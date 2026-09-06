@@ -9,7 +9,7 @@ use knowmesh_core::{
         search::{self, SearchInput, SearchReport},
     },
     canonical::{snapshot::CanonicalSnapshot, workspace::Workspace},
-    domain::{SourceManifest, Timestamp, freshness::Freshness},
+    domain::{ChunkId, SourceManifest, Timestamp, freshness::Freshness, sha256},
     ports::ProjectionStore,
 };
 use knowmesh_sqlite::SqliteStore;
@@ -100,6 +100,76 @@ fn full_filters_apply_to_every_channel_and_source_dependencies_include_evidence_
 }
 
 #[test]
+fn a_node_type_filter_is_applied_before_a_one_candidate_channel_limit() {
+    let (temp, workspace, mut store, snapshot) = fixture();
+    let mut request = input("fixture");
+    request.record_types = vec![RecordType::Node];
+    let baseline = search::execute(&workspace, &mut store, &request).unwrap();
+    let target = &baseline.groups.knowledge[1].record_id;
+    request.node_types = vec![
+        snapshot
+            .nodes
+            .iter()
+            .find(|node| node.metadata.id.as_str() == target)
+            .unwrap()
+            .metadata
+            .node_type
+            .clone(),
+    ];
+    let mut config = serde_json::to_value(&workspace.config).unwrap();
+    config["search"]["candidate_limit"] = 1.into();
+    fs::write(
+        temp.path().join("knowmesh.yaml"),
+        serde_json::to_vec(&config).unwrap(),
+    )
+    .unwrap();
+    let workspace = Workspace::load(temp.path()).unwrap();
+    let filtered = search::execute(&workspace, &mut store, &request).unwrap();
+    assert_eq!(filtered.groups.knowledge.len(), 1);
+    assert_eq!(filtered.groups.knowledge[0].record_id, *target);
+}
+
+#[test]
+fn chunk_filters_follow_their_source_revision_node_or_synthesis_owner() {
+    let (_temp, workspace, mut store, snapshot) = fixture();
+    let db = rusqlite::Connection::open(store.path()).unwrap();
+    let model = snapshot
+        .nodes
+        .iter()
+        .find(|node| node.metadata.node_type == "Model")
+        .unwrap();
+    for (kind, owner) in [
+        (
+            "source_revision",
+            snapshot.sources[0].manifest.current_revision_id.as_str(),
+        ),
+        ("node", model.metadata.id.as_str()),
+        ("synthesis", snapshot.syntheses[0].metadata.id.as_str()),
+    ] {
+        let id = ChunkId::new();
+        db.execute("INSERT INTO chunks(id,owner_kind,owner_id,ordinal,text,content_sha256) VALUES(?1,?2,?3,0,'fixture chunk',?4)",
+            rusqlite::params![id.as_str(), kind, owner, sha256(b"fixture chunk")]).unwrap();
+        db.execute("INSERT INTO search_units(unit_id,record_type,record_id,body,content_sha256,updated_at) VALUES(?1,'chunk',?2,'fixture chunk',?3,'2026-09-06T00:00:00Z')",
+            rusqlite::params![format!("chunk:{id}"), id.as_str(), sha256(b"fixture chunk")]).unwrap();
+    }
+    let mut request = input("fixture");
+    request.record_types = vec![RecordType::Chunk];
+    request.node_types = vec!["Model".into()];
+    request.source_ids = vec![snapshot.sources[0].manifest.id.clone()];
+    request.tags = vec!["fixture".into()];
+    let result = search::execute(&workspace, &mut store, &request).unwrap();
+    assert_eq!(result.groups.chunks.len(), 3);
+    request.tags = vec!["unrelated".into()];
+    assert!(
+        search::execute(&workspace, &mut store, &request)
+            .unwrap()
+            .groups
+            .chunks
+            .is_empty()
+    );
+}
+
+#[test]
 fn real_search_pages_are_stable_and_expire_when_the_index_or_rank_settings_change() {
     let (temp, workspace, mut store, _) = fixture();
     let mut request = input("fixture");
@@ -151,6 +221,37 @@ fn real_search_pages_are_stable_and_expire_when_the_index_or_rank_settings_chang
 }
 
 #[test]
+fn a_failed_trigram_channel_is_disclosed_renormalized_and_expires_existing_cursors() {
+    let (_temp, workspace, mut store, _) = fixture();
+    let mut request = input("fixture");
+    request.record_types = vec![RecordType::Node];
+    request.limit = Some(1);
+    let before = search::execute(&workspace, &mut store, &request).unwrap();
+    let db = rusqlite::Connection::open(store.path()).unwrap();
+    db.execute_batch("DROP TABLE search_fts_tri").unwrap();
+    let after = search::execute(&workspace, &mut store, &request).unwrap();
+    assert!(after.capabilities.word_fts);
+    assert!(!after.capabilities.trigram_fts);
+    let explain = after.groups.knowledge[0].explain.as_ref().unwrap();
+    assert!((explain.normalization_bound - 1.0 / 61.0).abs() < 1e-12);
+    assert!((explain.normalized_score - 1.0).abs() < 1e-12);
+    assert!(
+        after
+            .channels
+            .iter()
+            .any(|channel| channel.unavailable_reason.as_deref()
+                == Some("DATABASE_OPERATION_FAILED"))
+    );
+    request.cursor = before.next_cursor;
+    assert_eq!(
+        search::execute(&workspace, &mut store, &request)
+            .unwrap_err()
+            .code,
+        "CURSOR_STALE"
+    );
+}
+
+#[test]
 fn search_preserves_historical_evidence_and_discloses_incomplete_or_removed_dependencies() {
     let (temp, workspace, mut store, _) = fixture();
     let path = temp.path().join("sources/fixture/source.yaml");
@@ -177,5 +278,13 @@ fn search_preserves_historical_evidence_and_discloses_incomplete_or_removed_depe
             .knowledge
             .iter()
             .any(|hit| hit.freshness.as_ref().unwrap().freshness == Freshness::NeedsReview)
+    );
+    assert_eq!(
+        synced.groups.syntheses[0]
+            .freshness
+            .as_ref()
+            .unwrap()
+            .freshness,
+        Freshness::NeedsReview
     );
 }
