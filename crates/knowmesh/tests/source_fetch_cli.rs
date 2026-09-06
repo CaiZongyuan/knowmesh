@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{Read, Write},
+    io::{BufRead, BufReader, Read, Write},
     net::TcpListener,
     path::Path,
     sync::{
@@ -39,13 +39,21 @@ impl Server {
                 socket
                     .set_write_timeout(Some(Duration::from_secs(2)))
                     .unwrap();
-                let mut request = [0_u8; 8192];
-                let n = socket.read(&mut request).unwrap_or(0);
-                let path = std::str::from_utf8(&request[..n])
-                    .unwrap_or("")
-                    .split_whitespace()
-                    .nth(1)
-                    .unwrap_or("");
+                let mut request = String::new();
+                {
+                    let mut reader = BufReader::new(&mut socket).take(8192);
+                    if reader.read_line(&mut request).is_err() || !request.ends_with("\r\n") {
+                        continue;
+                    }
+                    let mut header = String::new();
+                    loop {
+                        header.clear();
+                        if reader.read_line(&mut header).unwrap_or(0) == 0 || header == "\r\n" {
+                            break;
+                        }
+                    }
+                }
+                let path = request.split_whitespace().nth(1).unwrap_or("");
                 let response = match path {
                     "/fake-pdf" => "HTTP/1.1 200 OK\r\nContent-Type: application/pdf\r\nContent-Length: 9\r\n\r\nnot a pdf".into(),
                     "/unbounded" => format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n{}", "a".repeat(1024 * 1024 + 1)),
@@ -64,7 +72,8 @@ impl Server {
                         thread::sleep(Duration::from_millis(1200));
                         "slow".into()
                     },
-                    _ => { let body = "<h1>Fetched paper</h1><p>Synthetic evidence.</p>"; format!("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\n\r\n{body}", body.len()) },
+                    "/paper" => { let body = "<h1>Fetched paper</h1><p>Synthetic evidence.</p>"; format!("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\n\r\n{body}", body.len()) },
+                    _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".into(),
                 };
                 let _ = socket.write_all(response.as_bytes());
             }
