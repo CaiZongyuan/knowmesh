@@ -118,6 +118,13 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   to both modes. Error paths release the progress callback for later queries.
   Contract details live in SPEC 9.3/15.6. RRF, full Search filters/freshness,
   cursor pagination, and public Search commands remain #17.
+- Core's pure RRF implementation uses configurable weights and the theoretical
+  channel bound, preserves successful empty channels, excludes unavailable ones,
+  deduplicates per channel, and sorts exact IDs in a separate tier. Explanations
+  include contributions, bounded boosts, and degradation reasons. Tests preserve
+  a no-boost baseline and scores across candidate-tail truncation. Workspace config
+  validates weights/budgets and supplies defaults for older files. Public Search
+  integration and retrieval evaluation are still pending under #17/#42.
 - Core scans canonical files into a validated snapshot, resolving wiki links and
   checking cross-object references, schema constraints, and managed revision
   hashes. Ambiguous or unresolved links produce warnings. A stale Workspace or

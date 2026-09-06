@@ -589,6 +589,12 @@ embedding:
 search:
   default_limit: 20
   rrf_k: 60
+  word_weight: 1.0
+  trigram_weight: 0.8
+  vector_weight: 1.0
+  boosts_enabled: true
+  candidate_limit: 100
+  lexical_timeout_ms: 200
   graph_expansion_depth: 1
 
 server:
@@ -1889,6 +1895,10 @@ B=\sum_{c \in C}\frac{w_c}{k+1},\qquad normalized(d)=raw(d)/B
 `final_score = normalized + min(boost_sum, 0.08)`，范围为 `[0,1.08]`；同分按 `unit_id` 升序。精确 ID tier 高于此分数排序。不得把上述加分直接加到 raw RRF：默认三通道 raw 最高约 `0.0459`，直接加 `0.05` 会压过整个融合分数。通道降级后重新计算 B，并报告实际通道；分页一致性遵守 11.11 节。
 
 权重必须配置化并通过 retrieval eval 调整；不得凭单个 demo 随意修改默认值。
+
+Core 的 [`search::ranking`](../crates/knowmesh-core/src/application/search/ranking.rs) 已实现以上纯融合规则。`search.word_weight/trigram_weight/vector_weight` 配置各通道权重，`short_text` fallback 复用 trigram 权重且两者不能同时参与；`search.boosts_enabled=false` 提供无 boost 基线，仍保留独立 exact ID tier。上述可选配置缺省值见 8.1 节，旧配置无需补齐。`search.candidate_limit` 与 `lexical_timeout_ms` 的范围见 15.6 节。
+
+融合前同通道同 `unit_id` 取最优正 rank，重复 metadata 必须一致；不允许同一通道登记两次或把失败通道的部分候选混入。默认 name boost 仅用于 Node 的规范名称，alias 匹配先逐条规范化，prefix 适用于候选标题。Explain 保留各通道 rank/weight/contribution、raw/B/normalized、各项 boost 及 cap 后总和、exact tier、最终分数和降级通道。理论上界不随候选尾部截断改变，空的成功通道仍计入 B，全部通道不可用时只允许已过滤的 exact ID lookup 结果进入独立 tier。公开 Search 用例、完整 filters/freshness 与 cursor 集成仍由 KM-031 继续实施；纯融合测试不等同于 retrieval eval 验收。
 
 ### 15.4 Search Input
 

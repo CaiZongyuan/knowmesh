@@ -80,6 +80,11 @@ fn empty_successful_channels_count_in_the_bound_but_unavailable_channels_do_not(
     near(ranked.hits[0].explain.normalization_bound, 1.8 / 61.0);
     near(ranked.hits[0].explain.final_score, 1.0 / 1.8);
     assert_eq!(ranked.channels.len(), 3);
+    assert_eq!(ranked.hits[0].explain.degraded_channels.len(), 1);
+    assert_eq!(
+        ranked.hits[0].explain.degraded_channels[0].channel,
+        Channel::Vector
+    );
     assert_eq!(
         ranked.channels[2].unavailable_reason.as_deref(),
         Some("VECTOR_UNAVAILABLE")

@@ -136,6 +136,22 @@ fn search_ranking_settings_round_trip_and_reject_invalid_weights_and_bounds() {
             "{field}"
         );
     }
+    for field in [
+        "word_weight",
+        "trigram_weight",
+        "vector_weight",
+        "boosts_enabled",
+        "candidate_limit",
+        "lexical_timeout_ms",
+    ] {
+        config["search"].as_object_mut().unwrap().remove(field);
+    }
+    fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    let loaded = Workspace::load(temp.path()).unwrap();
+    assert_eq!(loaded.config.search.word_weight, 1.0);
+    assert_eq!(loaded.config.search.trigram_weight, 0.8);
+    assert_eq!(loaded.config.search.vector_weight, 1.0);
+    assert!(loaded.config.search.boosts_enabled);
 }
 
 #[test]

@@ -190,6 +190,12 @@ impl Default for EmbeddingSettings {
 pub struct SearchSettings {
     pub default_limit: usize,
     pub rrf_k: usize,
+    pub word_weight: f64,
+    pub trigram_weight: f64,
+    pub vector_weight: f64,
+    pub boosts_enabled: bool,
+    pub candidate_limit: u32,
+    pub lexical_timeout_ms: u64,
     pub graph_expansion_depth: usize,
 }
 
@@ -198,6 +204,12 @@ impl Default for SearchSettings {
         Self {
             default_limit: 20,
             rrf_k: 60,
+            word_weight: 1.0,
+            trigram_weight: 0.8,
+            vector_weight: 1.0,
+            boosts_enabled: true,
+            candidate_limit: 100,
+            lexical_timeout_ms: 200,
             graph_expansion_depth: 1,
         }
     }
@@ -276,6 +288,15 @@ impl WorkspaceConfig {
             || !(1..=65536).contains(&config.embedding.dimensions)
             || !(1..=100).contains(&config.search.default_limit)
             || config.search.rrf_k == 0
+            || [
+                config.search.word_weight,
+                config.search.trigram_weight,
+                config.search.vector_weight,
+            ]
+            .iter()
+            .any(|weight| !weight.is_finite() || *weight <= 0.0)
+            || !(1..=500).contains(&config.search.candidate_limit)
+            || !(1..=5000).contains(&config.search.lexical_timeout_ms)
             || !(1..=3).contains(&config.search.graph_expansion_depth)
             || !["managed", "referenced", "snapshot-url"]
                 .contains(&config.sources.default_storage.as_str())

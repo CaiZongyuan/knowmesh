@@ -4,6 +4,7 @@ pub mod lexical;
 pub mod operations;
 pub mod rebuild;
 pub mod schema;
+pub mod search;
 pub mod source;
 pub mod source_fetch;
 pub mod source_read;
