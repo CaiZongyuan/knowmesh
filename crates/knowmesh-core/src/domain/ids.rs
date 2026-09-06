@@ -90,3 +90,11 @@ impl SourceBlockId {
         Self(format!("blk_{}", Ulid::from_bytes(bytes)))
     }
 }
+
+impl ChunkId {
+    pub(crate) fn from_digest(digest: [u8; 32]) -> Self {
+        let mut bytes = [0; 16];
+        bytes.copy_from_slice(&digest[..16]);
+        Self(format!("chk_{}", Ulid::from_bytes(bytes)))
+    }
+}

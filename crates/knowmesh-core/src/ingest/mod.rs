@@ -1,4 +1,6 @@
 mod builder;
+pub mod cache;
+pub mod chunking;
 mod frontmatter;
 mod html;
 mod markdown;

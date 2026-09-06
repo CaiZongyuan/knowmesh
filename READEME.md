@@ -31,6 +31,8 @@ Core also parses Markdown/TXT/HTML into structured source blocks. Explicit
 `source add --encoding <label>` supports legacy text while preserving original
 snapshot bytes. Native PDF text extraction includes page mapping and quality gates;
 OCR and the full compilation pipeline are still pending.
+Core includes structure-aware chunking and validated stage caches; these are ready
+for the remaining Compiler integration.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

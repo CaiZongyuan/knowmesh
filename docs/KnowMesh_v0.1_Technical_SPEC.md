@@ -1547,7 +1547,7 @@ Markdown 使用 CommonMark/GFM 表格、列表、引用、代码块与完整 raw
 
 HTML 使用 HTML5 DOM，排除 head/script/style/template/noscript/SVG 和 hidden/aria-hidden 内容，提取段落、列表、表格、caption 和 preformatted code；不处理 CSS 布局、不加载媒体或链接。表格以 TAB 分列、LF 分行，caption 保留；嵌套表格摊平时给出 warning。TXT 保留段落内缩进/TAB，CRLF 规范化为 LF。空的提取文本标记不可编译；PDF 专用质量门仍由 13.3 节实现。
 
-显式编码已贯通文本导入、Revision metadata、内容读取与 parser，规则见 8.2 节。文本 parser version 2 加入此绑定；非法 label 返回 `UNSUPPORTED_SOURCE_ENCODING`，严格解码失败返回 `INVALID_SOURCE_ENCODING`，默认 UTF-8 导入保留既有 `UNSUPPORTED_ENCODING` code，content 读取保留 `SOURCE_CONTENT_ENCODING_INVALID`。`BuiltinSourceParser` 通过同一 port 分派 TextParser/PdfParser，PDF 规则见 13.3 节；分块/缓存和 Compiler 接入由后续任务实现。Parser version 是归一化契约：改变输出规则或升级影响输出的依赖时必须更新，不能把不同文本表示的字符区间直接混用。
+显式编码已贯通文本导入、Revision metadata、内容读取与 parser，规则见 8.2 节。文本 parser version 2 加入此绑定；非法 label 返回 `UNSUPPORTED_SOURCE_ENCODING`，严格解码失败返回 `INVALID_SOURCE_ENCODING`，默认 UTF-8 导入保留既有 `UNSUPPORTED_ENCODING` code，content 读取保留 `SOURCE_CONTENT_ENCODING_INVALID`。`BuiltinSourceParser` 通过同一 port 分派 TextParser/PdfParser，PDF 规则见 13.3 节；分块和缓存已有 Core API，完整 Compiler 接入仍由后续任务实现。Parser version 是归一化契约：改变输出规则或升级影响输出的依赖时必须更新，不能把不同文本表示的字符区间直接混用。
 
 ### 13.3 PDF 质量门
 
@@ -1617,6 +1617,12 @@ PDF 的 page 是从 1 开始的物理页序，paragraph 在页切换时重新从
 - Chunk ID 基于 owner revision + ordinal + content hash；Chunk 是派生数据，重建可变化。
 - Evidence locator 不得依赖 Chunk ID。
 
+当前 [`chunking`](../crates/knowmesh-core/src/ingest/chunking.rs) 使用 `text-splitter`，先按顶级 Heading、已知 page 和 Table 边界分组，再在组内应用 target/max/overlap。Page map 不可靠但显式允许继续的 PDF，保守按单个 SourceBlock 分组；不推测页号。可容纳的 Table（含其 caption）保持整体，超大 Table 可分割并给出 `TABLE_SPLIT` warning。参数要求 `0 <= overlap < target <= max <= 1,000,000`。
+
+`TokenCounter` port 提供计数及 name/version/config hash。无 counter 时使用有版本的保守估算：ASCII 字母/数字/空白按 1/4 token、ASCII 标点按 1 token、其他非 ASCII 按 2 token、高 Unicode 平面按 4 token，最后向上取整并标记 `token_count_estimated=true`；这不是特定模型 tokenizer 的精确计数。
+
+每个 Chunk 记录 revision、ordinal、content hash、normalized text 的字符区间、page、共同 section path 和重叠 SourceBlock IDs。`chk_` 从 revision/ordinal/content hash 的版本化 JSON 确定性派生；其 ULID 位不表示时间。分块不修改 ParsedSource、Evidence 或规范文件。产物校验检查配置/解析 hash、有效区间、正文覆盖及结构边界；遗漏非空白正文或混入跨章节/页结果均失败。未通过 parser 质量门的来源返回 `SOURCE_NOT_COMPILABLE`。
+
 ### 13.6 分阶段缓存与失效
 
 缓存属于 FS-derived；缓存命中不能代替 Schema/Evidence 校验、Proposal 审核或 Apply 冲突检查。键由版本化结构的规范 JSON 序列化后计算 SHA-256，不拼接含义不明的字符串；不包含密钥。各阶段必须至少覆盖以下依赖：
@@ -1635,6 +1641,14 @@ PDF 的 page 是从 1 开始的物理页序，paragraph 在页切换时重新从
 - Embedding 复用不使用 chunk ordinal、文件名或 locator 作为身份。若标题等上下文实际发送给 provider，它们必须计入文本 hash；返回向量必须校验维度、有限值和 profile 一致性。
 - 跨 revision 复用相同输入的向量时，为新 Chunk/Search Unit 建立独立索引映射。Evidence 仍须在新 revision 上重新定位、校验并生成身份，不能沿用旧 revision 的 quote/offset 绑定。
 - 缓存丢失可导致重新调用 provider；不能保证远端请求仅计费一次。成功 checkpoint 的复用保证和恢复限制见 [20.4 节](#204-operationrun)。
+
+当前 [`FileStageCache`](../crates/knowmesh-core/src/ingest/cache/mod.rs) 将 typed stage keys 封装为 versioned JSON 后计算 SHA-256，分别覆盖上述五类阶段；Parse key 记录 revision ID/blob hash/MIME/encoding/descriptor，Embedding key 无 ordinal/locator/文件名。模型身份仅含 provider/model/config hash，sampling、prompt、schema、Purpose 和知识上下文分别按所属阶段绑定。
+
+目录为 `.knowmesh/cache/<stage>/objects/<artifact-sha256>.json` 与 `entries/<key-sha256>.json`。产物流式序列化并同时计数/计算 hash，文件同步完成后原子安装，最后原子发布 manifest；Unix 同步新目录及替换目录项。Manifest 包含 key、artifact path/hash/size 和版本；路径固定在 cache 内，拒绝 symlink 逃逸。只读 miss 不创建目录，缺失/损坏/未来版本/错误 DTO 或自定义校验失败返回 miss；权限等真实 I/O 错误不伪装成 miss。
+
+缓存实例由调用方配置正的 artifact byte limit，超过限制返回 `CACHE_ARTIFACT_TOO_LARGE`。Checkpoint 可保存 immutable ArtifactReference，读取不依赖后来覆盖的 key manifest；旧内容寻址产物不自动删除。并发发布和失败替换 fixtures 验证旧引用仍可读取，未完成临时文件不作为命中依据。
+
+`parse_cached` 在命中前仍校验输入 bytes 与 Revision，并检查产物的 parser descriptor；`chunk_cached` 验证 ParsedSource、质量门及当前 counter/options，再决定命中。配置变化或有效 JSON 中的结构损坏会重算。当前已接入解析/分块；模型阶段执行、Run checkpoint/attempt/预算控制和向量映射仍由对应后续任务接入，不能仅凭缓存引用声称 Run 已可恢复。
 
 ---
 

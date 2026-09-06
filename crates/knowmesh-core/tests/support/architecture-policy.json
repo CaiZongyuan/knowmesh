@@ -21,6 +21,7 @@
   ],
   "filesystem_writers": [
     "crates/knowmesh-core/src/canonical/transaction.rs",
+    "crates/knowmesh-core/src/ingest/cache/io.rs",
     "crates/knowmesh-sqlite/src/maintenance.rs",
     "crates/knowmesh-sqlite/src/rebuild/files.rs"
   ],

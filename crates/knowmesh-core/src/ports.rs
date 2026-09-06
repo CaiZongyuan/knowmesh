@@ -39,6 +39,11 @@ pub trait SourceParser: Send + Sync {
     ) -> AppResult<crate::ingest::ParsedSource>;
 }
 
+pub trait TokenCounter: Send + Sync {
+    fn descriptor(&self) -> crate::ingest::chunking::CounterDescriptor;
+    fn count(&self, text: &str) -> usize;
+}
+
 pub trait LexicalSearchStore: Send {
     fn search_lexical(
         &self,

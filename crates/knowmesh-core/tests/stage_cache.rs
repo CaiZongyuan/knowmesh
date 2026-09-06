@@ -67,6 +67,14 @@ fn cache_hits_require_complete_matching_artifacts_and_reads_never_create_directo
             .unwrap()
             .is_none()
     );
+    let artifact = workspace.root.join(".knowmesh").join(&reference.path);
+    fs::create_dir(&artifact).unwrap();
+    assert!(
+        cache
+            .read_reference::<Value>(&reference, |_| Ok(()))
+            .unwrap()
+            .is_none()
+    );
     assert!(cache.load::<Value>(&key, |_| Ok(())).unwrap().is_none());
     assert!(temp.path().join("knowmesh.yaml").is_file());
 }
@@ -103,6 +111,9 @@ fn invalid_or_future_manifests_and_typed_payloads_are_misses() {
     fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
     assert!(cache.load::<Value>(&key, |_| Ok(())).unwrap().is_none());
     assert!(workspace.root.join("knowmesh.yaml").is_file());
+    fs::remove_file(&manifest_path).unwrap();
+    fs::create_dir(&manifest_path).unwrap();
+    assert!(cache.load::<Value>(&key, |_| Ok(())).unwrap().is_none());
 }
 
 #[test]
@@ -129,6 +140,30 @@ fn a_failed_replacement_preserves_the_previous_manifest_and_checkpoint_reference
             .unwrap()
             .unwrap(),
         json!({"original": true})
+    );
+    let before = fs::read(cache.manifest_path(&key).unwrap()).unwrap();
+    let value = json!({"new": "cannot publish"});
+    let hash = sha256(&serde_json::to_vec(&value).unwrap());
+    let collision = workspace
+        .root
+        .join(".knowmesh")
+        .join(first.path.replace(&first.sha256, &hash));
+    fs::create_dir(&collision).unwrap();
+    assert_eq!(
+        cache.store(&key, &value).unwrap_err().code,
+        "CACHE_WRITE_FAILED"
+    );
+    assert_eq!(
+        fs::read(cache.manifest_path(&key).unwrap()).unwrap(),
+        before
+    );
+    assert_eq!(
+        cache
+            .load::<Value>(&key, |_| Ok(()))
+            .unwrap()
+            .unwrap()
+            .value,
+        json!({"replacement": true})
     );
 }
 
@@ -208,6 +243,58 @@ fn stage_keys_bind_all_semantic_inputs_and_embedding_reuse_ignores_chunk_positio
     assert!(!json.contains("api_key"));
     assert!(!json.contains("ordinal"));
     assert!(!json.contains("locator"));
+    for (index, field) in [
+        (3, "prompt_sha256"),
+        (3, "schema_sha256"),
+        (3, "purpose_sha256"),
+        (4, "context_sha256"),
+    ] {
+        let mut modified = serde_json::to_value(&keys[index]).unwrap();
+        modified[field] = sha256(b"changed dependency").into();
+        let changed: StageKey = serde_json::from_value(modified).unwrap();
+        assert_ne!(
+            keys[index].fingerprint().unwrap(),
+            changed.fingerprint().unwrap()
+        );
+    }
+}
+
+#[test]
+fn concurrent_writers_publish_complete_manifests_and_keep_every_checkpoint_artifact() {
+    let (_temp, _workspace, cache, key) = setup();
+    let references = std::thread::scope(|scope| {
+        let writers: Vec<_> = (0..8)
+            .map(|number| {
+                let cache = &cache;
+                let key = &key;
+                scope.spawn(move || {
+                    (
+                        number,
+                        cache.store(key, &json!({"worker": number})).unwrap(),
+                    )
+                })
+            })
+            .collect();
+        writers
+            .into_iter()
+            .map(|writer| writer.join().unwrap())
+            .collect::<Vec<_>>()
+    });
+    for (number, reference) in references {
+        assert_eq!(
+            cache
+                .read_reference::<Value>(&reference, |_| Ok(()))
+                .unwrap()
+                .unwrap(),
+            json!({"worker": number})
+        );
+    }
+    let value = cache
+        .load::<Value>(&key, |_| Ok(()))
+        .unwrap()
+        .unwrap()
+        .value;
+    assert!(value["worker"].as_u64().unwrap() < 8);
 }
 
 #[cfg(unix)]

@@ -111,8 +111,8 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   markup, hidden/script content, and raw HTML blocks. Bounded generated inputs
   exercise malformed structures and span validity. Parser descriptors support
   cache keys before parsing; artifact validation checks revision/text integrity.
-  Normalization and locator semantics live in SPEC 13.2. Caching/chunking and
-  Compiler integration remain #22 and subsequent compiler issues. The parser
+  Normalization and locator semantics live in SPEC 13.2. Full Compiler integration
+  remains under subsequent compiler issues. The parser
   itself performs no network or file I/O.
 - `source add --encoding <label>` records the explicit text encoding on each
   immutable revision. Strict decoding is shared by local/URL import validation,
@@ -130,6 +130,20 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   silently become accepted fallback text. Encrypted documents return no extracted
   text. Thresholds and supported limits live in SPEC 13.3; complex layout recovery,
   OCR, and real-paper extraction quality are not established by synthetic fixtures.
+- Core chunking uses `text-splitter` within top-heading/page/table boundaries,
+  with pluggable token counting and an explicit language-aware estimate fallback.
+  Chunks preserve exact normalized source spans and never change Evidence locators.
+  Validation rejects missing source text, inconsistent hashes, and boundary violations.
+- The filesystem stage cache uses typed dependency keys, content-addressed JSON,
+  streaming hash/size checks, synchronized files, and atomic manifests. Missing,
+  damaged, incompatible, or invalid DTOs are misses; actual I/O failures propagate.
+  Tests cover concurrent publishers, failed replacements, checkpoint references,
+  symlink/path rejection, and independent stage/configuration invalidation.
+- `parse_cached` and `chunk_cached` validate original revision bytes, parser identity,
+  extraction quality, and chunk settings around cache use. Valid caches avoid repeated
+  parsing; structurally corrupt entries are recomputed. Source/cache contracts live
+  in SPEC 13.5/13.6. Model execution, durable Run recovery, and vector mapping remain
+  under their owning issues; these helpers do not implement that complete workflow.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
