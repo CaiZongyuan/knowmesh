@@ -47,6 +47,9 @@ impl Server {
                     .nth(1)
                     .unwrap_or("");
                 let response = match path {
+                    "/fake-pdf" => "HTTP/1.1 200 OK\r\nContent-Type: application/pdf\r\nContent-Length: 9\r\n\r\nnot a pdf".into(),
+                    "/unbounded" => format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n{}", "a".repeat(1024 * 1024 + 1)),
+                    "/truncated" => "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 100\r\n\r\nshort".into(),
                     "/redirect" => "HTTP/1.1 302 Found\r\nLocation: /paper\r\nContent-Length: 0\r\n\r\n".into(),
                     "/loop" => "HTTP/1.1 302 Found\r\nLocation: /loop\r\nContent-Length: 0\r\n\r\n".into(),
                     "/invalid" => "HTTP/1.1 302 Found\r\nLocation: file:///etc/hosts\r\nContent-Length: 0\r\n\r\n".into(),
@@ -55,6 +58,11 @@ impl Server {
                     "/slow" => {
                         thread::sleep(Duration::from_millis(1200));
                         "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 4\r\n\r\nslow".into()
+                    },
+                    "/slow-body" => {
+                        let _ = socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 4\r\n\r\n");
+                        thread::sleep(Duration::from_millis(1200));
+                        "slow".into()
                     },
                     _ => { let body = "<h1>Fetched paper</h1><p>Synthetic evidence.</p>"; format!("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\n\r\n{body}", body.len()) },
                 };
@@ -171,6 +179,7 @@ fn failed_downloads_do_not_create_snapshots_or_indexes_and_timeouts_are_bounded(
         ("/invalid", "INVALID_SOURCE_URL"),
         ("/large", "SOURCE_TOO_LARGE"),
         ("/missing", "FETCH_HTTP_STATUS"),
+        ("/truncated", "FETCH_FAILED"),
     ] {
         let error = request(
             temp.path(),
@@ -187,22 +196,57 @@ fn failed_downloads_do_not_create_snapshots_or_indexes_and_timeouts_are_bounded(
     let workspace = knowmesh_core::canonical::workspace::Workspace::load(temp.path()).unwrap();
     let mut config = serde_json::to_value(workspace.config).unwrap();
     config["sources"]["fetch_timeout_seconds"] = 1.into();
+    config["sources"]["max_file_mib"] = 1.into();
     fs::write(
         temp.path().join("knowmesh.yaml"),
         serde_json::to_vec(&config).unwrap(),
     )
     .unwrap();
-    let start = Instant::now();
+    for (path, code) in [
+        ("/unbounded", "SOURCE_TOO_LARGE"),
+        ("/slow", "FETCH_TIMEOUT"),
+        ("/slow-body", "FETCH_TIMEOUT"),
+    ] {
+        let start = Instant::now();
+        let error = request(
+            temp.path(),
+            &format!("{}{path}", server.url),
+            &["--allow-private-network"],
+        );
+        assert!(error.stdout.is_empty());
+        assert_eq!(
+            serde_json::from_slice::<Value>(&error.stderr).unwrap()["error"]["code"],
+            code,
+            "{path}"
+        );
+        assert!(start.elapsed() < Duration::from_secs(5));
+    }
+    assert!(!temp.path().join(".knowmesh/index.sqlite3").exists());
+    assert_eq!(
+        fs::read_dir(temp.path().join("sources")).unwrap().count(),
+        0
+    );
+}
+
+#[test]
+fn invalid_downloaded_bytes_are_rejected_before_a_database_is_created() {
+    let server = Server::start();
+    let temp = tempfile::tempdir().unwrap();
+    cargo_bin_cmd!("knowmesh")
+        .arg("init")
+        .arg(temp.path())
+        .assert()
+        .success();
     let error = request(
         temp.path(),
-        &format!("{}/slow", server.url),
+        &format!("{}/fake-pdf", server.url),
         &["--allow-private-network"],
     );
+    assert!(error.stdout.is_empty());
     assert_eq!(
         serde_json::from_slice::<Value>(&error.stderr).unwrap()["error"]["code"],
-        "FETCH_TIMEOUT"
+        "SOURCE_MIME_MISMATCH"
     );
-    assert!(start.elapsed() < Duration::from_secs(5));
     assert!(!temp.path().join(".knowmesh/index.sqlite3").exists());
     assert_eq!(
         fs::read_dir(temp.path().join("sources")).unwrap().count(),
