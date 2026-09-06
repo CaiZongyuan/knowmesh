@@ -18,6 +18,11 @@ const MIGRATIONS: &[(u32, &str, &str)] = &[
         "snapshot_warnings",
         include_str!("../migrations/0003_snapshot_warnings.sql"),
     ),
+    (
+        4,
+        "claim_normalization",
+        include_str!("../migrations/0004_claim_normalization.sql"),
+    ),
 ];
 
 pub(crate) fn current_version() -> u32 {

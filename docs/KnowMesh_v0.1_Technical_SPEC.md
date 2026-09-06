@@ -1846,6 +1846,16 @@ Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint�
 - Relation 相同 `(source,predicate,target,qualifiers)`：合并 Evidence。
 - `supersedes` 必须由 Schema 允许并由 Proposal 显式表达，不通过更新时间猜测。
 
+当前 [`deduplicate`](../crates/knowmesh-core/src/application/assertion_dedup/mod.rs) 实现确定性的 exact 阶段，输入至多 100,000 条现有和 10,000 条候选 Claim/Relation，返回变更计划与 assertion/Evidence ID 映射；不执行模型调用或规范写入。候选必须 active，且不能预先声明 conflict_groups；已有冲突记录必须完整且符合下述规范约束。同批候选按 ID 处理，输出顺序稳定；无内容变化时仅返回 ID 映射，不制造写入。
+
+Claim 的 exact key 为 subject Node ID 与版本化 normalized hash。`claim-normalized-v2` 只折叠 statement 的 Unicode 空白并去掉首尾空白，保留大小写、标点和 Unicode 组合/兼容字符；不复用实体名称的 NFKC/小写规则。例如 Co 与 CO、X² 与 X2 不得自动合并。Qualifiers 参与判等。Relation 的 key 包含 source/predicate/target/directed/qualifiers；仅 undirected 关系对端点排序，合并后保留既有规范 owner 和方向表示。
+
+只匹配现有 active 断言；已有多个 active 精确匹配返回 `AMBIGUOUS_ASSERTION_DUPLICATE`，不选择其中一条。相同 ID 的语义或端点变化返回 `ASSERTION_ID_CONFLICT`；候选复用历史 inactive ID 返回 `ASSERTION_LIFECYCLE_CONFLICT`，不会重激活旧记录。新的 ID 可与 inactive 历史共存。匹配后保留既有 ID、正文、qualifiers、confidence、lifecycle 和冲突记录，仅合并 Evidence；若证据同时含 supports/contradicts，则计划中标记 evidence_status=conflicting，不据 confidence 推断科学真伪。
+
+Evidence 的复用 key 为 revision、完整 locator、quote hash 和 stance。新生成 ID 可优先复用目标断言已有的物理证据，再使用上下文中已有记录；保留被复用记录的 extraction_method/confidence。已存在的 canonical Evidence IDs 不被改名或删除；同一输入 ID 的映射在整个批次保持一致。相同 ID 的任一字段冲突返回 `EVIDENCE_ID_CONFLICT`；不同 revision、定位或 stance 不合并。合并后的断言仍受领域校验和每条最多 1024 个 Evidence 的限制。
+
+变更计划的 `before_semantic_sha256` 指向既有断言内容，新断言为 null；它不是文件写入授权，也不代替 Apply 的文件 hash/generation 检查。此阶段验证结构和身份一致性，调用方仍须完成来源定位、Schema/Policy 校验及审核。大小写/NFKC 旧规则的索引由 migration 0004 标记为需要全量同步，下一次 fast-sync 重新计算派生 key 后才可复用文件提示；不修改规范文件，也不改变既有 Claim 的内容语义 hash。
+
 冲突组的规范存储已经实现于 [`ConflictGroup`](../crates/knowmesh-core/src/domain/conflicts.rs)。每个成员 Claim 的可选 `conflict_groups` 数组内嵌同一完整记录；无冲突时省略该字段。记录结构如下：
 
 ```yaml
@@ -1865,7 +1875,7 @@ conflict_groups:
 
 Claim 语义 hash 包含按组 ID 排序的全部冲突记录，因此组成员、原因或处理状态的变化会使依赖该 Claim 的 Synthesis 需要复核。用于 exact dedup 的 normalized hash 仍只取 statement 与 qualifiers；没有 conflict_groups 的旧 Claim 保持原语义 hash。规范文件解析保留字节级往返，修改冲突只更新所在受管块。
 
-SQLite 的 conflict_groups/conflict_group_claims 是上述记录的派生投影，与 Claim/Evidence 在同一个 reconcile 事务中更新；这两张表不是 runtime 例外。规范记录被移除时清理投影，写入失败回滚整个投影。逻辑快照与原子 rebuild 校验包含组内容和成员，备份及重建后的数据库均保留相同冲突身份与状态。当前 fixtures 验证规范完整性、语义 hash、真实原子重建及失败回滚；本节开头的自动去重、语义比较和 Compiler 生成冲突组仍随 KM-046 的后续实现接入。
+SQLite 的 conflict_groups/conflict_group_claims 是上述记录的派生投影，与 Claim/Evidence 在同一个 reconcile 事务中更新；这两张表不是 runtime 例外。规范记录被移除时清理投影，写入失败回滚整个投影。逻辑快照与原子 rebuild 校验包含组内容和成员，备份及重建后的数据库均保留相同冲突身份与状态。当前 fixtures 验证规范完整性、语义 hash、真实原子重建及失败回滚；语义相似/极性比较和 Compiler 生成冲突组仍随 KM-046 的后续实现接入。
 
 ### 14.8 Proposal Patch Operation
 
@@ -3257,6 +3267,7 @@ v0.1 只有同时满足以下条件才可发布：
 | 证据有引用但上下文仍可能片面 | Core 构建有预算、去重及冲突披露的 bundle | 直接 top-k 拼接简单，但易重复、截断或单来源偏置；规则增加可测的打包开销 | 17.5 |
 | HTML 中转格式与证据区间如何对应 | CommonMark/HTML5 DOM 直接生成统一 typed blocks 和 normalized text，保留 caption 类型；字符区间绑定 revision 与 parser 描述 | HTML→Markdown→blocks 增加转换并丢失部分 caption 类型；原始 HTML 字符区间也不能直接代表实体解码后的引用。原始字节保留为权威，缓存使用有版本的派生产物 | 13.2 |
 | 已接受冲突的成员、原因与处理状态如何重建 | 沿用共享 Evidence 的方式，由成员 Claims 内嵌一致的组记录；组变化进入 Claim 语义 hash，SQLite 只保存派生投影 | 仅保存 DB 组会在重建时丢失 accepted knowledge；独立冲突文件会新增规范文件种类和跨文件维护边界。内嵌方案增加受管块尺寸，并要求更新所有成员副本 | 14.7 |
+| Claim 精确去重如何保留科学符号 | Statement 只折叠空白；保留大小写和 Unicode 字符差异，其他相似性进入待审核比较；旧索引重新生成 key | 名称用的 NFKC/小写会把 Co/CO 等不同含义折叠。较窄的 exact 规则增加 possible_duplicate 候选，但避免自动丢失不同断言 | 14.7 |
 
 
 ---
@@ -3266,6 +3277,8 @@ v0.1 只有同时满足以下条件才可发布：
 > 说明：这是逻辑基线。Migration 实现可以拆文件，但最终 schema、约束和索引语义必须等价。`${EMBEDDING_DIMENSIONS}` 由经过整数范围校验的 workspace config 在初始化时替换，不接受用户原始 SQL。
 
 实现迁移的唯一源码位于 [`crates/knowmesh-sqlite/migrations/`](../crates/knowmesh-sqlite/migrations/0001_initial.sql)。下方 SQL 保留为初始逻辑基线；后续 schema 扩展使用新迁移，不修改已应用迁移。[0002](../crates/knowmesh-sqlite/migrations/0002_canonical_payloads.sql) 增加派生的 typed JSON payload 与 snapshot hash，用于保留读取契约和检查投影是否变化；[0003](../crates/knowmesh-sqlite/migrations/0003_snapshot_warnings.sql) 保存派生扫描警告，旧索引以 NULL 表示尚需补齐。这些字段不成为新的 System of Record。
+
+[0004](../crates/knowmesh-sqlite/migrations/0004_claim_normalization.sql) 将扫描完成标记置为 NULL，确保旧 Claim normalized hash 在 fast-sync 前按 14.7 节重新生成。SQLite schema version 当前为 4；迁移保留 canonical 与 runtime 数据，重新同步仅更新派生投影。
 
 ```sql
 CREATE TABLE schema_migrations (

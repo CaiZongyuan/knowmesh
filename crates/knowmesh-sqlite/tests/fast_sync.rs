@@ -157,3 +157,37 @@ fn v3_claim_keys_are_recomputed_before_metadata_can_take_the_fast_path() {
             .fast_path
     );
 }
+
+#[test]
+fn scientific_statements_with_distinct_case_keep_separate_active_claim_rows() {
+    use knowmesh_core::domain::{ClaimId, EvidenceStatus};
+
+    let (temp, workspace) = support::fixture();
+    let path = temp.path().join("knowledge/nodes/model-a.md");
+    let mut doc = NodeDocument::parse(&fs::read_to_string(&path).unwrap()).unwrap();
+    doc.claims[0].statement = "The model predicts Co transport.".into();
+    doc.claims[0].evidence.clear();
+    doc.claims[0].evidence_status = EvidenceStatus::Unreviewed;
+    let mut other = doc.claims[0].clone();
+    other.id = ClaimId::new();
+    other.statement = "The model predicts CO transport.".into();
+    doc.claims.push(other);
+    fs::write(path, doc.render().unwrap()).unwrap();
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let path = workspace.index_path().unwrap();
+    let mut store = SqliteStore::open(&path).unwrap();
+    store
+        .bind_workspace(&workspace.config.workspace.id, &snapshot.schema_hash)
+        .unwrap();
+    let report = sync::synchronize(&workspace, &mut store).unwrap();
+    assert_eq!(report.projection.unwrap().claim_count, 2);
+    let db = rusqlite::Connection::open(path).unwrap();
+    let count: usize = db
+        .query_row(
+            "SELECT count(DISTINCT normalized_hash) FROM claims WHERE lifecycle_status='active'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 2);
+}

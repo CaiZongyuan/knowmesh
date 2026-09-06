@@ -122,7 +122,15 @@ pub struct ClaimRecord {
 
 impl ClaimRecord {
     pub fn normalized_hash(&self) -> AppResult<String> {
-        semantic_hash(&(super::normalize_name(&self.statement), &self.qualifiers))
+        // Case and compatibility characters can distinguish scientific symbols.
+        semantic_hash(&(
+            "claim-normalized-v2",
+            self.statement
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" "),
+            &self.qualifiers,
+        ))
     }
     pub fn validate(&self) -> AppResult<()> {
         if self.statement.trim().is_empty() || self.statement.len() > 16 * 1024 {

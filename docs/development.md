@@ -194,7 +194,17 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - Conflict groups and memberships are projected atomically with Claims. Fixtures
   cover updates/removal, failed-insert rollback, a fresh projection, and the actual
   atomic rebuild including its backup. Contract and storage rationale live in
-  SPEC 14.7/26.3. Automatic deduplication and semantic conflict detection remain #26.
+  SPEC 14.7/26.3.
+- Exact assertion deduplication produces changes and ID mappings while preserving
+  existing statement/identity/metadata and conflict records. Physical Evidence reuse
+  keeps canonical payloads; different revisions, locators, and stances remain separate.
+  Directed relation orientation, inactive history, ID conflicts, and batch ordering
+  are covered by fixtures. These plans do not authorize canonical writes.
+- Claim exact keys now preserve case and compatibility characters in scientific
+  statements. Migration 0004 forces legacy keys through a complete reconciliation
+  before the metadata fast path is reused. Tests preserve canonical bytes and keep
+  Co/CO assertions in separate active rows. Semantically similar claims and polarity
+  conflict detection still require the remaining #26 stage.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
@@ -362,6 +372,7 @@ KM-023 and their owning implementation issues.
 | [KM-045 / #25](https://github.com/CaiZongyuan/knowmesh/issues/25), bounded entity model advice | Commit `4dcec77`: missing advice function | `cargo +stable test -p knowmesh-core --test entity_advice --locked`: 6 tests cover constrained decisions, review requirements, usage, and invalid output |
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), canonical conflict groups | Commit `3b75c6d`: missing conflict types and Claim metadata | `cargo +stable test -p knowmesh-core --test claim_conflicts --locked`: 7 tests pass |
 | [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), conflict projection | Commit `f8856dd`: missing group rows and projection behavior; adding groups also exposed the old rebuild hash inventory | `cargo +stable test -p knowmesh-sqlite --test conflict_groups --locked`: 3 tests pass, including actual rebuild and transaction rollback |
+| [KM-046 / #26](https://github.com/CaiZongyuan/knowmesh/issues/26), exact deduplication | Commits `ddc74a8`, `f31a49e`: missing deduplication module; scientific symbols collapse and legacy keys skip reindexing | `assertion_dedup`: 11 tests pass; `fast_sync`: 5 tests pass, including two normalization/migration regressions |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
