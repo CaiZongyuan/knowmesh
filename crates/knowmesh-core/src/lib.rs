@@ -4,5 +4,6 @@ pub mod application;
 pub mod canonical;
 pub mod domain;
 pub mod error;
+pub mod ingest;
 pub mod ports;
 pub mod wire;

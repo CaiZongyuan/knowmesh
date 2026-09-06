@@ -103,6 +103,17 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   source spans distinguish markers/wiki links from code examples; lossless YAML
   edits retain unknown frontmatter and comments. Citation validation checks
   canonical Evidence IDs and never creates a missing dependency snapshot.
+- The SourceParser port now parses UTF-8 Markdown, TXT, and HTML into typed blocks,
+  normalized text, stable revision/profile-scoped IDs, section paths, and Unicode
+  character spans. Markdown frontmatter is bounded, preserved as metadata, and
+  never interpreted as application configuration; YAML aliases are rejected.
+- CommonMark and HTML5 DOM fixtures cover tables/captions, code, lists, repaired
+  markup, hidden/script content, and raw HTML blocks. Bounded generated inputs
+  exercise malformed structures and span validity. Parser descriptors support
+  cache keys before parsing; artifact validation checks revision/text integrity.
+  Normalization and locator semantics live in SPEC 13.2. Explicit legacy encoding
+  remains #20; PDF, caching/chunking, and Compiler integration remain #21/#22 and
+  subsequent compiler issues. The parser itself performs no network or file I/O.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both

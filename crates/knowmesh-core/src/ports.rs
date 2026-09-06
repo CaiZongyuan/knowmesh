@@ -30,6 +30,15 @@ pub trait SourceFetcher: Send + Sync {
     ) -> AppResult<crate::canonical::source::ImportedContent>;
 }
 
+pub trait SourceParser: Send + Sync {
+    fn descriptor(&self, mime_type: &str) -> AppResult<crate::ingest::ParserDescriptor>;
+    fn parse(
+        &self,
+        revision: &crate::domain::SourceRevision,
+        bytes: &[u8],
+    ) -> AppResult<crate::ingest::ParsedSource>;
+}
+
 pub trait LexicalSearchStore: Send {
     fn search_lexical(
         &self,

@@ -10,6 +10,7 @@ Core 库已提供规范文件解析、可恢复文件事务和原子的 SQLite �
 来源列表支持游标分页，内容读取会校验历史字节，文本和 PDF 均可显式使用 `--raw` 输出。
 Core 错误映射和 JSON envelope 已有契约快照，HTTP 服务尚待实现。
 Search 已支持中英召回、筛选、可配置 RRF、分数解释、稳定游标分页和证据 freshness；可选向量与 Graph paths 仍待接入。
+Core 已支持 UTF-8 Markdown/TXT/HTML 的结构化来源解析；PDF、显式旧编码和完整编译流水线仍待实现。
 Workspace 测试也检查公共 Operation 注册、依赖方向及已登记的写入边界，覆盖范围与限制见[开发文档](docs/development.md)。
 
 ```bash

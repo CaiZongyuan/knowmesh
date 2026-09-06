@@ -81,3 +81,12 @@ typed_id!(ProposalId, "prp_");
 typed_id!(ProposalItemId, "pri_");
 typed_id!(RunId, "run_");
 typed_id!(ChunkId, "chk_");
+typed_id!(SourceBlockId, "blk_");
+
+impl SourceBlockId {
+    pub(crate) fn from_digest(digest: [u8; 32]) -> Self {
+        let mut bytes = [0; 16];
+        bytes.copy_from_slice(&digest[..16]);
+        Self(format!("blk_{}", Ulid::from_bytes(bytes)))
+    }
+}

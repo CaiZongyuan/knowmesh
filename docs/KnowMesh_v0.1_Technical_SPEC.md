@@ -307,6 +307,7 @@ v0.1 支持：
   - `prp_` Proposal
   - `run_` OperationRun
   - `chk_` Chunk
+  - `blk_` SourceBlock（派生）
 - ID 必须以字符串在所有接口传递，不得暴露 SQLite rowid 作为公共 ID。
 - 时间统一存储为带 `Z` 的 RFC 3339 UTC 字符串。
 - 内容完整性统一使用 SHA-256 小写十六进制。
@@ -1491,7 +1492,7 @@ knowmesh skills install-loader \
 |---|---:|---|---|
 | Markdown | 是 | frontmatter + CommonMark/GFM | 保留 heading/source span |
 | Plain text | 是 | UTF-8 检测与段落切分 | 非 UTF-8 需显式 encoding |
-| HTML 文件/单页 URL | 是 | DOM 清洗→Markdown | 不执行 JS、不递归爬取 |
+| HTML 文件/单页 URL | 是 | HTML5 DOM → typed blocks/normalized text | 不执行 JS、不递归爬取；取舍见 26.3 |
 | PDF 文本层 | 是 | 内置 Rust parser；可选外部 parser adapter | 不承诺复杂双栏表格完美恢复 |
 | 扫描 PDF | 否 | 检测并返回 `needs_ocr` | OCR 延后 |
 | DOCX/PPTX/EPUB | 否 | 后续 adapter | v0.1 明确拒绝 |
@@ -1508,21 +1509,39 @@ knowmesh skills install-loader \
 
 ```rust
 pub trait SourceParser: Send + Sync {
-    fn supports(&self, mime: &str, extension: Option<&str>) -> bool;
-    async fn parse(&self, revision: &SourceRevision) -> AppResult<ParsedSource>;
+    fn descriptor(&self, mime_type: &str) -> AppResult<ParserDescriptor>;
+    fn parse(&self, revision: &SourceRevision, bytes: &[u8]) -> AppResult<ParsedSource>;
 }
 
 pub struct ParsedSource {
+    pub version: u32,
+    pub source_revision_id: SourceRevisionId,
+    pub source_sha256: String,
+    pub normalized_text: String,
+    pub text_sha256: String,
     pub metadata: ParsedMetadata,
     pub blocks: Vec<SourceBlock>,
     pub warnings: Vec<ParseWarning>,
     pub quality: ExtractionQuality,
     pub parser_name: String,
     pub parser_version: String,
+    pub parser_config_sha256: String,
 }
 ```
 
 `SourceBlock` 必须保留：block id、kind、text、page、section path、paragraph、char span、可选 table/figure caption。
+
+Core 的 [`TextParser`](../crates/knowmesh-core/src/ingest/mod.rs) 已提供 Markdown/TXT/HTML 的内存解析。调用前传入所选不可变 Revision 与实际字节，parser 验证 byte size 和 SHA-256；不自行读取路径、访问 URL、运行脚本或写入规范文件。`descriptor` 在解析前返回 name/version/config hash，供 13.6 节缓存键使用。当前默认输入上限 100 MiB、block 上限 100,000，构造器可指定正值（block 上限不超过 u32）；超限返回 `policy/SOURCE_PARSE_LIMIT`，不返回部分产物。
+
+字符区间统一为 `normalized_text` 的 Unicode scalar value 索引，采用 `[char_start,char_end)`；不是 UTF-8 byte offset、UTF-16 code unit 或屏幕字形数量。各 block.text 按文档顺序以两个 LF 拼接，区间必须精确覆盖对应文本。Markdown/TXT 在可定位时另给 `source_bytes` 原始 UTF-8 字节包围区间；HTML 经 DOM 修复、实体解码后不伪造原始 HTML 字节映射。开头 BOM 不进入 normalized text，原始 hash 与 byte spans 仍对应保存的字节。
+
+`blk_` ID 从 versioned JSON 的 Revision、parser descriptor、ordinal 与 block text hash 确定性派生；其 ULID 位不表示生成时间，文档顺序以 blocks 数组为准。Paragraph 从 1 开始，文本 parser 不给 Heading 分配 paragraph；section path 随 heading level 入栈/出栈，文本来源的 page 为 null。`ParsedSource::validate` 检查版本/revision/hash、block 唯一性、连续文本覆盖、原始字节界限与基本质量指标，缓存读取仍须另校验完整产物 hash。
+
+Markdown 使用 CommonMark/GFM 表格、列表、引用、代码块与完整 raw HTML block 事件；YAML frontmatter 与正文分离，title/language（或 lang）进入对应 metadata 字段，其他 JSON-compatible 字段保存在 attributes，不解释为应用配置或环境变量。Frontmatter 最大 64 KiB；通过已有 YAML lexer 识别并拒绝 alias expansion，字面星号字符串不受影响。无效 frontmatter 返回 `INVALID_SOURCE_FRONTMATTER`，alias 返回 `SOURCE_FRONTMATTER_ALIAS_UNSUPPORTED`。
+
+HTML 使用 HTML5 DOM，排除 head/script/style/template/noscript/SVG 和 hidden/aria-hidden 内容，提取段落、列表、表格、caption 和 preformatted code；不处理 CSS 布局、不加载媒体或链接。表格以 TAB 分列、LF 分行，caption 保留；嵌套表格摊平时给出 warning。TXT 保留段落内缩进/TAB，CRLF 规范化为 LF。空的提取文本标记不可编译；PDF 专用质量门仍由 13.3 节实现。
+
+当前文本输入仅支持 UTF-8；13.1 节要求的显式非 UTF-8 编码及其导入/内容读取衔接仍属 KM-040 待完成项。PDF parser、分块/缓存和 Compiler 接入分别由 KM-041/KM-042/Compiler 后续任务实现。Parser version 是归一化契约：改变输出规则或升级影响输出的依赖时必须更新，不能把不同文本表示的字符区间直接混用。
 
 ### 13.3 PDF 质量门
 
@@ -3122,6 +3141,7 @@ v0.1 只有同时满足以下条件才可发布：
 | 多 Pack 合并可能受加载顺序影响并放宽审核 | 稳定拓扑排序、仅允许祖先显式覆盖、策略按更严格约束合并 | 后载入者覆盖更灵活，但同一配置重排可能改变语义或降低审核门槛；限制性合并需要显式修改原 Pack 才能放宽策略 | 7.3 |
 | 重建期间旧连接可能继续写入旧 DB | 可写连接生命周期锁、切换前重复制 runtime、先备份再原子替换 | 只用 workspace lock/generation 无法覆盖 runtime 写入；先移走 old 会产生缺失路径窗口。连接协调和复制备份增加切换成本，但保留已确认运行状态 | 10.7 |
 | 证据有引用但上下文仍可能片面 | Core 构建有预算、去重及冲突披露的 bundle | 直接 top-k 拼接简单，但易重复、截断或单来源偏置；规则增加可测的打包开销 | 17.5 |
+| HTML 中转格式与证据区间如何对应 | CommonMark/HTML5 DOM 直接生成统一 typed blocks 和 normalized text，保留 caption 类型；字符区间绑定 revision 与 parser 描述 | HTML→Markdown→blocks 增加转换并丢失部分 caption 类型；原始 HTML 字符区间也不能直接代表实体解码后的引用。原始字节保留为权威，缓存使用有版本的派生产物 | 13.2 |
 
 
 ---
