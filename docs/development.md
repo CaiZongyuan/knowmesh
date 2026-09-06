@@ -66,8 +66,20 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   its size and SHA-256, including referenced files. Unchanged manifests round-trip
   byte-for-byte. `source add <path>` commits local managed/referenced imports;
   `source remove <id> --yes` commits soft removal. Both support `--dry-run`
-  without creating a database. URL fetching, explicit idempotency keys, and
-  HTTP APIs are still pending.
+  without creating a database. Explicit idempotency keys and HTTP APIs are still pending.
+- `source add <url>` fetches a single HTTP(S) resource through `reqwest` before
+  opening the index. Core checks workspace/source policy; the actual DNS resolver
+  checks every connection address. Literal, mapped, private, metadata, and special
+  addresses are blocked by default; local CLI can explicitly permit private
+  networks for one import. Every redirect is revalidated, with a five-hop maximum.
+- Fetching ignores environment proxies, enforces declared and actual size limits,
+  and uses configurable connection and total fetch timeouts. It requires HTTP 200
+  and a supported Content-Type, rejects compressed responses, and validates the
+  returned bytes before index creation. Fixtures cover DNS/private targets,
+  redirects, truncated/unbounded bodies, header/body timeouts, and invalid PDFs.
+  Preview performs the download without writing snapshots/indexes; confirmed
+  imports preserve the final URL and remain readable offline. Defaults, ranges,
+  and transport limits live in SPEC 13.4. Server policy integration remains #34.
 - `source list/get/content` share fast synchronization and report the actual index
   generation/completeness. Lists return bounded summaries with exact kind/tag
   filters and opt-in removed sources. Cursors bind workspace, filters, and index
@@ -206,6 +218,7 @@ KM-023 and their owning implementation issues.
 | [KM-024 / #15](https://github.com/CaiZongyuan/knowmesh/issues/15), removal preview | Commit `2a911f6`: source removal preview has no impact query | `cargo +stable test --workspace --locked`: 124 tests pass, including preview with missing/stale indexes, unchanged index bytes and canonical removal state, and cursor continuation after synchronization |
 | [KM-004 / #5](https://github.com/CaiZongyuan/knowmesh/issues/5), architecture guard | Commits `1286326`, `7367010`, `f28795d`: missing checker, missed glob/qualified mutation/public connection cases, and adapters can invoke reconcile through Core ports | `cargo +stable test --workspace --locked`: 132 tests pass, including eight architecture tests covering dependency identities, production module discovery, registered writers, forbidden capabilities, and repository boundaries |
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), [KM-050 / #30](https://github.com/CaiZongyuan/knowmesh/issues/30), [KM-051 / #31](https://github.com/CaiZongyuan/knowmesh/issues/31), Source reads | Commits `951de18`, `106794d`: missing Core/CLI reads and absent envelope continuation metadata | `cargo +stable test --workspace --locked`: 138 tests pass, including filtered pagination, query/workspace/generation mismatch, external metadata sync, historical reads after removal, content integrity, binary encoding, raw output, and format conflicts |
+| [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), URL fetching | Commits `2983eb9`, `1d0f963`: missing fetch policy/transport/CLI override, and invalid downloaded bytes create an index before rejection | `cargo +stable test --workspace --locked`: 143 tests pass, including public/private address policy, actual DNS checks, bounded redirects/downloads/timeouts, preview without writes, MIME validation before index creation, repeat-hash imports, and offline snapshot reads |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
@@ -232,6 +245,8 @@ The [source-impact CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/
 passed on all three operating systems for commit `afc84f6`.
 The [architecture-gate CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/34002031716)
 passed on all three operating systems for commit `037cac0`.
+The [Source-read CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/34002667660)
+passed on all three operating systems for commit `b9531de`.
 
 The foundation evidence does not validate the remaining SPEC workflows, supported
 platform matrix, model quality, or release packages. Those gates remain tracked

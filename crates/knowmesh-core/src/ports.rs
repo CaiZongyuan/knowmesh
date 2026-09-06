@@ -23,6 +23,13 @@ pub trait ProjectionStore: Send {
     fn reconcile(&mut self, snapshot: &CanonicalSnapshot) -> AppResult<ReconcileReport>;
 }
 
+pub trait SourceFetcher: Send + Sync {
+    fn fetch(
+        &self,
+        request: &crate::application::source_fetch::FetchRequest,
+    ) -> AppResult<crate::canonical::source::ImportedContent>;
+}
+
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct ProjectionState {
     pub workspace_id: WorkspaceId,

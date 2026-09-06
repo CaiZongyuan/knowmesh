@@ -74,7 +74,7 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
     init.supports_idempotency = true;
     init.policy = "workspace-initialization".into();
     let mut source_add = OperationDescriptor::read::<
-        crate::canonical::source::ImportInput,
+        super::source_fetch::AddInput,
         super::source::SourceWriteReport,
     >("source.add");
     source_add.effect = EffectLevel::CanonicalWrite;

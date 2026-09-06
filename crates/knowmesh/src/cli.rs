@@ -143,6 +143,8 @@ enum SourceCommand {
         #[arg(long = "tag")]
         tags: Vec<String>,
         #[arg(long)]
+        allow_private_network: bool,
+        #[arg(long)]
         dry_run: bool,
     },
     Remove {
@@ -425,6 +427,7 @@ fn execute(
                     title,
                     kind,
                     tags,
+                    allow_private_network,
                     dry_run,
                 } => {
                     let input = ImportInput {
@@ -436,14 +439,20 @@ fn execute(
                         tags: tags.clone(),
                         dry_run: *dry_run,
                     };
+                    let imported = knowmesh_core::application::source_fetch::fetch(
+                        &workspace,
+                        &input,
+                        *allow_private_network,
+                        &crate::source_fetch::HttpSourceFetcher,
+                    )?;
                     let report = if *dry_run {
-                        source::preview_add(&workspace, &input, None)?
+                        source::preview_add(&workspace, &input, imported)?
                     } else {
                         source::add(
                             &workspace,
                             crate::runtime::open_store(&workspace)?.as_mut(),
                             &input,
-                            None,
+                            imported,
                         )?
                     };
                     serde_json::to_value(report)

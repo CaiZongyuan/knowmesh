@@ -253,7 +253,7 @@ impl<'a> SourceLibrary<'a> {
             if !self.workspace.config.sources.allow_remote_urls {
                 return Err(AppError::new(
                     ErrorType::Policy,
-                    "REMOTE_SOURCES_DISABLED",
+                    "REMOTE_URL_DISABLED",
                     "Remote URL ingestion is disabled for this workspace.",
                 ));
             }
@@ -520,7 +520,7 @@ fn mime_for_extension(path: &Path) -> AppResult<&'static str> {
     }
 }
 
-fn validate_content(mime: &str, bytes: &[u8]) -> AppResult<&'static str> {
+pub(crate) fn validate_content(mime: &str, bytes: &[u8]) -> AppResult<&'static str> {
     let extension = match mime {
         "text/markdown" => "md",
         "text/plain" => "txt",

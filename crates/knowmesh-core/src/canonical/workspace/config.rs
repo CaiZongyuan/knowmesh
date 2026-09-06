@@ -50,6 +50,8 @@ pub struct SourceSettings {
     pub default_storage: String,
     pub max_file_mib: u64,
     pub allow_remote_urls: bool,
+    pub connect_timeout_seconds: u64,
+    pub fetch_timeout_seconds: u64,
 }
 
 impl Default for SourceSettings {
@@ -58,6 +60,8 @@ impl Default for SourceSettings {
             default_storage: "managed".into(),
             max_file_mib: 100,
             allow_remote_urls: true,
+            connect_timeout_seconds: 10,
+            fetch_timeout_seconds: 60,
         }
     }
 }
@@ -266,6 +270,8 @@ impl WorkspaceConfig {
             || config.schema.packs.is_empty()
             || config.sources.max_file_mib == 0
             || config.sources.max_file_mib > u64::MAX / (1024 * 1024)
+            || !(1..=300).contains(&config.sources.connect_timeout_seconds)
+            || !(1..=3600).contains(&config.sources.fetch_timeout_seconds)
             || !(1..=32).contains(&config.compiler.max_concurrency)
             || !(1..=65536).contains(&config.embedding.dimensions)
             || !(1..=100).contains(&config.search.default_limit)

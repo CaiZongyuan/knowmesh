@@ -15,8 +15,10 @@ not contain an executable.
 The Core library also provides canonical parsers, recoverable file transactions,
 and atomic SQLite projection reconciliation. Doctor supports explicit transaction
 repair, including interrupted initialization with missing configuration.
-Rebuild preserves runtime state and backs up the old database before
-replacement; URL fetching is pending.
+Rebuild preserves runtime state and backs up the old database before replacement.
+URL imports store immutable snapshots with address checks, bounded redirects,
+download limits, and timeouts. Private targets require explicit local CLI approval
+through `--allow-private-network`.
 Source removal previews include affected knowledge and preserve the disk index.
 Source lists support cursor pagination; content reads verify historical bytes,
 with explicit `--raw` output for text and PDFs.

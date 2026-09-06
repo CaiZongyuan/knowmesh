@@ -4,6 +4,7 @@ pub mod operations;
 pub mod rebuild;
 pub mod schema;
 pub mod source;
+pub mod source_fetch;
 pub mod source_read;
 pub mod status;
 pub mod sync;

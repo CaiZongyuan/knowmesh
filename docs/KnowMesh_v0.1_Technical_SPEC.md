@@ -567,6 +567,8 @@ sources:
   default_storage: managed
   max_file_mib: 100
   allow_remote_urls: true
+  connect_timeout_seconds: 10
+  fetch_timeout_seconds: 60
 
 compiler:
   enabled: true
@@ -1534,6 +1536,14 @@ pub struct ParsedSource {
 - Server 处于非 loopback 模式时，URL ingestion 默认关闭。
 - 必须阻止 loopback、link-local、私有网段和云 metadata 地址，除非本地 CLI 明确 `--allow-private-network`。
 - 不执行页面脚本，不接受来源文本中的工具调用指令。
+
+当前 CLI 实现遵循以下细则；Server 的非 loopback 入口策略由 KM-060 集成验收：
+
+- `sources.connect_timeout_seconds` 默认 10（范围 1..300），`sources.fetch_timeout_seconds` 默认 60（范围 1..3600），后者覆盖请求、所有 redirect 和完整响应体读取的累计时间；超时返回 retryable `network/FETCH_TIMEOUT`。大小限制同时检查 Content-Length 和实际读取字节，不信任缺失或错误的长度声明。
+- Core 在抓取前检查 workspace 配置、来源存储模式/移除状态和规范快照。`allow_remote_urls=false` 返回 `policy/REMOTE_URL_DISABLED`。本地 CLI 的 `source add --allow-private-network` 仅对此次抓取开放非公网地址，不修改 workspace 配置。
+- transport 使用 `reqwest`；IP literal 先经 URL parser 规范化校验，DNS resolver 在实际连接前检查返回的全部地址，再把同一组地址交给连接器。任一受限地址使此次解析失败；redirect 的 URL、凭据和连接地址重新检查。IPv4-mapped IPv6 使用对应 IPv4 策略，保守拒绝文档/基准/共享地址及 IPv6 转换、隧道等特殊范围；默认不使用环境代理，避免绕过连接地址校验。
+- 只接受完整 HTTP 200 响应及明确的 Markdown/TXT/HTML/PDF Content-Type；v0.1 不请求压缩，拒绝非 identity Content-Encoding。抓取后再次校验实际文本编码/PDF header、大小与最终 URL，校验失败不创建来源或索引。URL fragment 不进入抓取地址或保存的最终 URL。
+- `source add <url> --dry-run` 需要实际下载以计算快照 hash，但不写规范文件或数据库。成功下载交给现有 canonical 文件事务；保存最终 redirect URL，之后的 content 读取只访问已保存材料。重复追加相同 hash 复用原 Revision，不移动已有 head。
 
 ### 13.5 Chunking
 
