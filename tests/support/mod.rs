@@ -99,6 +99,7 @@ pub fn fixture() -> (tempfile::TempDir, Workspace) {
         confidence: Some(1.0),
         qualifiers: BTreeMap::new(),
         evidence: vec![evidence.clone()],
+        conflict_groups: vec![],
     };
     let relation = RelationRecord {
         id: RelationId::new(),

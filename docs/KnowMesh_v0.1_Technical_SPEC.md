@@ -301,6 +301,7 @@ v0.1 支持：
   - `rev_` SourceRevision
   - `kn_` KnowledgeNode
   - `clm_` Claim
+  - `cfg_` ConflictGroup
   - `rel_` Relation
   - `evd_` Evidence
   - `syn_` Synthesis
@@ -335,6 +336,7 @@ v0.1 支持：
 | SourceRevision | 某来源在特定时点的不可变内容快照 | 是 | `revisions/` |
 | KnowledgeNode | 可被命名和持续更新的实体/概念 | 是 | Node Markdown |
 | Claim | 关于一个主语节点的原子、可判真伪陈述 | 是 | Node managed block |
+| ConflictGroup | 同一主语和 qualifier 范围内的 Claim 冲突及处理状态 | 是 | 组内 Claim 的共享内嵌结构 |
 | Relation | 两个节点间的有类型、有方向连接 | 是 | source Node managed block |
 | Evidence | 支持/反驳 Claim 或 Relation 的来源片段与定位 | 是 | assertion 内嵌结构 |
 | Synthesis | 基于多条证据形成的回答、比较或综述 | 是 | Synthesis Markdown |
@@ -353,6 +355,7 @@ erDiagram
     KNOWLEDGE_NODE ||--o{ CLAIM : owns
     KNOWLEDGE_NODE ||--o{ RELATION : starts
     CLAIM ||--o{ EVIDENCE : supported_by
+    CLAIM }o--o{ CONFLICT_GROUP : participates_in
     RELATION ||--o{ EVIDENCE : justified_by
     SYNTHESIS }o--o{ EVIDENCE : cites
 ```
@@ -1843,6 +1846,27 @@ Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint�
 - Relation 相同 `(source,predicate,target,qualifiers)`：合并 Evidence。
 - `supersedes` 必须由 Schema 允许并由 Proposal 显式表达，不通过更新时间猜测。
 
+冲突组的规范存储已经实现于 [`ConflictGroup`](../crates/knowmesh-core/src/domain/conflicts.rs)。每个成员 Claim 的可选 `conflict_groups` 数组内嵌同一完整记录；无冲突时省略该字段。记录结构如下：
+
+```yaml
+conflict_groups:
+  - id: cfg_01ARZ3NDEKTSV4RRFFQ69G5FAV
+    claim_ids:
+      - clm_01ARZ3NDEKTSV4RRFFQ69G5FAW
+      - clm_01ARZ3NDEKTSV4RRFFQ69G5FAX
+    reason: The two statements disagree within the same scope.
+    status: open
+    created_at: 2026-09-06T00:00:00Z
+```
+
+每组包含 2–128 个按 ID 升序排列的唯一 Claim；每个 Claim 最多属于 128 组。成员必须全部位于同一个 subject Node 的受管块，且 qualifiers 完全相同。组 ID 在 workspace 内唯一；所有成员必须保留该组的完整副本，相同 ID 的所有字段必须一致。缺成员、副本不完整、字段冲突、跨 subject 或 qualifier 范围均阻止规范写入和同步，不从残余记录推断缺失成员。
+
+`reason` 非空且至多 2048 Unicode 字符。`status` 为 `open | resolved | dismissed`；open 不得含 `resolved_at`，且所有组成员的 `evidence_status` 必须为 conflicting。resolved/dismissed 必须记录不早于 created_at 的 resolved_at；不会据此自动修改 Claim 的 lifecycle/evidence status，其他未解决冲突和历史状态仍由显式 Proposal 处理。状态关闭不会删除成员、Evidence 或冲突记录。
+
+Claim 语义 hash 包含按组 ID 排序的全部冲突记录，因此组成员、原因或处理状态的变化会使依赖该 Claim 的 Synthesis 需要复核。用于 exact dedup 的 normalized hash 仍只取 statement 与 qualifiers；没有 conflict_groups 的旧 Claim 保持原语义 hash。规范文件解析保留字节级往返，修改冲突只更新所在受管块。
+
+SQLite 的 conflict_groups/conflict_group_claims 是上述记录的派生投影，与 Claim/Evidence 在同一个 reconcile 事务中更新；这两张表不是 runtime 例外。规范记录被移除时清理投影，写入失败回滚整个投影。逻辑快照与原子 rebuild 校验包含组内容和成员，备份及重建后的数据库均保留相同冲突身份与状态。当前 fixtures 验证规范完整性、语义 hash、真实原子重建及失败回滚；本节开头的自动去重、语义比较和 Compiler 生成冲突组仍随 KM-046 的后续实现接入。
+
 ### 14.8 Proposal Patch Operation
 
 允许的 patch op 是闭集：
@@ -3232,6 +3256,7 @@ v0.1 只有同时满足以下条件才可发布：
 | 重建期间旧连接可能继续写入旧 DB | 可写连接生命周期锁、切换前重复制 runtime、先备份再原子替换 | 只用 workspace lock/generation 无法覆盖 runtime 写入；先移走 old 会产生缺失路径窗口。连接协调和复制备份增加切换成本，但保留已确认运行状态 | 10.7 |
 | 证据有引用但上下文仍可能片面 | Core 构建有预算、去重及冲突披露的 bundle | 直接 top-k 拼接简单，但易重复、截断或单来源偏置；规则增加可测的打包开销 | 17.5 |
 | HTML 中转格式与证据区间如何对应 | CommonMark/HTML5 DOM 直接生成统一 typed blocks 和 normalized text，保留 caption 类型；字符区间绑定 revision 与 parser 描述 | HTML→Markdown→blocks 增加转换并丢失部分 caption 类型；原始 HTML 字符区间也不能直接代表实体解码后的引用。原始字节保留为权威，缓存使用有版本的派生产物 | 13.2 |
+| 已接受冲突的成员、原因与处理状态如何重建 | 沿用共享 Evidence 的方式，由成员 Claims 内嵌一致的组记录；组变化进入 Claim 语义 hash，SQLite 只保存派生投影 | 仅保存 DB 组会在重建时丢失 accepted knowledge；独立冲突文件会新增规范文件种类和跨文件维护边界。内嵌方案增加受管块尺寸，并要求更新所有成员副本 | 14.7 |
 
 
 ---

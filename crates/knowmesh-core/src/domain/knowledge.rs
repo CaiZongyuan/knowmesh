@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::{
-    ClaimId, EvidenceId, NodeId, RelationId, RunId, SourceId, SourceRevisionId, SynthesisId,
-    Timestamp, sha256, valid_sha256,
+    ClaimId, ConflictGroup, EvidenceId, NodeId, RelationId, RunId, SourceId, SourceRevisionId,
+    SynthesisId, Timestamp, sha256, valid_sha256,
 };
 use crate::error::{AppError, AppResult, ErrorType};
 
@@ -116,6 +116,8 @@ pub struct ClaimRecord {
     pub qualifiers: BTreeMap<String, Value>,
     #[serde(default)]
     pub evidence: Vec<Evidence>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub conflict_groups: Vec<ConflictGroup>,
 }
 
 impl ClaimRecord {
@@ -129,13 +131,30 @@ impl ClaimRecord {
                 "Claims require a nonempty bounded statement.",
             ));
         }
-        validate_assertion(self.confidence, self.evidence_status, &self.evidence)
+        validate_assertion(self.confidence, self.evidence_status, &self.evidence)?;
+        if self.conflict_groups.len() > 128 {
+            return Err(knowledge_error(
+                "CONFLICT_GROUP_LIMIT",
+                "A Claim can belong to at most 128 conflict groups.",
+            ));
+        }
+        let mut groups = BTreeSet::new();
+        for group in &self.conflict_groups {
+            group.validate()?;
+            if !groups.insert(&group.id) || !group.claim_ids.contains(&self.id) {
+                return Err(knowledge_error(
+                    "INVALID_CONFLICT_MEMBERSHIP",
+                    "A Claim must belong exactly once to each of its conflict groups.",
+                ));
+            }
+        }
+        Ok(())
     }
 
     pub fn semantic_hash(&self, subject: &NodeId) -> AppResult<String> {
         self.validate()?;
         let evidence = ordered_evidence(&self.evidence);
-        semantic_hash(&(
+        let base = semantic_hash(&(
             subject,
             self.statement
                 .split_whitespace()
@@ -145,7 +164,13 @@ impl ClaimRecord {
             self.lifecycle_status,
             self.evidence_status,
             evidence,
-        ))
+        ))?;
+        if self.conflict_groups.is_empty() {
+            return Ok(base);
+        }
+        let mut groups: Vec<_> = self.conflict_groups.iter().collect();
+        groups.sort_by(|left, right| left.id.cmp(&right.id));
+        semantic_hash(&("claim-conflicts-v1", base, groups))
     }
 }
 

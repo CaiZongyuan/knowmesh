@@ -1,3 +1,4 @@
+mod conflicts;
 pub mod freshness;
 mod ids;
 mod knowledge;
@@ -5,6 +6,7 @@ mod source;
 mod text_encoding;
 mod timestamp;
 
+pub use conflicts::*;
 pub use ids::*;
 pub use knowledge::*;
 pub use source::*;

@@ -306,7 +306,7 @@ fn discarded(input: &RebuildInput) -> Vec<String> {
 }
 
 fn snapshot_logical_hash(snapshot: &CanonicalSnapshot) -> AppResult<String> {
-    let value = json!({"sources":snapshot.sources,"nodes":snapshot.nodes,"claims":snapshot.claims,"relations":snapshot.relations,"evidence":snapshot.evidence,"syntheses":snapshot.syntheses});
+    let value = json!({"sources":snapshot.sources,"nodes":snapshot.nodes,"claims":snapshot.claims,"relations":snapshot.relations,"evidence":snapshot.evidence,"syntheses":snapshot.syntheses,"conflict_groups":snapshot.conflict_groups()?});
     Ok(sha256(
         &serde_json::to_vec(&value).map_err(|_| invalid_candidate())?,
     ))

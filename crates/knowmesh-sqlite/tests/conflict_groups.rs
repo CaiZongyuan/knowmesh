@@ -73,6 +73,22 @@ fn canonical_conflict_groups_are_indexed_once_and_rebuilt_with_all_members() {
         .unwrap();
     rebuilt.reconcile(&snapshot).unwrap();
     assert_eq!(rebuilt.logical_snapshot().unwrap(), expected);
+    drop(connection);
+    drop(store);
+    let backend = knowmesh_sqlite::SqliteRebuilder::new(&workspace).unwrap();
+    let report = knowmesh_core::application::rebuild::execute(
+        &workspace,
+        &backend,
+        &knowmesh_core::application::rebuild::RebuildInput {
+            yes: true,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let current = SqliteStore::open_read_only(&workspace.index_path().unwrap()).unwrap();
+    assert_eq!(current.logical_snapshot().unwrap(), expected);
+    let backup = SqliteStore::open_read_only(&report.backup_paths[0]).unwrap();
+    assert_eq!(backup.logical_snapshot().unwrap(), expected);
 }
 
 #[test]

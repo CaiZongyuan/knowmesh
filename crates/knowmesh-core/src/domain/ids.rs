@@ -74,6 +74,7 @@ typed_id!(SourceId, "src_");
 typed_id!(SourceRevisionId, "rev_");
 typed_id!(NodeId, "kn_");
 typed_id!(ClaimId, "clm_");
+typed_id!(ConflictGroupId, "cfg_");
 typed_id!(RelationId, "rel_");
 typed_id!(EvidenceId, "evd_");
 typed_id!(SynthesisId, "syn_");

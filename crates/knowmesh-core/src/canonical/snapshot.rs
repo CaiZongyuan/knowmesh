@@ -22,9 +22,9 @@ use super::{
 };
 use crate::{
     domain::{
-        Claim, Evidence, EvidenceId, EvidenceStatus, LifecycleStatus, NodeId, NodeMetadata,
-        Relation, SourceManifest, SynthesisMetadata, Timestamp, WorkspaceId, knowledge_error,
-        normalize_name, sha256,
+        Claim, ConflictGroup, Evidence, EvidenceId, EvidenceStatus, LifecycleStatus, NodeId,
+        NodeMetadata, Relation, SourceManifest, SynthesisMetadata, Timestamp, WorkspaceId,
+        claim_conflict_groups, knowledge_error, normalize_name, sha256,
     },
     error::{AppError, AppResult, ErrorType},
 };
@@ -64,6 +64,12 @@ pub struct ClaimProjection {
     pub normalized_hash: String,
     pub created_at: Timestamp,
     pub updated_at: Timestamp,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ConflictGroupProjection {
+    pub group: ConflictGroup,
+    pub subject_node_id: NodeId,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -482,6 +488,37 @@ impl CanonicalSnapshot {
         Ok(snapshot)
     }
 
+    pub fn conflict_groups(&self) -> AppResult<Vec<ConflictGroupProjection>> {
+        let mut by_subject = BTreeMap::<_, Vec<_>>::new();
+        for item in &self.claims {
+            by_subject
+                .entry(&item.claim.subject_node_id)
+                .or_default()
+                .push(&item.claim.assertion);
+        }
+        let mut groups = BTreeMap::new();
+        for (subject, claims) in by_subject {
+            for group in claim_conflict_groups(claims)? {
+                if groups
+                    .insert(
+                        group.id.clone(),
+                        ConflictGroupProjection {
+                            group: group.clone(),
+                            subject_node_id: subject.clone(),
+                        },
+                    )
+                    .is_some()
+                {
+                    return Err(snapshot_error(
+                        "CONFLICT_GROUP_ID_CONFLICT",
+                        "Conflict group IDs must belong to exactly one subject Node.",
+                    ));
+                }
+            }
+        }
+        Ok(groups.into_values().collect())
+    }
+
     fn digest(&self) -> AppResult<String> {
         // File mtimes are scan hints; changing them alone must not advance generation.
         let files: Vec<_> = self
@@ -609,6 +646,7 @@ impl CanonicalSnapshot {
             }
             check_evidence(&claim.assertion.evidence, &evidence)?;
         }
+        self.conflict_groups()?;
         for item in &self.relations {
             let relation = &item.relation;
             relation.assertion.validate()?;

@@ -11,7 +11,7 @@ use super::markdown::{
     MarkdownFile, managed_ranges, managed_yaml, markdown_options, render_managed,
 };
 use crate::{
-    domain::{ClaimRecord, NodeMetadata, RelationRecord, knowledge_error},
+    domain::{ClaimRecord, NodeMetadata, RelationRecord, claim_conflict_groups, knowledge_error},
     error::AppResult,
 };
 
@@ -98,6 +98,7 @@ impl NodeDocument {
                 ));
             }
         }
+        claim_conflict_groups(&self.claims)?;
         let mut evidence_ids = BTreeMap::new();
         for evidence in self.claims.iter().flat_map(|claim| &claim.evidence).chain(
             self.relations

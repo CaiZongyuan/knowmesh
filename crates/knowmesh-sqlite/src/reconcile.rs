@@ -10,6 +10,8 @@ use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::Serialize;
 use serde_json::{Value, json};
 
+mod conflicts;
+
 use crate::{SqliteStore, database_error};
 
 impl ProjectionStore for SqliteStore {
@@ -63,7 +65,7 @@ impl ProjectionStore for SqliteStore {
                 source.manifest.validate_update(&previous.manifest)?;
             }
         }
-        tx.execute_batch("DELETE FROM claim_evidence; DELETE FROM relation_evidence; DELETE FROM synthesis_evidence; DELETE FROM synthesis_nodes; DELETE FROM source_node_links; DELETE FROM node_aliases; DELETE FROM node_mentions;").map_err(database_error)?;
+        tx.execute_batch("DELETE FROM claim_evidence; DELETE FROM relation_evidence; DELETE FROM synthesis_evidence; DELETE FROM synthesis_nodes; DELETE FROM source_node_links; DELETE FROM node_aliases; DELETE FROM node_mentions; DELETE FROM conflict_group_claims; DELETE FROM conflict_groups;").map_err(database_error)?;
         // Vacate unique keys inside this transaction so swaps preserve object rows and runtime links.
         // NUL cannot occur in a canonical filesystem path or a SHA-256 digest.
         tx.execute_batch(
@@ -245,6 +247,19 @@ impl ProjectionStore for SqliteStore {
             "sources",
             snapshot.sources.iter().map(|v| v.manifest.id.as_str()),
         )?;
+        for item in snapshot.conflict_groups()? {
+            let group = item.group;
+            tx.execute("INSERT INTO conflict_groups(id,subject_node_id,reason,status,created_at,resolved_at) VALUES(?1,?2,?3,?4,?5,?6)",
+                params![group.id.as_str(), item.subject_node_id.as_str(), group.reason, enum_text(&group.status)?, group.created_at.to_string(), group.resolved_at.map(|time| time.to_string())],
+            ).map_err(database_error)?;
+            for claim in &group.claim_ids {
+                tx.execute(
+                    "INSERT INTO conflict_group_claims(conflict_group_id,claim_id) VALUES(?1,?2)",
+                    params![group.id.as_str(), claim.as_str()],
+                )
+                .map_err(database_error)?;
+            }
+        }
         reconcile_search(&tx, snapshot)?;
         tx.execute("DELETE FROM file_manifest", [])
             .map_err(database_error)?;
@@ -289,6 +304,10 @@ impl SqliteStore {
             }
             output.insert(table.into(), Value::Array(values));
         }
+        output.insert(
+            "conflict_groups".into(),
+            serde_json::to_value(conflicts::read(&tx)?).map_err(|_| payload_error())?,
+        );
         Ok(Value::Object(output))
     }
 }
