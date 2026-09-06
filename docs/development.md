@@ -125,6 +125,11 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   a no-boost baseline and scores across candidate-tail truncation. Workspace config
   validates weights/budgets and supplies defaults for older files. Public Search
   integration and retrieval evaluation are still pending under #17/#42.
+- Ranked snapshot pagination binds workspace/query, generation/snapshot hash,
+  ranking settings/candidate limits, actual channels, and candidate results.
+  The opaque cursor stores an exact-tier/score/ID position. Tests cover changing
+  final page sizes, stale snapshots/config/channels/candidates, and malformed
+  positions. This Core helper still needs the public Search integration in #17.
 - Core scans canonical files into a validated snapshot, resolving wiki links and
   checking cross-object references, schema constraints, and managed revision
   hashes. Ambiguous or unresolved links produce warnings. A stale Workspace or

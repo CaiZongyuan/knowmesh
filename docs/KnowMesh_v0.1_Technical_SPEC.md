@@ -1368,6 +1368,8 @@ Core 的 `AppError::exit_code()` 与 `http_status()` 是映射的唯一实现，
 - cursor 至少编码 sort key、record id、query fingerprint；改变 query/filter 后旧 cursor 返回 `CURSOR_QUERY_MISMATCH`。
 - Search cursor 还必须绑定 indexed generation、排名配置和实际参与通道；任一变化返回 `conflict/CURSOR_STALE`，由调用者重新开始查询，避免翻页时重排或重复。
 
+Core 的 [`search::pagination`](../crates/knowmesh-core/src/application/search/pagination.rs) 已实现 ranked snapshot 分页。游标为有版本的 Base64url JSON（输入上限 4096 bytes），包含 workspace/query fingerprint、generation/snapshot hash、排名配置与候选上限 hash、实际通道/候选结果 hash，以及最后一个结果的 exact tier、score bits 和 `unit_id`；不保存 offset。Query/filter 或 workspace 不符返回 `CURSOR_QUERY_MISMATCH`，索引/排名/通道/候选变化返回 `CURSOR_STALE`，不存在的排序位置返回 `INVALID_CURSOR`。改变最终页大小不改变候选池，可继续同一游标。该 helper 的契约测试已通过，公开 Search 用例仍需从同一次索引读取构造这些绑定值；游标不声明签名或访问权限能力。
+
 ### 11.12 Raw 输出例外
 
 以下命令可显式使用 `--raw` 绕过 JSON envelope：

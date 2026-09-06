@@ -16,6 +16,7 @@ fn context() -> PageContext {
         generation: 3,
         snapshot_sha256: sha256(b"canonical snapshot"),
         ranking: RankingConfig::default(),
+        candidate_limit: 100,
     }
 }
 
@@ -138,6 +139,12 @@ fn generation_ranking_channels_and_candidate_changes_expire_a_cursor() {
     );
     changed = original.clone();
     changed.ranking.boosts_enabled = false;
+    assert_eq!(
+        paginate(&ranked, &changed, &input).unwrap_err().code,
+        "CURSOR_STALE"
+    );
+    changed = original.clone();
+    changed.candidate_limit = 200;
     assert_eq!(
         paginate(&ranked, &changed, &input).unwrap_err().code,
         "CURSOR_STALE"
