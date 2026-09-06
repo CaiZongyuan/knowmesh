@@ -24,7 +24,7 @@ use crate::{
     domain::{
         Claim, ConflictGroup, Evidence, EvidenceId, EvidenceStatus, LifecycleStatus, NodeId,
         NodeMetadata, Relation, SourceManifest, SynthesisMetadata, Timestamp, WorkspaceId,
-        claim_conflict_groups, knowledge_error, normalize_name, sha256,
+        claim_conflict_groups, knowledge_error, sha256,
     },
     error::{AppError, AppResult, ErrorType},
 };
@@ -114,7 +114,7 @@ pub struct SnapshotWarning {
     pub path: PathBuf,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CanonicalSnapshot {
     pub workspace_id: WorkspaceId,
     pub schema_hash: String,
@@ -129,7 +129,12 @@ pub struct CanonicalSnapshot {
     pub mentions: Vec<MentionProjection>,
     pub warnings: Vec<SnapshotWarning>,
     schema: Schema,
+    validated_sha256: String,
 }
+
+mod preview;
+mod project;
+pub use preview::CanonicalPreview;
 
 impl CanonicalSnapshot {
     pub(crate) fn metadata_matches(
@@ -142,26 +147,7 @@ impl CanonicalSnapshot {
         if Schema::load(workspace)?.hash != schema_hash {
             return Ok(false);
         }
-        let mut paths = BTreeSet::from([PathBuf::from("knowmesh.yaml")]);
-        paths.extend(markdown_files(workspace, "knowledge/nodes")?);
-        paths.extend(markdown_files(workspace, "knowledge/syntheses")?);
-        paths.extend(SourceLibrary::new(workspace).manifest_paths()?);
-        for reference in workspace
-            .config
-            .schema
-            .packs
-            .iter()
-            .filter(|path| !path.starts_with("builtin:"))
-            .chain(workspace.config.workspace.purpose.iter())
-        {
-            let absolute = confined_existing_path(&workspace.root, Path::new(reference))?;
-            paths.insert(
-                absolute
-                    .strip_prefix(&workspace.root)
-                    .map_err(|_| file_changed())?
-                    .to_owned(),
-            );
-        }
+        let paths = canonical_paths(workspace)?;
         let indexed: BTreeSet<_> = files
             .iter()
             .filter(|file| file.kind != "source_blob")
@@ -220,6 +206,7 @@ impl CanonicalSnapshot {
             mentions: vec![],
             warnings: vec![],
             schema,
+            validated_sha256: String::new(),
         };
         snapshot.files.push(file_record(
             workspace,
@@ -316,56 +303,7 @@ impl CanonicalSnapshot {
             if file.sha256 != sha256(&bytes) {
                 return Err(file_changed());
             }
-            let node_id = document.metadata.id.clone();
-            for link in document.links() {
-                links.push((node_id.clone(), path.clone(), link));
-            }
-            snapshot.nodes.push(NodeProjection {
-                metadata: document.metadata.clone(),
-                summary: summary(document.body()),
-                canonical_path: path.clone(),
-                content_sha256: file.sha256.clone(),
-            });
-            for (ordinal, assertion) in document.claims.into_iter().enumerate() {
-                collect_evidence(
-                    &mut evidence,
-                    &assertion.evidence,
-                    &path,
-                    document.metadata.created_at,
-                )?;
-                snapshot.claims.push(ClaimProjection {
-                    semantic_sha256: assertion.semantic_hash(&node_id)?,
-                    normalized_hash: assertion.normalized_hash()?,
-                    claim: Claim {
-                        subject_node_id: node_id.clone(),
-                        assertion,
-                    },
-                    canonical_path: path.clone(),
-                    canonical_order: ordinal,
-                    created_at: document.metadata.created_at,
-                    updated_at: document.metadata.updated_at,
-                });
-            }
-            for (ordinal, assertion) in document.relations.into_iter().enumerate() {
-                collect_evidence(
-                    &mut evidence,
-                    &assertion.evidence,
-                    &path,
-                    document.metadata.created_at,
-                )?;
-                snapshot.relations.push(RelationProjection {
-                    semantic_sha256: assertion.semantic_hash(&node_id)?,
-                    relation: Relation {
-                        source_node_id: node_id.clone(),
-                        assertion,
-                    },
-                    canonical_path: path.clone(),
-                    canonical_order: ordinal,
-                    created_at: document.metadata.created_at,
-                    updated_at: document.metadata.updated_at,
-                });
-            }
-            snapshot.files.push(file);
+            snapshot.project_node(document, file, &mut evidence, &mut links)?;
         }
         snapshot.evidence = evidence.into_values().collect();
         let available: BTreeSet<_> = snapshot
@@ -400,79 +338,8 @@ impl CanonicalSnapshot {
             });
             snapshot.files.push(file);
         }
-        let mut names: BTreeMap<String, BTreeSet<NodeId>> = BTreeMap::new();
-        let ids: BTreeSet<_> = snapshot
-            .nodes
-            .iter()
-            .map(|n| n.metadata.id.clone())
-            .collect();
-        for node in &snapshot.nodes {
-            for name in std::iter::once(&node.metadata.name).chain(&node.metadata.aliases) {
-                names
-                    .entry(normalize_name(name))
-                    .or_default()
-                    .insert(node.metadata.id.clone());
-            }
-        }
-        for (source, path, link) in links {
-            let matches = if let Ok(id) = link.target.parse::<NodeId>() {
-                if ids.contains(&id) {
-                    BTreeSet::from([id])
-                } else {
-                    BTreeSet::new()
-                }
-            } else {
-                names
-                    .get(&normalize_name(&link.target))
-                    .cloned()
-                    .unwrap_or_default()
-            };
-            if matches.len() == 1 {
-                let target = matches.into_iter().next().ok_or_else(file_changed)?;
-                let id = sha256(
-                    format!("{source}:{target}:{}:{}", link.byte_start, link.byte_end).as_bytes(),
-                );
-                snapshot.mentions.push(MentionProjection {
-                    id,
-                    source_node_id: source,
-                    target_node_id: target,
-                    surface: link.display,
-                    byte_start: link.byte_start,
-                    byte_end: link.byte_end,
-                });
-            } else {
-                snapshot.warnings.push(SnapshotWarning {
-                    code: if matches.is_empty() {
-                        "UNRESOLVED_NODE_LINK"
-                    } else {
-                        "AMBIGUOUS_NODE_LINK"
-                    }
-                    .into(),
-                    message: "A wiki link could not be resolved to exactly one node.".into(),
-                    path,
-                });
-            }
-        }
-        snapshot
-            .sources
-            .sort_by(|a, b| a.manifest.id.cmp(&b.manifest.id));
-        snapshot
-            .nodes
-            .sort_by(|a, b| a.metadata.id.cmp(&b.metadata.id));
-        snapshot
-            .claims
-            .sort_by(|a, b| a.claim.assertion.id.cmp(&b.claim.assertion.id));
-        snapshot
-            .relations
-            .sort_by(|a, b| a.relation.assertion.id.cmp(&b.relation.assertion.id));
-        snapshot
-            .syntheses
-            .sort_by(|a, b| a.metadata.id.cmp(&b.metadata.id));
-        snapshot.mentions.sort_by(|a, b| a.id.cmp(&b.id));
-        snapshot.files.sort_by(|a, b| a.path.cmp(&b.path));
-        snapshot.files.dedup_by(|a, b| a.path == b.path);
-        snapshot.content_sha256 = snapshot.digest()?;
-        snapshot.validate()?;
+        snapshot.resolve_links(links)?;
+        snapshot.finish_projection()?;
         check_workspace(workspace)?;
         if Schema::load(workspace)?.hash != snapshot.schema_hash {
             return Err(file_changed());
@@ -553,7 +420,10 @@ impl CanonicalSnapshot {
     }
 
     pub fn validate(&self) -> AppResult<()> {
-        if self.digest()? != self.content_sha256 || self.schema_hash != self.schema.hash {
+        if self.digest()? != self.content_sha256
+            || self.validated_sha256 != self.content_sha256
+            || self.schema_hash != self.schema.hash
+        {
             return Err(snapshot_error(
                 "SNAPSHOT_DIGEST_MISMATCH",
                 "The projection payload changed after canonical parsing.",
@@ -744,6 +614,30 @@ fn check_evidence(
         }
     }
     Ok(())
+}
+
+fn canonical_paths(workspace: &Workspace) -> AppResult<BTreeSet<PathBuf>> {
+    let mut paths = BTreeSet::from([PathBuf::from("knowmesh.yaml")]);
+    paths.extend(markdown_files(workspace, "knowledge/nodes")?);
+    paths.extend(markdown_files(workspace, "knowledge/syntheses")?);
+    paths.extend(SourceLibrary::new(workspace).manifest_paths()?);
+    for reference in workspace
+        .config
+        .schema
+        .packs
+        .iter()
+        .filter(|path| !path.starts_with("builtin:"))
+        .chain(workspace.config.workspace.purpose.iter())
+    {
+        let absolute = confined_existing_path(&workspace.root, Path::new(reference))?;
+        paths.insert(
+            absolute
+                .strip_prefix(&workspace.root)
+                .map_err(|_| file_changed())?
+                .to_owned(),
+        );
+    }
+    Ok(paths)
 }
 
 fn markdown_files(workspace: &Workspace, directory: &str) -> AppResult<Vec<PathBuf>> {

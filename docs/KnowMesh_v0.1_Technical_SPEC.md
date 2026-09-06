@@ -1110,6 +1110,8 @@ Canonical write 不是单一 SQLite 事务，必须使用可恢复文件事务�
 
 manifest 必须持久化每个目标的相对路径、操作类型、before/after hash 和可验证的 staged 内容；manifest 状态变更也采用 atomic write，并同步文件及支持该能力的平台目录。`prepared` 必须在第一个目标替换前可靠落盘。
 
+当前 `CanonicalSnapshot` 在规范文件扫描后封存私有校验 hash；公开投影字段及公开 hash 一起被替换，也不能重新获得可 reconcile 的快照。拟议文档使用独立的 `CanonicalPreview` 只读类型，不暴露到 `CanonicalSnapshot` 的转换，避免将尚未 Apply 的知识交给索引写入端口。预览契约见 14.8 节。
+
 若在第 5 步的任意两个文件替换之间崩溃，恢复者必须先获取 workspace lock，逐文件比较 hash：已为 after 的跳过，仍为 before 的从 staging 前滚，其他内容视为外部修改并返回 `conflict/TRANSACTION_RECOVERY_CONFLICT`，保留全部恢复材料。创建文件以“不存在”为 before。尚未完成的事务恢复前，新的 Apply/sync/rebuild 必须停止；只读查询可返回上一次完整索引快照并标明 `recovery_required=true`。所有文件均达到 after 后才能 reconcile 并标记完成；不得把中间混合状态索引为成功。
 
 `doctor` 的 workspace 定位除 `knowmesh.yaml` 外也识别 `.knowmesh/transactions/`，保持显式路径、环境变量、父目录的优先级，因此初始化尚未写入配置时也可诊断。配置无法加载时报告 `workspace_id: null` 和原始配置错误，不生成新的 workspace ID。`doctor --repair --dry-run` 校验整个待恢复日志的 before/after 与 staging hash；`--yes` 在 workspace lock 内复查，从日志中待安装的配置读取身份，与已有可读 DB 核对后才前滚。配置、Schema、规范投影全部验证且索引提交成功后才能完成日志。没有对应日志的外部损坏不会被猜测修复；已有 DB 的读取/版本错误会阻止待恢复文件写入。
@@ -1912,6 +1914,12 @@ update_source_metadata
 禁止模型输出任意 filesystem patch、SQL 或 shell command。
 
 `record_claim_conflict` 是 KM-047 待实现的显式组变更操作：target 为成员所属 Node，payload 包含完整 conflict group 和显式成员 evidence_status 变更。它必须在同一 Node 写入中维护全部成员副本，并遵守 14.7 节的身份、scope、状态与历史约束；不能借该操作修改 Claim 正文、Evidence 或 lifecycle。创建组依赖的新 Claim 必须已存在或由同一已接受 Proposal 的创建项提供，缺失/被拒绝的依赖阻止 Apply。新增 Claim 与追加 Evidence 项保留去重阶段基线，组修改单独审核；不得把组副本预先混入可独立接受的新 Claim 项，造成循环依赖或绕过组决策。
+
+[`CanonicalSnapshot::preview_documents`](../crates/knowmesh-core/src/canonical/snapshot/preview.rs) 已提供 Builder 所需的只读文档预览：基于已扫描快照接受至多 10,000 个文档、合计 64 MiB 的拟议替换。仅允许 knowledge/nodes 与 knowledge/syntheses 下的 Markdown，以及已有来源的描述元数据；单个 Markdown 上限 8 MiB、来源 manifest 上限 16 MiB。配置、原始 blob、新建来源、revision/head/removal 状态变化和已有 Node/Synthesis 身份或创建时间替换均被拒绝。
+
+预览前后检查 workspace/Schema、规范文件清单和原有内容 hash；新增文件、目标被占用、路径大小写别名、symlink 或外部编辑会使预览失败。它复用真实扫描的 Node/Claim/Relation/Evidence 投影和链接解析，重新验证整个拟议引用图；新节点/别名也会更新未修改页面中的链接解析。预览没有磁盘写入，不创建索引；相同文档实际落盘后，完整扫描得到相同逻辑 hash，文件 mtime 仅作为扫描提示。
+
+`CanonicalPreview` 只暴露只读投影和 hash，不能作为 `ProjectionStore::reconcile` 的输入。该层验证规范格式、Schema 和引用一致性，不能代替具体 patch payload 校验、来源 quote 定位、审核或文件事务；这些仍由 KM-047 的 Builder/Apply 接入。
 
 每个 Proposal item 包含：
 
@@ -3291,6 +3299,7 @@ v0.1 只有同时满足以下条件才可发布：
 | HTML 中转格式与证据区间如何对应 | CommonMark/HTML5 DOM 直接生成统一 typed blocks 和 normalized text，保留 caption 类型；字符区间绑定 revision 与 parser 描述 | HTML→Markdown→blocks 增加转换并丢失部分 caption 类型；原始 HTML 字符区间也不能直接代表实体解码后的引用。原始字节保留为权威，缓存使用有版本的派生产物 | 13.2 |
 | 已接受冲突的成员、原因与处理状态如何重建 | 沿用共享 Evidence 的方式，由成员 Claims 内嵌一致的组记录；组变化进入 Claim 语义 hash，SQLite 只保存派生投影 | 仅保存 DB 组会在重建时丢失 accepted knowledge；独立冲突文件会新增规范文件种类和跨文件维护边界。内嵌方案增加受管块尺寸，并要求更新所有成员副本 | 14.7 |
 | Claim 精确去重如何保留科学符号 | Statement 只折叠空白；保留大小写和 Unicode 字符差异，其他相似性进入待审核比较；旧索引重新生成 key | 名称用的 NFKC/小写会把 Co/CO 等不同含义折叠。较窄的 exact 规则增加 possible_duplicate 候选，但避免自动丢失不同断言 | 14.7 |
+| 如何预览整图而不把拟议内容索引为知识 | 预览与真实扫描共用投影校验，结果使用独立只读类型；真实快照保留私有封存 hash | 直接返回可 reconcile 的快照容易绕过 Apply；只校验公开 hash 不能阻止数据与 hash 一起被替换。独立类型增加少量访问接口，保留 FS 来源边界 | 10.6 / 14.8 |
 
 
 ---

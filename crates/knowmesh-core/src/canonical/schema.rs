@@ -132,7 +132,7 @@ impl Policies {
     }
 }
 
-#[derive(Debug, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Schema {
     pub packs: Vec<SchemaPack>,
     pub node_types: BTreeMap<String, NodeType>,

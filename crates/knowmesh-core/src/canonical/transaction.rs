@@ -472,7 +472,7 @@ pub(crate) fn file_hash(path: &Path) -> AppResult<Option<String>> {
     Ok(Some(format!("{:x}", hasher.finalize())))
 }
 
-fn validate_canonical_path(path: &Path) -> AppResult<()> {
+pub(crate) fn validate_canonical_path(path: &Path) -> AppResult<()> {
     if path.as_os_str().is_empty()
         || path.is_absolute()
         || path
@@ -494,7 +494,7 @@ fn validate_canonical_path(path: &Path) -> AppResult<()> {
     Ok(())
 }
 
-fn path_key(path: &Path) -> String {
+pub(crate) fn path_key(path: &Path) -> String {
     path.components()
         .map(|c| c.as_os_str().to_string_lossy().to_lowercase())
         .collect::<Vec<_>>()
