@@ -1781,6 +1781,16 @@ Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint�
 5. 零或多匹配则失败，不允许模型“补写”quote；
 6. 计算并存储 quote hash。
 
+当前 [`EvidenceVerifier`](../crates/knowmesh-core/src/application/evidence_verify/mod.rs) 先验证 ParsedSource 的 revision、原始内容 hash、encoding、解析文本与 block spans，并要求来源通过解析质量门。同一 revision 的候选共享 verifier；它不读取或改写规范文件，不调用模型。`EvidenceInput` 不接受 Evidence ID；成功后返回不可反序列化构造的 `VerifiedEvidence`，生成新的 `evd_` 身份。缓存或 Proposal 中读取的普通 Evidence 不自动拥有已验证状态，必须重新验证。
+
+`char_start`/`char_end` 是 `ParsedSource.normalized_text` 中从 0 开始、左闭右开的 Unicode scalar value 区间，不是 UTF-8 byte 或 UTF-16 offset。Quote 与 span 只折叠连续 Unicode whitespace 为一个 ASCII space 并去掉首尾空白，不改变大小写、标点、词语或 Unicode 组合形式。输入 quote 仍须为非空且不超过 1000 字符；保存规范化后的 quote 及其 UTF-8 SHA-256。
+
+提供 offsets 时，两端必须同时存在、递增且不越界；起点必须落在 SourceBlock 内。已提供的 page、完整 section path 和 paragraph 必须与锚点一致，整个 span 不得越过该连续页/章节范围；指定 paragraph 时也不得越过该段落。精确匹配可直接接受，即使其他位置重复出现同一句话。失败后使用 `[start - radius, end + radius)` 与上述范围的交集搜索；默认 `repair_window_chars=64`，允许 `0..=10,000`，0 禁用 offset 修复。未知页号不推断为第 1 页，缺失或矛盾的 scope 不跨范围兜底。
+
+无 offsets 时，必须显式指定 page、section path 或 paragraph；在全部匹配范围内查找唯一引用，每次匹配仍不得跨页/章节。`max_search_chars` 默认 100,000，允许 `1..=1,000,000`，限制单个精确 span 或本次搜索的范围总长；超过上限要求提供更窄定位，不截断后声称唯一。重复章节中的匹配和重叠匹配（例如 `aaa` 在 `aaaa` 中出现两次）均计为歧义。返回 locator 补全真实 page/section/字符区间；跨段引用的 paragraph 为空。`locator_repaired` 只表示 offsets 被移动或补全，不因补全描述字段而置为 true。
+
+失败分别返回 `EVIDENCE_REVISION_MISMATCH`、`EVIDENCE_LOCATOR_OUT_OF_BOUNDS`、`INVALID_EVIDENCE_LOCATOR`、`EVIDENCE_SCOPE_MISMATCH`、`EVIDENCE_LOCATOR_REQUIRED`、`EVIDENCE_SEARCH_LIMIT`、`EVIDENCE_QUOTE_NOT_FOUND` 或 `EVIDENCE_QUOTE_AMBIGUOUS`。非法 quote/confidence、解析产物或质量门失败沿用对应领域错误；诊断不附带原始 quote。当前 fixtures 验证 Unicode、空白映射、边界/歧义和 chunk 配置独立性；Proposal assertion 的强制接入与全量 locator validity 验收仍随 KM-047 完成，KM-044 在此之前保持未完成。
+
 ### 14.6 Entity Resolution
 
 依次执行：

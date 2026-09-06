@@ -1,4 +1,5 @@
 pub mod doctor;
+pub mod evidence_verify;
 pub mod impact;
 pub mod lexical;
 pub mod operations;

@@ -35,6 +35,8 @@ Core includes structure-aware chunking and validated stage caches; these are rea
 for the remaining Compiler integration.
 Model adapters now provide bounded structured generation with local Schema
 validation; the full compile/review/apply workflow remains in development.
+Core Evidence verification checks quotes against bounded source spans and rejects
+ambiguous repairs; enforcement through Proposal review/apply is still pending.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).

@@ -155,6 +155,15 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   parameter names are configurable. Tests cover profile identity, secret rotation,
   malformed responses, rate limits, deadlines, and unknown-usage estimates. Details
   and remaining Run/cost integration are specified in SPEC 14.4.
+- Core Evidence verification checks immutable parse identity and extraction quality,
+  matches exact Unicode spans, and repairs only unique quotes within a bounded
+  page/section/paragraph scope. Whitespace-only normalization retains original
+  source coordinates; overlapping and repeated scoped matches are rejected.
+- Fixtures cover invalid metadata, unknown pages, cross-boundary spans, long Unicode
+  text, scoped search limits, and chunk-independent locators. Successful results mint
+  Evidence IDs and normalized quote hashes. Defaults/errors live in SPEC 14.5.
+  Proposal enforcement remains #27; #24 stays open until its assertion validity gate
+  is exercised through that workflow.
 - SQLite bootstrap applies checksum-verified migrations, binds one workspace ID,
   and configures WAL/foreign keys/busy timeouts on each connection. Existing
   stores remain readable during another connection's write transaction. Both
@@ -221,8 +230,8 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - `doctor` inspects database integrity/version, canonical references, pending
   transactions, index freshness, and Git ignore/tracking state. Missing, outdated,
   and corrupt databases are reported without creation or migration. Git is
-  optional; unavailable Git produces a diagnostic warning. Locator checks remain
-  structural until ingestion can verify them against extracted text.
+  optional; unavailable Git produces a diagnostic warning. Doctor locator checks
+  remain structural; the Compiler verifier is not yet connected to diagnostics.
 - `doctor --repair --dry-run` reports the current diagnostics and pending paths.
   `doctor --repair --yes` rolls forward pending transactions and synchronizes
   the index. Corrupt databases and invalid journals are preserved for explicit
@@ -316,6 +325,7 @@ KM-023 and their owning implementation issues.
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), [KM-050 / #30](https://github.com/CaiZongyuan/knowmesh/issues/30), [KM-051 / #31](https://github.com/CaiZongyuan/knowmesh/issues/31), Source reads | Commits `951de18`, `106794d`: missing Core/CLI reads and absent envelope continuation metadata | `cargo +stable test --workspace --locked`: 138 tests pass, including filtered pagination, query/workspace/generation mismatch, external metadata sync, historical reads after removal, content integrity, binary encoding, raw output, and format conflicts |
 | [KM-012 / #8](https://github.com/CaiZongyuan/knowmesh/issues/8), URL fetching | Commits `2983eb9`, `1d0f963`: missing fetch policy/transport/CLI override, and invalid downloaded bytes create an index before rejection | `cargo +stable test --workspace --locked`: 143 tests pass, including public/private address policy, actual DNS checks, bounded redirects/downloads/timeouts, preview without writes, MIME validation before index creation, repeat-hash imports, and offline snapshot reads |
 | [KM-003 / #4](https://github.com/CaiZongyuan/knowmesh/issues/4), public handler registration | Commit `237a7d9`: no automated coverage of the full CLI operation mapping | `cargo +stable test --workspace --locked`: 146 tests pass, including unregistered-handler fixtures and rejection of dynamic/wildcard/missing mappings |
+| [KM-044 / #24](https://github.com/CaiZongyuan/knowmesh/issues/24), Evidence verifier component | Commit `bf76b48`: missing Evidence verifier module | `cargo +stable test -p knowmesh-core --test evidence_verify --locked`: 14 tests pass; Proposal integration remains pending |
 
 The [foundation CI run](https://github.com/CaiZongyuan/knowmesh/actions/runs/33976876366)
 passed formatting, clippy, tests, and CLI version smoke checks on Linux, macOS,
