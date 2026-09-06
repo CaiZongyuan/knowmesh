@@ -1,0 +1,58 @@
+[
+  {
+    "name": "opposite_effect",
+    "left": "Method X improved accuracy in dataset A.",
+    "right": "Method X did not improve accuracy in dataset A.",
+    "verdict": "conflicting",
+    "reason": "The statements assert opposite outcomes for the same method and dataset.",
+    "groups": 1,
+    "changes": 2
+  },
+  {
+    "name": "paraphrase",
+    "left": "Method X improved accuracy in dataset A.",
+    "right": "Accuracy gains in dataset A were observed with Method X.",
+    "verdict": "possible_duplicate",
+    "reason": "The statements may express the same result, but their wording differs.",
+    "groups": 0,
+    "changes": 0
+  },
+  {
+    "name": "distinct_measurements",
+    "left": "Method X improved accuracy in dataset A.",
+    "right": "Method X reduced memory consumption in dataset A.",
+    "verdict": "independent",
+    "reason": "Accuracy and memory consumption describe different measurements.",
+    "groups": 0,
+    "changes": 0
+  },
+  {
+    "name": "scientific_case",
+    "left": "The model predicts Co transport.",
+    "right": "The model predicts CO transport.",
+    "verdict": "independent",
+    "reason": "Co and CO identify different chemical species.",
+    "groups": 0,
+    "changes": 0
+  },
+  {
+    "name": "insufficient_scope_in_statement",
+    "left": "Method X improved the reported outcome.",
+    "right": "Method X did not improve a different reported outcome.",
+    "verdict": "undetermined",
+    "reason": "The statements do not establish that the outcomes are comparable.",
+    "groups": 0,
+    "changes": 0
+  },
+  {
+    "name": "unsupported_existing_claim",
+    "left": "Method X improved accuracy in dataset A.",
+    "right": "Method X did not improve accuracy in dataset A.",
+    "verdict": "conflicting",
+    "reason": "The statements assert opposite outcomes but one has no evidence.",
+    "omit_right_evidence": true,
+    "groups": 0,
+    "changes": 0,
+    "blocked": "EVIDENCE_REQUIRED"
+  }
+]
