@@ -238,3 +238,18 @@ fn advanced_fts_is_opt_in_and_invalid_queries_leave_the_connection_usable() {
         "INVALID_SEARCH_TIMEOUT"
     );
 }
+
+#[test]
+fn previews_bound_unicode_text_without_truncating_utf8_characters() {
+    let (_temp, store, db) = fixture();
+    let body = format!("preview {}", "细胞".repeat(600));
+    db.execute("UPDATE search_units SET body=?1 WHERE unit_id='a'", [&body])
+        .unwrap();
+    let result = store.search_lexical(&query("preview")).unwrap();
+    for channel in result.channels {
+        assert_eq!(
+            channel.hits[0].preview,
+            body.chars().take(512).collect::<String>()
+        );
+    }
+}

@@ -55,6 +55,12 @@ fn search_reads_real_candidates_exact_ids_and_freshness_through_one_core_use_cas
     assert!(!report.capabilities.vector);
     assert_eq!(report.groups.claims.len(), 1);
     let claim = &report.groups.claims[0];
+    assert!(
+        serde_json::to_value(claim).unwrap()["preview"]
+            .as_str()
+            .unwrap()
+            .contains("Model A")
+    );
     assert_eq!(
         claim.freshness.as_ref().unwrap().freshness,
         Freshness::Current
@@ -166,6 +172,43 @@ fn chunk_filters_follow_their_source_revision_node_or_synthesis_owner() {
             .groups
             .chunks
             .is_empty()
+    );
+}
+
+#[test]
+fn synthesis_filters_follow_recorded_assertions_without_direct_source_or_node_links() {
+    let (temp, workspace, mut store, snapshot) = fixture();
+    let path = temp.path().join("knowledge/syntheses/comparison.md");
+    let mut document = knowmesh_core::canonical::synthesis::SynthesisDocument::parse(
+        &fs::read_to_string(&path).unwrap(),
+    )
+    .unwrap();
+    document.metadata.related_nodes.clear();
+    document.metadata.evidence_ids.clear();
+    document
+        .metadata
+        .dependency_snapshot
+        .as_mut()
+        .unwrap()
+        .source_heads
+        .clear();
+    document.body = "# Fixture comparison\n\nRecorded assertion dependencies.\n".into();
+    fs::write(path, document.render().unwrap()).unwrap();
+    let mut request = input("fixture");
+    request.record_types = vec![RecordType::Synthesis];
+    request.node_types = vec!["Model".into()];
+    request.source_ids = vec![snapshot.sources[0].manifest.id.clone()];
+    request.tags = vec!["fixture".into()];
+    let result = search::execute(&workspace, &mut store, &request).unwrap();
+    assert_eq!(result.groups.syntheses.len(), 1);
+    assert_eq!(
+        result.groups.syntheses[0]
+            .freshness
+            .as_ref()
+            .unwrap()
+            .evidence_ids
+            .len(),
+        1
     );
 }
 
