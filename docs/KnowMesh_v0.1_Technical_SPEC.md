@@ -1669,7 +1669,7 @@ PDF 的 page 是从 1 开始的物理页序，paragraph 在页切换时重新从
 
 缓存实例由调用方配置正的 artifact byte limit，超过限制返回 `CACHE_ARTIFACT_TOO_LARGE`。Checkpoint 可保存 immutable ArtifactReference，读取不依赖后来覆盖的 key manifest；旧内容寻址产物不自动删除。并发发布和失败替换 fixtures 验证旧引用仍可读取，未完成临时文件不作为命中依据。
 
-`parse_cached` 在命中前仍校验输入 bytes 与 Revision，并检查产物的 parser descriptor；`chunk_cached` 验证 ParsedSource、质量门及当前 counter/options，再决定命中。配置变化或有效 JSON 中的结构损坏会重算。当前已接入解析/分块；模型阶段执行、Run checkpoint/attempt/预算控制和向量映射仍由对应后续任务接入，不能仅凭缓存引用声称 Run 已可恢复。
+`parse_cached` 在命中前仍校验输入 bytes 与 Revision，并检查产物的 parser descriptor；`chunk_cached` 验证 ParsedSource、质量门及当前 counter/options，再决定命中。配置变化或有效 JSON 中的结构损坏会重算。当前已接入解析、分块和 [Compiler 候选抽取](#144-模型结构化输出)；Run checkpoint/attempt/跨恢复预算控制和向量映射仍由对应后续任务接入，不能仅凭缓存引用声称 Run 已可恢复。
 
 ---
 
@@ -1720,6 +1720,10 @@ flowchart TD
 
 `source.compile` 接受可选 `source_revision_id`；CLI 为 `--revision <id>`，省略时在创建 run 的事务中解析并固定 current revision。`refresh` 的比较范围与影响报告见 [14.11 节](#1411-来源更新与影响分析)。
 
+当前候选阶段由 Core [`compiler::extract`](../crates/knowmesh-core/src/compiler/mod.rs) 提供，接收已固定的 `SourceRevision`、实际 bytes、有效 `Schema`、可选 Purpose 文本、provider profile 名称与脱敏 `ModelIdentity`，以及 mode/focus/language、chunking 和 generation options。调用方负责提供同一已解析 profile 的 provider 与 identity；SourceLibrary 的路径/大小策略和 Schema/Purpose 加载仍由原有入口负责。抽取会重新校验 bytes 与 revision，并复用 `parse_cached`/`chunk_cached`；质量门失败在模型请求前返回 `SOURCE_NOT_COMPILABLE`。当前使用 chunker 的语言感知 token 估算。
+
+`entities` 只允许实体/mentions/warnings；`assertions` 允许为主张和关系提供必要的本地实体引用；`full` 和 `refresh` 抽取全部候选种类。此阶段不生成 summary，也不比较历史知识；公开 `source.compile`、Proposal 规划和 durable Run 仍属于后续阶段。Focus 最多 64 个已定义类型，空集合表示不限定类型；language 为非空、无 control 字符的最多 64-byte 标签；Purpose 上限为 16 KiB。
+
 ### 14.4 模型结构化输出
 
 模型不得直接输出文件 Patch。第一阶段只能输出临时引用的候选对象：
@@ -1740,6 +1744,20 @@ flowchart TD
         }
       ],
       "confidence": 0.97
+    },
+    {
+      "temp_id": "ent_2",
+      "type": "Dataset",
+      "canonical_name": "Perturbation dataset",
+      "aliases": [],
+      "description": "Evaluation dataset named in the source",
+      "mentions": [
+        {
+          "quote": "...",
+          "locator": {"page": 1, "char_start": 200, "char_end": 220}
+        }
+      ],
+      "confidence": 0.91
     }
   ],
   "claims": [
@@ -1747,6 +1765,7 @@ flowchart TD
       "temp_id": "claim_1",
       "subject_ref": "ent_1",
       "statement": "...",
+      "basis": "stated",
       "qualifiers": {},
       "evidence": [
         {
@@ -1764,8 +1783,15 @@ flowchart TD
       "source_ref": "ent_1",
       "predicate": "evaluated_on",
       "target_ref": "ent_2",
+      "basis": "inferred",
       "qualifiers": {},
-      "evidence": [],
+      "evidence": [
+        {
+          "stance": "supports",
+          "quote": "...",
+          "locator": {"page": 13, "char_start": 18420, "char_end": 18610}
+        }
+      ],
       "confidence": 0.91
     }
   ],
@@ -1774,6 +1800,24 @@ flowchart TD
 ```
 
 输入和输出都必须使用 `schemars` 生成的 JSON Schema 校验。解析失败最多执行两次 bounded repair；之后返回 `model/STRUCTURED_OUTPUT_INVALID` 并保留 run diagnostics。
+
+候选阶段的 [DTO](../crates/knowmesh-core/src/compiler/types.rs) 使用闭合对象契约。每个 chunk 的模型输入包含实际 chunk 与裁剪到该 chunk 范围的 SourceBlocks，locator 仍使用整份 normalized text 的 Unicode scalar offsets。模型只能引用同一次响应中声明的实体；本地 ID 分别采用 `ent_`、`claim_`、`relation_` 前缀及 ASCII 字母/数字/下划线，最多 64 bytes，全部对象间必须唯一。汇总按 chunk ordinal 和各类候选的零起始数组位置生成 `ent_c<ordinal>_<index>`、`claim_c<ordinal>_<index>`、`relation_c<ordinal>_<index>`，同步改写引用并再次验证闭合。不同 chunk 的同名实体保留为独立候选，后续实体解析/去重处理语义合并。
+
+| 候选边界 | 上限或规则 |
+|---|---|
+| 一次抽取 | 最多 128 chunks；汇总实体/Claim/Relation 合计最多 4096，warnings 最多 1024 |
+| 单 chunk 输出 | 最多 128 entities、256 claims、256 relations、128 warnings |
+| 实体 | Schema 定义的类型；canonical name/每个 alias 非空且最多 256 bytes；最多 32 aliases、1..32 mentions |
+| 主张与关系 | Claim statement 非空且最多 4096 bytes；关系遵守 Schema predicate 与 endpoint types；显式 `basis=stated/inferred`；1..32 evidence entries |
+| 引用 | 逐字 quote 要求非空且最多 1000 Unicode scalars；必须给出有序、位于当前 chunk 内的 char offsets；可选 page/section/paragraph 必须与所覆盖 blocks 相容 |
+| Qualifiers | 最多 32 个非空、无 control 字符、最多 64-byte 键；值为 string/finite number/bool 或最多 32 strings 的数组，每个 string 最多 1024 bytes；不接受任意嵌套对象 |
+| Confidence / warning | confidence 为有限的 `[0,1]` 数值；warning 使用非空 `code`/`message`，分别最多 64/1024 bytes |
+
+缺少证据时 prompt 要求省略对象并返回 `MISSING_EVIDENCE` warning；推断仍须引用来源中的前提。结构校验通过后的类型、引用、scope 或 qualifier 错误直接失败，不另启语义 repair 循环，也不缓存该坏产物。这里检查 locator 范围，不做 quote 匹配、offset 修复或 Evidence ID 生成；这些仍由 [14.5 节](#145-evidence-验证)负责。结果始终 `requires_review=true`，不会写 canonical 文件、Proposal runtime 或 Run。
+
+Candidate cache 按完整 chunk 产物保存，命中时重查闭合输出 Schema、语义约束、身份、usage 自洽性和脱敏 diagnostics。键绑定实际发送输入的 hash（含 blocks、chunk、mode/focus/language/profile、实际 Schema/Purpose 数据），以及 revision、版本化 prompt/输入输出契约、Schema/Purpose hash、provider/model/config hash、schema name、max output tokens 和 temperature。Schema hash 从实际传入的数据重新计算，不只信任调用方保存的 hash 字段。单纯调整调用次数、总 token、repair/retry 或 timeout 额度不使已有有效产物失效。
+
+`ExtractionReport.usage` 只计本次新请求；每个 chunk 记录原始生成 usage、diagnostics、identity 和 immutable artifact reference，命中不重复扣减历史用量。跨 chunk 的新请求共享一次调用的 calls/tokens/剩余时间额度，每个 miss 仅将余额传给现有 `model::generate`。失败保留 source revision/hash、当前候选 identity、已完成 chunk 引用和累计用量；结构化输出诊断记录原响应 `response_sha256`，语义拒绝记录规范化 DTO 的 `candidate_sha256`，均按 chunk 标识且不保留来源/模型原文。后续 chunk 失败时可复用先前完整 chunk，但不会返回部分候选成功；跨进程预算落盘、逐请求 admission 与恢复仍由 Run 阶段提供。
 
 当前 [`model::generate`](../crates/knowmesh-core/src/model/mod.rs) 通过 `ModelProvider` port 调用模型，以 Schemars 生成输入/输出 Schema，使用本地 `jsonschema` 校验，禁止 Schema 的外部文件/网络引用。输入 JSON 作为 user message 数据传递，固定任务说明与输出 Schema 放在 system message；不注册模型工具，不执行来源中的指令。空字段、类型或边界不满足输入 Schema 时，在 provider 调用前失败。
 
@@ -1785,7 +1829,7 @@ flowchart TD
 
 HTTP response 默认上限 4 MiB，connect timeout 默认 10 s，检查声明和实际 body 大小；不输出服务返回的原始 error body。401/403、408/504、429、5xx 分别映射为鉴权/访问、超时、限流和暂时不可用；仅标为 retryable 的网络类错误重试。Response finish reason、refusal/tool payload 和 usage 一致性都需校验。
 
-成功或失败都保留 requests/retries/repairs、token 汇总与诊断；诊断仅记录失败类型和 response SHA-256，不放入来源/模型原文。已返回的 usage 按实际计入；缺失 usage 或未取得可用响应时，按消息 UTF-8 byte 上界估算（加固定消息余量）与请求输出上限保守扣减，标记 estimated=true，不视为精确计费记录。请求、修复与重试共享预算，不因修复重置。当前为单次 generate 的预算；跨 Run 累计、价格/费用策略及恢复落盘仍由 20.4 节接入。
+成功或失败都保留 requests/retries/repairs、token 汇总与诊断；诊断仅记录失败类型和 response SHA-256，不放入来源/模型原文。已返回的 usage 按实际计入；缺失 usage 或未取得可用响应时，按消息 UTF-8 byte 上界估算（加固定消息余量）与请求输出上限保守扣减，标记 estimated=true，不视为精确计费记录。请求、修复与重试共享预算，不因修复重置。`generate` 的预算覆盖单次调用，Compiler 候选阶段额外传递跨 chunk 余额；跨 Run 累计、价格/费用策略及恢复落盘仍由 20.4 节接入。
 
 Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint、输出模式、token 参数与传输限制，不包含 API key；密钥轮换不改变语义缓存身份。当前已完成 fake provider 与本地 HTTP fixtures，真实 Compiler 输出质量、Evidence 校验、Proposal/Run 的集成不由本适配器测试替代。
 
