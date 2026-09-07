@@ -178,6 +178,17 @@ pub trait SourceReadStore: IndexStore {
     ) -> AppResult<crate::application::source_read::SourceData>;
 }
 
+pub trait NodeReadStore: IndexStore {
+    fn node_get(
+        &self,
+        query: &crate::application::node_read::NodeGetQuery,
+    ) -> AppResult<crate::application::node_read::NodeData>;
+    fn node_list(
+        &self,
+        query: &crate::application::node_read::NodeListQuery,
+    ) -> AppResult<crate::application::node_read::NodeListData>;
+}
+
 pub trait ImpactPreviewBackend {
     fn preview(
         &self,

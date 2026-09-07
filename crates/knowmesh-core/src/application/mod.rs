@@ -5,6 +5,7 @@ pub mod entity_resolution;
 pub mod evidence_verify;
 pub mod impact;
 pub mod lexical;
+pub mod node_read;
 pub mod operations;
 pub mod proposal;
 pub mod rebuild;

@@ -6,6 +6,7 @@ mod index;
 mod lexical;
 mod maintenance;
 mod migrations;
+mod node_read;
 mod proposal;
 mod rebuild;
 mod reconcile;

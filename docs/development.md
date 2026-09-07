@@ -104,6 +104,20 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   reads verify indexed size/hash even with `--no-sync`. JSON uses UTF-8 for text
   and Base64 for PDFs. `source content --raw` emits exact bytes and rejects an
   explicit `--format` in any argument order. See SPEC 13.1.1 for the read contract.
+- `node get/list` and `schema entity` are read-only operations without a model key
+  or network. `node get` reads IDs exactly, resolves canonical names and aliases
+  after Unicode normalization, and reports ambiguous matches as a typed error with
+  candidate IDs instead of silently selecting one; detail returns canonical
+  metadata, the rendered summary, and bounded recorded relations with a total
+  count. `node list` applies type/tag/status filters before stable keyset
+  pagination with bounded summaries; cursors bind workspace, filters, and index
+  generation/hash, and counts share one read snapshot with the page. Both fast-sync
+  first, and `--no-sync` reads the existing index while reporting
+  `index_complete: false` instead of describing stale state as current.
+- `schema entity <type>` exposes one effective composed type — merged label, color,
+  icon, and inherited/overridden properties — plus the predicates where the type
+  appears as source or target, with direction, endpoint role, inverse, and
+  evidence requirement. Unknown types fail with `SCHEMA_ENTITY_NOT_FOUND`.
 - Core parses and renders Node and Synthesis Markdown. Unchanged documents keep
   their exact bytes; edited claims only replace their managed content. CommonMark
   source spans distinguish markers/wiki links from code examples; lossless YAML

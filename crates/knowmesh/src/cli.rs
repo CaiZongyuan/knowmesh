@@ -10,9 +10,10 @@ use knowmesh_core::{
         doctor::{self, IndexAccess, RepairInput},
         impact::{self, ImpactInput, ImpactKind},
         lexical::{QuerySyntax, RecordType},
+        node_read::{self, NodeGetInput, NodeListInput},
         operations,
         rebuild::{self, RebuildInput},
-        schema::{self, PackInput},
+        schema::{self, EntityInput, PackInput},
         search::{self, SearchInput},
         source,
         source_read::{self, ContentId, ContentInput},
@@ -119,6 +120,10 @@ enum Command {
         #[command(subcommand)]
         command: SourceCommand,
     },
+    Node {
+        #[command(subcommand)]
+        command: NodeCommand,
+    },
     Doctor {
         #[arg(long)]
         repair: bool,
@@ -197,6 +202,25 @@ enum StorageArg {
     SnapshotUrl,
 }
 
+#[derive(Subcommand)]
+enum NodeCommand {
+    Get {
+        node: String,
+    },
+    List {
+        #[arg(long = "type")]
+        node_type: Option<String>,
+        #[arg(long)]
+        tag: Option<String>,
+        #[arg(long)]
+        status: Option<String>,
+        #[arg(long, default_value_t = 20)]
+        limit: u32,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
+}
+
 impl From<StorageArg> for StorageMode {
     fn from(value: StorageArg) -> Self {
         match value {
@@ -218,6 +242,9 @@ enum SchemaCommand {
     },
     Patch {
         op: knowmesh_core::domain::proposal::PatchOp,
+    },
+    Entity {
+        entity: String,
     },
 }
 
@@ -249,6 +276,15 @@ impl Command {
             Self::Schema {
                 command: SchemaCommand::Patch { .. },
             } => "schema.patch",
+            Self::Schema {
+                command: SchemaCommand::Entity { .. },
+            } => "schema.entity",
+            Self::Node {
+                command: NodeCommand::Get { .. },
+            } => "node.get",
+            Self::Node {
+                command: NodeCommand::List { .. },
+            } => "node.list",
             Self::Status => "status",
             Self::Search { .. } => "knowledge.search",
             Self::Init { .. } => "init",
@@ -474,6 +510,50 @@ fn execute(
         Command::Schema {
             command: SchemaCommand::Command { operation },
         } => serde_json::to_value(operations::describe(operation)?),
+        Command::Schema {
+            command: SchemaCommand::Entity { entity },
+        } => {
+            let workspace = load_workspace(root)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            serde_json::to_value(schema::entity(
+                &workspace,
+                &EntityInput {
+                    name: entity.clone(),
+                },
+            )?)
+        }
+        Command::Node { command } => {
+            let workspace = load_workspace(root)?;
+            workspace_id = Some(workspace.config.workspace.id.clone());
+            match command {
+                NodeCommand::Get { node } => serde_json::to_value(node_read::get(
+                    &workspace,
+                    crate::runtime::open_node_store(&workspace)?.as_mut(),
+                    &NodeGetInput {
+                        node: node.clone(),
+                        no_sync,
+                    },
+                )?),
+                NodeCommand::List {
+                    node_type,
+                    tag,
+                    status,
+                    limit,
+                    cursor,
+                } => serde_json::to_value(node_read::list(
+                    &workspace,
+                    crate::runtime::open_node_store(&workspace)?.as_mut(),
+                    &NodeListInput {
+                        node_type: node_type.clone(),
+                        tag: tag.clone(),
+                        status: status.clone(),
+                        limit: *limit,
+                        cursor: cursor.clone(),
+                        no_sync,
+                    },
+                )?),
+            }
+        }
         Command::Schema {
             command: SchemaCommand::Pack { id },
         } => {

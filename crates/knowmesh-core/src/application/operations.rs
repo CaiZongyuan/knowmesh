@@ -129,6 +129,13 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
             super::source_read::ContentInput,
             super::source_read::ContentReport,
         >("source.content"),
+        OperationDescriptor::read::<super::node_read::NodeGetInput, super::node_read::NodeReport>(
+            "node.get",
+        ),
+        OperationDescriptor::read::<
+            super::node_read::NodeListInput,
+            super::node_read::NodeListReport,
+        >("node.list"),
         OperationDescriptor::read::<super::impact::ImpactInput, super::impact::ImpactReport>(
             "source.impact",
         ),
@@ -140,6 +147,9 @@ pub fn descriptors() -> Vec<OperationDescriptor> {
         OperationDescriptor::read::<EmptyInput, Vec<OperationDescriptor>>("schema.list"),
         OperationDescriptor::read::<super::schema::PackInput, crate::canonical::schema::SchemaPack>(
             "schema.pack",
+        ),
+        OperationDescriptor::read::<super::schema::EntityInput, super::schema::EntityReport>(
+            "schema.entity",
         ),
         OperationDescriptor::read::<super::proposal::payload::SchemaInput, serde_json::Value>(
             "schema.patch",
