@@ -89,7 +89,7 @@ impl ProposalItem {
         Ok(sha256(&bytes))
     }
 
-    pub fn validate(&self) -> AppResult<()> {
+    pub fn validate_content(&self) -> AppResult<()> {
         self.op.validate_target(&self.target_id)?;
         if !self.payload.is_object()
             || serde_json::to_vec(&self.payload)
@@ -117,6 +117,11 @@ impl ProposalItem {
         {
             return Err(invalid());
         }
+        Ok(())
+    }
+
+    pub fn validate(&self) -> AppResult<()> {
+        self.validate_content()?;
         if self.decision == Decision::Pending {
             if self.reviewed_sha256.is_some()
                 || self.reviewed_at.is_some()

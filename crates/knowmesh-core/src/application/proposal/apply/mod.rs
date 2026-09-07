@@ -1,7 +1,7 @@
 mod types;
 pub use types::*;
 
-use super::{ProposalRecord, prepare_accepted};
+use super::{ProposalRecord, idempotency::IdempotencyRequest, prepare_accepted};
 use crate::{
     canonical::{
         schema::Schema,
@@ -22,8 +22,22 @@ pub fn execute(
     actor: &str,
     now: Timestamp,
 ) -> AppResult<ApplyReport> {
+    execute_with_key(workspace, store, input, None, actor, now)
+}
+
+pub fn execute_with_key(
+    workspace: &Workspace,
+    store: &mut dyn ProposalStore,
+    input: &ApplyInput,
+    key: Option<&str>,
+    actor: &str,
+    now: Timestamp,
+) -> AppResult<ApplyReport> {
     validate_input(input)?;
-    execute_validated(workspace, store, input, actor, now)
+    let key = key
+        .map(|key| IdempotencyRequest::new(key, "proposal.apply", input))
+        .transpose()?;
+    execute_validated(workspace, store, input, key, actor, now)
 }
 
 pub fn validate_input(input: &ApplyInput) -> AppResult<()> {
@@ -47,10 +61,27 @@ fn execute_validated(
     workspace: &Workspace,
     store: &mut dyn ProposalStore,
     input: &ApplyInput,
+    key: Option<IdempotencyRequest>,
     actor: &str,
     now: Timestamp,
 ) -> AppResult<ApplyReport> {
+    if store.projection_state()?.workspace_id != workspace.config.workspace.id {
+        return Err(workspace_mismatch());
+    }
+    let cached = key
+        .as_ref()
+        .map(|key| store.proposal_cached_application(key))
+        .transpose()?
+        .flatten();
     if input.dry_run {
+        if let Some(mut report) = cached {
+            report.dry_run = true;
+            report.applied_revision = None;
+            report.projection = None;
+            report.transaction_id = None;
+            report.changed_paths.clear();
+            return Ok(report);
+        }
         let record = store.proposal_get(&input.proposal_id, None)?;
         let state = store.projection_state()?;
         if state.workspace_id != workspace.config.workspace.id {
@@ -82,9 +113,19 @@ fn execute_validated(
                     && context.reviewed_revision == input.expected_revision
             })
         {
-            return resume(workspace, store, &writer, &pending[0]);
+            let report = resume(workspace, store, &writer, &pending[0])?;
+            if key.is_some() {
+                let receipt = store
+                    .proposal_application(&input.proposal_id)?
+                    .ok_or_else(recovery_required)?;
+                return bind_key(store, receipt, key);
+            }
+            return Ok(report);
         }
         return Err(recovery_required());
+    }
+    if let Some(report) = cached {
+        return Ok(report);
     }
     if let Some(receipt) = store.proposal_application(&input.proposal_id)? {
         if receipt.context.reviewed_revision != input.expected_revision {
@@ -96,7 +137,7 @@ fn execute_validated(
         if receipt.context.workspace_id != workspace.config.workspace.id {
             return Err(workspace_mismatch());
         }
-        return Ok(receipt.report);
+        return bind_key(store, receipt, key);
     }
     let record = store.proposal_get(&input.proposal_id, None)?;
     let state = store.projection_state()?;
@@ -152,6 +193,7 @@ fn execute_validated(
             .collect(),
         actor: actor.into(),
         requested_at: now.max(record.proposal.updated_at),
+        idempotency: key,
     };
     context.validate()?;
     let report = store.apply_proposal(&context, &mut || {
@@ -190,6 +232,24 @@ fn execute_validated(
         writer.mark_indexed(id)?;
     }
     Ok(report)
+}
+
+fn bind_key(
+    store: &mut dyn ProposalStore,
+    receipt: ApplyReceipt,
+    key: Option<IdempotencyRequest>,
+) -> AppResult<ApplyReport> {
+    let Some(key) = key else {
+        return Ok(receipt.report);
+    };
+    let mut context = receipt.context;
+    context.idempotency = Some(key);
+    store.apply_proposal(&context, &mut || {
+        Err(conflict(
+            "PROPOSAL_RECEIPT_INVALID",
+            "A committed application cannot request a second canonical write.",
+        ))
+    })
 }
 
 pub(crate) fn resume(

@@ -1,5 +1,8 @@
 use knowmesh_core::{
-    application::proposal::{MAX_PROPOSAL_RECORD_BYTES, ProposalRecord},
+    application::proposal::{
+        MAX_PROPOSAL_RECORD_BYTES, ProposalRecord,
+        idempotency::{IdempotencyRequest, MutationResult, ProposalMutation},
+    },
     domain::{
         ProposalId,
         proposal::{Decision, ProposalState},
@@ -8,14 +11,41 @@ use knowmesh_core::{
     error::{AppError, AppResult, ErrorType},
     ports::ProposalStore,
 };
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::Serialize;
 
 use crate::{SqliteStore, database_error};
 
 pub(crate) mod apply;
+mod idempotency;
 
 impl ProposalStore for SqliteStore {
+    fn proposal_cached_application(
+        &self,
+        request: &IdempotencyRequest,
+    ) -> AppResult<Option<knowmesh_core::application::proposal::apply::ApplyReport>> {
+        let tx = self
+            .connection
+            .unchecked_transaction()
+            .map_err(database_error)?;
+        idempotency::read_apply(&tx, request)
+    }
+    fn proposal_cached_mutation(
+        &self,
+        request: &IdempotencyRequest,
+    ) -> AppResult<Option<MutationResult>> {
+        let tx = self
+            .connection
+            .unchecked_transaction()
+            .map_err(database_error)?;
+        idempotency::read(&tx, request)
+    }
+    fn proposal_commit_mutation(
+        &mut self,
+        mutation: &ProposalMutation,
+    ) -> AppResult<MutationResult> {
+        idempotency::commit(self, mutation)
+    }
     fn proposal_application(
         &self,
         id: &ProposalId,
@@ -27,34 +57,13 @@ impl ProposalStore for SqliteStore {
         apply::receipt(&tx, id)
     }
     fn proposal_create(&mut self, record: &ProposalRecord) -> AppResult<()> {
-        record.validate()?;
-        let proposal = &record.proposal;
-        if proposal.revision != 1 || proposal.state != ProposalState::Draft {
-            return Err(conflict(
-                "PROPOSAL_INITIAL_REVISION_REQUIRED",
-                "New Proposals must begin with an unreviewed first revision.",
-            ));
-        }
-        let tx = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
-        let exists: bool = tx
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM proposals WHERE id=?1)",
-                [proposal.id.as_str()],
-                |row| row.get(0),
-            )
-            .map_err(database_error)?;
-        if exists {
-            return Err(conflict(
-                "PROPOSAL_ALREADY_EXISTS",
-                "The Proposal ID already exists.",
-            ));
-        }
-        current_baseline(&tx, record)?;
-        append(&tx, record)?;
-        tx.commit().map_err(database_error)
+        self.proposal_commit_mutation(&ProposalMutation {
+            record: record.clone(),
+            expected_revision: None,
+            idempotency: None,
+            error: None,
+        })
+        .map(|_| ())
     }
 
     fn proposal_get(&self, id: &ProposalId, revision: Option<u32>) -> AppResult<ProposalRecord> {
@@ -66,70 +75,103 @@ impl ProposalStore for SqliteStore {
     }
 
     fn proposal_save(&mut self, expected_revision: u32, record: &ProposalRecord) -> AppResult<()> {
-        record.validate()?;
-        let tx = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
-        let previous = load(&tx, &record.proposal.id, None)?;
-        if previous.proposal.revision != expected_revision {
-            return Err(revision_mismatch());
-        }
-        if &previous == record {
-            return Ok(());
-        }
-        if expected_revision.checked_add(1) != Some(record.proposal.revision) {
-            return Err(revision_mismatch());
-        }
-        let old = &previous.proposal;
-        let next = &record.proposal;
-        if next.state == ProposalState::Applied {
-            return Err(conflict(
-                "PROPOSAL_APPLY_COORDINATOR_REQUIRED",
-                "Only a coordinated canonical Apply may finalize a Proposal.",
-            ));
-        }
-        if matches!(old.state, ProposalState::Applied | ProposalState::Rejected) {
-            return Err(conflict(
-                "PROPOSAL_FINALIZED",
-                "A finalized Proposal cannot be changed.",
-            ));
-        }
-        if old.state == ProposalState::Stale
-            && !matches!(next.state, ProposalState::Stale | ProposalState::Rejected)
+        self.proposal_commit_mutation(&ProposalMutation {
+            record: record.clone(),
+            expected_revision: Some(expected_revision),
+            idempotency: None,
+            error: None,
+        })
+        .map(|_| ())
+    }
+}
+
+fn save_in_transaction(
+    tx: &Connection,
+    expected_revision: u32,
+    record: &ProposalRecord,
+) -> AppResult<()> {
+    let previous = load(tx, &record.proposal.id, None)?;
+    if previous.proposal.revision != expected_revision {
+        return Err(revision_mismatch());
+    }
+    if &previous == record {
+        return Ok(());
+    }
+    if expected_revision.checked_add(1) != Some(record.proposal.revision) {
+        return Err(revision_mismatch());
+    }
+    let old = &previous.proposal;
+    let next = &record.proposal;
+    if next.state == ProposalState::Applied {
+        return Err(conflict(
+            "PROPOSAL_APPLY_COORDINATOR_REQUIRED",
+            "Only a coordinated canonical Apply may finalize a Proposal.",
+        ));
+    }
+    if matches!(old.state, ProposalState::Applied | ProposalState::Rejected) {
+        return Err(conflict(
+            "PROPOSAL_FINALIZED",
+            "A finalized Proposal cannot be changed.",
+        ));
+    }
+    if old.state == ProposalState::Stale
+        && !matches!(next.state, ProposalState::Stale | ProposalState::Rejected)
+        && next
+            .items
+            .iter()
+            .any(|item| item.decision != Decision::Pending)
+    {
+        return Err(conflict(
+            "PROPOSAL_REVALIDATION_REQUIRED",
+            "A stale Proposal must be revalidated into an unreviewed revision before approval.",
+        ));
+    }
+    if old.kind != next.kind
+        || old.created_at != next.created_at
+        || old.created_by != next.created_by
+        || old.source_revision_id != next.source_revision_id
+        || old.compiler_run_id != next.compiler_run_id
+        || next.updated_at < old.updated_at
+        || (previous.base_snapshot_sha256 != record.base_snapshot_sha256
             && next
                 .items
                 .iter()
-                .any(|item| item.decision != Decision::Pending)
-        {
-            return Err(conflict(
-                "PROPOSAL_REVALIDATION_REQUIRED",
-                "A stale Proposal must be revalidated into an unreviewed revision before approval.",
-            ));
-        }
-        if old.kind != next.kind
-            || old.created_at != next.created_at
-            || old.created_by != next.created_by
-            || old.source_revision_id != next.source_revision_id
-            || old.compiler_run_id != next.compiler_run_id
-            || next.updated_at < old.updated_at
-            || (previous.base_snapshot_sha256 != record.base_snapshot_sha256
-                && next
-                    .items
-                    .iter()
-                    .any(|item| item.decision != Decision::Pending))
-        {
-            return Err(conflict(
-                "PROPOSAL_HISTORY_INVALID",
-                "A revision cannot rewrite Proposal identity or reuse reviews after changing its baseline.",
-            ));
-        }
-        if !matches!(next.state, ProposalState::Stale | ProposalState::Rejected) {
-            current_baseline(&tx, record)?;
-        }
-        append(&tx, record)?;
-        tx.commit().map_err(database_error)
+                .any(|item| item.decision != Decision::Pending))
+    {
+        return Err(conflict(
+            "PROPOSAL_HISTORY_INVALID",
+            "A revision cannot rewrite Proposal identity or reuse reviews after changing its baseline.",
+        ));
     }
+    if !matches!(next.state, ProposalState::Stale | ProposalState::Rejected) {
+        current_baseline(tx, record)?;
+    }
+    append(tx, record)
+}
+
+fn create_in_transaction(tx: &Connection, record: &ProposalRecord) -> AppResult<()> {
+    let proposal = &record.proposal;
+    if proposal.revision != 1 || proposal.state != ProposalState::Draft {
+        return Err(conflict(
+            "PROPOSAL_INITIAL_REVISION_REQUIRED",
+            "New Proposals must begin with an unreviewed first revision.",
+        ));
+    }
+    let exists: bool = tx
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM proposals WHERE id=?1)",
+            [proposal.id.as_str()],
+            |row| row.get(0),
+        )
+        .map_err(database_error)?;
+    if exists {
+        return Err(conflict(
+            "PROPOSAL_ALREADY_EXISTS",
+            "The Proposal ID already exists.",
+        ));
+    }
+    current_baseline(tx, record)?;
+    append(tx, record)
 }
 
 fn current_baseline(db: &Connection, record: &ProposalRecord) -> AppResult<()> {

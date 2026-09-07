@@ -10,7 +10,8 @@ use knowmesh_core::{
         MAX_PROPOSAL_RECORD_BYTES,
         apply::{self, ApplyInput},
         workflow::{
-            self, CreateInput, EditInput, GetInput, RejectInput, RevalidateInput, ReviewRequest,
+            self, CreateInput, EditInput, GetInput, MutationRequest, RejectInput, RevalidateInput,
+            ReviewRequest,
         },
     },
     canonical::workspace::Workspace,
@@ -27,6 +28,8 @@ pub(super) enum ProposalCommand {
         input: PathBuf,
         #[arg(long)]
         dry_run: bool,
+        #[arg(long)]
+        idempotency_key: Option<String>,
     },
     /// Read current or historical Proposal metadata.
     Get {
@@ -40,6 +43,8 @@ pub(super) enum ProposalCommand {
         input: PathBuf,
         #[arg(long)]
         dry_run: bool,
+        #[arg(long)]
+        idempotency_key: Option<String>,
     },
     /// Replace the draft using the proposal.edit JSON contract.
     Edit {
@@ -47,6 +52,8 @@ pub(super) enum ProposalCommand {
         input: PathBuf,
         #[arg(long)]
         dry_run: bool,
+        #[arg(long)]
+        idempotency_key: Option<String>,
     },
     /// Revalidate a Proposal against current canonical content.
     Revalidate {
@@ -55,6 +62,8 @@ pub(super) enum ProposalCommand {
         expected_revision: u32,
         #[arg(long)]
         dry_run: bool,
+        #[arg(long)]
+        idempotency_key: Option<String>,
     },
     /// Reject a Proposal while preserving its history.
     Reject {
@@ -65,6 +74,8 @@ pub(super) enum ProposalCommand {
         reason: String,
         #[arg(long)]
         dry_run: bool,
+        #[arg(long)]
+        idempotency_key: Option<String>,
     },
     /// Apply an approved Proposal through the canonical transaction coordinator.
     Apply {
@@ -75,6 +86,8 @@ pub(super) enum ProposalCommand {
         dry_run: bool,
         #[arg(long)]
         yes: bool,
+        #[arg(long)]
+        idempotency_key: Option<String>,
     },
 }
 
@@ -85,13 +98,18 @@ pub(super) fn execute(
     let now = Timestamp::now();
     let actor = "human_cli";
     match command {
-        ProposalCommand::Create { input, dry_run } => {
+        ProposalCommand::Create {
+            input,
+            dry_run,
+            idempotency_key,
+        } => {
             let mut input: CreateInput = read_input(input)?;
             input.dry_run |= dry_run;
-            encode(workflow::create(
+            encode(workflow::execute_request(
                 workspace,
                 crate::runtime::open_proposal_store(workspace, !input.dry_run)?.as_mut(),
-                &input,
+                MutationRequest::Create(&input),
+                idempotency_key.as_deref(),
                 actor,
                 now,
             )?)
@@ -107,24 +125,34 @@ pub(super) fn execute(
                 revision: *revision,
             },
         )?),
-        ProposalCommand::Review { input, dry_run } => {
+        ProposalCommand::Review {
+            input,
+            dry_run,
+            idempotency_key,
+        } => {
             let mut input: ReviewRequest = read_input(input)?;
             input.dry_run |= dry_run;
-            encode(workflow::review(
+            encode(workflow::execute_request(
                 workspace,
                 crate::runtime::open_proposal_store(workspace, !input.dry_run)?.as_mut(),
-                &input,
+                MutationRequest::Review(&input),
+                idempotency_key.as_deref(),
                 actor,
                 now,
             )?)
         }
-        ProposalCommand::Edit { input, dry_run } => {
+        ProposalCommand::Edit {
+            input,
+            dry_run,
+            idempotency_key,
+        } => {
             let mut input: EditInput = read_input(input)?;
             input.dry_run |= dry_run;
-            encode(workflow::edit(
+            encode(workflow::execute_request(
                 workspace,
                 crate::runtime::open_proposal_store(workspace, !input.dry_run)?.as_mut(),
-                &input,
+                MutationRequest::Edit(&input),
+                idempotency_key.as_deref(),
                 actor,
                 now,
             )?)
@@ -133,14 +161,16 @@ pub(super) fn execute(
             proposal_id,
             expected_revision,
             dry_run,
-        } => encode(workflow::revalidate(
+            idempotency_key,
+        } => encode(workflow::execute_request(
             workspace,
             crate::runtime::open_proposal_store(workspace, !dry_run)?.as_mut(),
-            &RevalidateInput {
+            MutationRequest::Revalidate(&RevalidateInput {
                 proposal_id: proposal_id.clone(),
                 expected_revision: *expected_revision,
                 dry_run: *dry_run,
-            },
+            }),
+            idempotency_key.as_deref(),
             actor,
             now,
         )?),
@@ -149,15 +179,17 @@ pub(super) fn execute(
             expected_revision,
             reason,
             dry_run,
-        } => encode(workflow::reject(
+            idempotency_key,
+        } => encode(workflow::execute_request(
             workspace,
             crate::runtime::open_proposal_store(workspace, !dry_run)?.as_mut(),
-            &RejectInput {
+            MutationRequest::Reject(&RejectInput {
                 proposal_id: proposal_id.clone(),
                 expected_revision: *expected_revision,
                 reason: reason.clone(),
                 dry_run: *dry_run,
-            },
+            }),
+            idempotency_key.as_deref(),
             actor,
             now,
         )?),
@@ -166,6 +198,7 @@ pub(super) fn execute(
             expected_revision,
             dry_run,
             yes,
+            idempotency_key,
         } => {
             let input = ApplyInput {
                 proposal_id: proposal_id.clone(),
@@ -174,10 +207,11 @@ pub(super) fn execute(
                 yes: *yes,
             };
             apply::validate_input(&input)?;
-            encode(apply::execute(
+            encode(apply::execute_with_key(
                 workspace,
                 crate::runtime::open_proposal_store(workspace, !dry_run)?.as_mut(),
                 &input,
+                idempotency_key.as_deref(),
                 actor,
                 now,
             )?)

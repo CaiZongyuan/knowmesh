@@ -1,6 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use super::idempotency::{IdempotencyRequest, MutationResult, ProposalMutation};
 use super::{ProposalRecord, prepare_snapshot};
 use crate::{
     canonical::{
@@ -77,6 +78,86 @@ pub struct MutationReport {
     pub record: ProposalRecord,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum MutationRequest<'a> {
+    Create(&'a CreateInput),
+    Edit(&'a EditInput),
+    Review(&'a ReviewRequest),
+    Revalidate(&'a RevalidateInput),
+    Reject(&'a RejectInput),
+}
+
+pub fn execute_request(
+    workspace: &Workspace,
+    store: &mut dyn ProposalStore,
+    request: MutationRequest<'_>,
+    key: Option<&str>,
+    actor: &str,
+    now: Timestamp,
+) -> AppResult<MutationReport> {
+    // JSON would encode nonfinite scalar confidence as null; validate before fingerprinting.
+    if key.is_some() {
+        let items = match request {
+            MutationRequest::Create(input) => input.proposal.items.as_slice(),
+            MutationRequest::Edit(input) => input.revision.items.as_slice(),
+            _ => &[],
+        };
+        for item in items {
+            item.validate_content()?;
+        }
+    }
+    let (key, dry_run) = match request {
+        MutationRequest::Create(input) => (
+            key.map(|key| IdempotencyRequest::new(key, "proposal.create", input))
+                .transpose()?,
+            input.dry_run,
+        ),
+        MutationRequest::Edit(input) => (
+            key.map(|key| IdempotencyRequest::new(key, "proposal.edit", input))
+                .transpose()?,
+            input.dry_run,
+        ),
+        MutationRequest::Review(input) => (
+            key.map(|key| IdempotencyRequest::new(key, "proposal.review", input))
+                .transpose()?,
+            input.dry_run,
+        ),
+        MutationRequest::Revalidate(input) => (
+            key.map(|key| IdempotencyRequest::new(key, "proposal.revalidate", input))
+                .transpose()?,
+            input.dry_run,
+        ),
+        MutationRequest::Reject(input) => (
+            key.map(|key| IdempotencyRequest::new(key, "proposal.reject", input))
+                .transpose()?,
+            input.dry_run,
+        ),
+    };
+    if let Some(key) = &key {
+        check_workspace(workspace, store)?;
+        if let Some(cached) = store.proposal_cached_mutation(key)? {
+            return cached.report(dry_run);
+        }
+    }
+    match request {
+        MutationRequest::Create(input) => {
+            create_inner(workspace, store, input, key.as_ref(), actor, now)
+        }
+        MutationRequest::Edit(input) => {
+            edit_inner(workspace, store, input, key.as_ref(), actor, now)
+        }
+        MutationRequest::Review(input) => {
+            review_inner(workspace, store, input, key.as_ref(), actor, now)
+        }
+        MutationRequest::Revalidate(input) => {
+            revalidate_inner(workspace, store, input, key.as_ref(), actor, now)
+        }
+        MutationRequest::Reject(input) => {
+            reject_inner(workspace, store, input, key.as_ref(), actor, now)
+        }
+    }
+}
+
 pub fn get(
     workspace: &Workspace,
     store: &dyn ProposalStore,
@@ -93,6 +174,24 @@ pub fn create(
     actor: &str,
     now: Timestamp,
 ) -> AppResult<MutationReport> {
+    execute_request(
+        workspace,
+        store,
+        MutationRequest::Create(input),
+        None,
+        actor,
+        now,
+    )
+}
+
+fn create_inner(
+    workspace: &Workspace,
+    store: &mut dyn ProposalStore,
+    input: &CreateInput,
+    key: Option<&IdempotencyRequest>,
+    actor: &str,
+    now: Timestamp,
+) -> AppResult<MutationReport> {
     let _writer = guard(workspace, store, input.dry_run)?;
     let before = CanonicalSnapshot::scan(workspace)?;
     let state = store.projection_state()?;
@@ -105,19 +204,31 @@ pub fn create(
         proposal: prepared.proposal,
         base_snapshot_sha256: prepared.base_snapshot_sha256,
     };
-    if !input.dry_run {
-        store.proposal_create(&record)?;
-    }
-    Ok(MutationReport {
-        dry_run: input.dry_run,
-        record,
-    })
+    save(store, None, record, input.dry_run, key, None)
 }
 
 pub fn review(
     workspace: &Workspace,
     store: &mut dyn ProposalStore,
     input: &ReviewRequest,
+    actor: &str,
+    now: Timestamp,
+) -> AppResult<MutationReport> {
+    execute_request(
+        workspace,
+        store,
+        MutationRequest::Review(input),
+        None,
+        actor,
+        now,
+    )
+}
+
+fn review_inner(
+    workspace: &Workspace,
+    store: &mut dyn ProposalStore,
+    input: &ReviewRequest,
+    key: Option<&IdempotencyRequest>,
     actor: &str,
     now: Timestamp,
 ) -> AppResult<MutationReport> {
@@ -136,7 +247,14 @@ pub fn review(
                 )?,
                 ..record
             };
-            store.proposal_save(input.review.expected_revision, &next)?;
+            return save(
+                store,
+                Some(input.review.expected_revision),
+                next,
+                false,
+                key,
+                Some(stale()),
+            );
         }
         return Err(stale());
     }
@@ -166,13 +284,38 @@ pub fn review(
         )?,
         ..record
     };
-    save(store, input.review.expected_revision, next, input.dry_run)
+    save(
+        store,
+        Some(input.review.expected_revision),
+        next,
+        input.dry_run,
+        key,
+        None,
+    )
 }
 
 pub fn edit(
     workspace: &Workspace,
     store: &mut dyn ProposalStore,
     input: &EditInput,
+    actor: &str,
+    now: Timestamp,
+) -> AppResult<MutationReport> {
+    execute_request(
+        workspace,
+        store,
+        MutationRequest::Edit(input),
+        None,
+        actor,
+        now,
+    )
+}
+
+fn edit_inner(
+    workspace: &Workspace,
+    store: &mut dyn ProposalStore,
+    input: &EditInput,
+    key: Option<&IdempotencyRequest>,
     actor: &str,
     now: Timestamp,
 ) -> AppResult<MutationReport> {
@@ -193,13 +336,38 @@ pub fn edit(
     candidate.items = input.revision.items.clone();
     let prepared = prepare_snapshot(workspace, &candidate, actor, now, before)?;
     let next = revised(record, prepared, actor, now)?;
-    save(store, input.revision.expected_revision, next, input.dry_run)
+    save(
+        store,
+        Some(input.revision.expected_revision),
+        next,
+        input.dry_run,
+        key,
+        None,
+    )
 }
 
 pub fn revalidate(
     workspace: &Workspace,
     store: &mut dyn ProposalStore,
     input: &RevalidateInput,
+    actor: &str,
+    now: Timestamp,
+) -> AppResult<MutationReport> {
+    execute_request(
+        workspace,
+        store,
+        MutationRequest::Revalidate(input),
+        None,
+        actor,
+        now,
+    )
+}
+
+fn revalidate_inner(
+    workspace: &Workspace,
+    store: &mut dyn ProposalStore,
+    input: &RevalidateInput,
+    key: Option<&IdempotencyRequest>,
     actor: &str,
     now: Timestamp,
 ) -> AppResult<MutationReport> {
@@ -224,13 +392,38 @@ pub fn revalidate(
     }
     let prepared = prepare_snapshot(workspace, &candidate, actor, now, before)?;
     let next = revised(record, prepared, actor, now)?;
-    save(store, input.expected_revision, next, input.dry_run)
+    save(
+        store,
+        Some(input.expected_revision),
+        next,
+        input.dry_run,
+        key,
+        None,
+    )
 }
 
 pub fn reject(
     workspace: &Workspace,
     store: &mut dyn ProposalStore,
     input: &RejectInput,
+    actor: &str,
+    now: Timestamp,
+) -> AppResult<MutationReport> {
+    execute_request(
+        workspace,
+        store,
+        MutationRequest::Reject(input),
+        None,
+        actor,
+        now,
+    )
+}
+
+fn reject_inner(
+    workspace: &Workspace,
+    store: &mut dyn ProposalStore,
+    input: &RejectInput,
+    key: Option<&IdempotencyRequest>,
     actor: &str,
     now: Timestamp,
 ) -> AppResult<MutationReport> {
@@ -245,7 +438,14 @@ pub fn reject(
             .reject(input.expected_revision, &input.reason, actor, now)?,
         ..record
     };
-    save(store, input.expected_revision, next, input.dry_run)
+    save(
+        store,
+        Some(input.expected_revision),
+        next,
+        input.dry_run,
+        key,
+        None,
+    )
 }
 
 fn revised(
@@ -286,15 +486,24 @@ fn proposal_input(record: &ProposalRecord) -> ProposalInput {
 
 fn save(
     store: &mut dyn ProposalStore,
-    expected: u32,
+    expected: Option<u32>,
     record: ProposalRecord,
     dry_run: bool,
+    key: Option<&IdempotencyRequest>,
+    error: Option<AppError>,
 ) -> AppResult<MutationReport> {
     record.validate()?;
-    if !dry_run {
-        store.proposal_save(expected, &record)?;
+    if dry_run {
+        return MutationResult { record, error }.report(true);
     }
-    Ok(MutationReport { dry_run, record })
+    store
+        .proposal_commit_mutation(&ProposalMutation {
+            record,
+            expected_revision: expected,
+            idempotency: key.cloned(),
+            error,
+        })?
+        .report(false)
 }
 
 fn editable(
@@ -397,6 +606,7 @@ pub fn descriptors() -> Vec<crate::application::operations::OperationDescriptor>
     for descriptor in &mut mutations {
         descriptor.effect = EffectLevel::RuntimeWrite;
         descriptor.supports_dry_run = true;
+        descriptor.supports_idempotency = true;
         descriptor.policy = "validated-proposal-revision".into();
     }
     mutations.push(OperationDescriptor::read::<GetInput, ProposalRecord>(
@@ -407,6 +617,7 @@ pub fn descriptors() -> Vec<crate::application::operations::OperationDescriptor>
     );
     apply.effect = EffectLevel::CanonicalWrite;
     apply.supports_dry_run = true;
+    apply.supports_idempotency = true;
     apply.policy = "confirmed-reviewed-proposal".into();
     mutations.push(apply);
     mutations

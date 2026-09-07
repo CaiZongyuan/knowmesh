@@ -210,6 +210,7 @@ fn proposal_runtime_writes_must_go_through_registered_application_workflows() {
     for source in [
         "fn route(store: &mut dyn knowmesh_core::ports::ProposalStore) { store.proposal_create(record); }",
         "fn route(store: &mut dyn knowmesh_core::ports::ProposalStore) { knowmesh_core::ports::ProposalStore::proposal_save(store, revision, record); }",
+        "fn route(store: &mut dyn knowmesh_core::ports::ProposalStore) { store.proposal_commit_mutation(mutation); }",
     ] {
         let violations = architecture::check_source("crates/knowmesh/src/http/routes.rs", source);
         assert!(

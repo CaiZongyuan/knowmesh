@@ -1967,7 +1967,7 @@ Builder 生成的诊断记录可选 `origin: builder`。输入仍先通过整体
 - 任一 item 含 invalid evidence、schema violation、ambiguous entity 时不得被 accept，除非用户先修复 payload 形成新 proposal version。
 - Proposal 每次编辑递增 `revision`，保留旧 revision，不原地隐藏历史。
 
-当前 [`domain::proposal`](../crates/knowmesh-core/src/domain/proposal/mod.rs) 已实现版本化内存快照、14.8 节的闭集 op 和审核状态契约。每次实际 review/revise/reject/stale/applied 状态变化返回新快照并递增 revision，原快照保持可用；同样的重复决策不增加 revision。Mutation 输入必须给出 `expected_revision`，不匹配返回 `PROPOSAL_REVISION_MISMATCH`。SQLite 历史存储、Apply 协调及下述 Core/CLI 工作流已实现；用户幂等键、组合 accept-all/apply、列表和 HTTP 接入仍待完成。
+当前 [`domain::proposal`](../crates/knowmesh-core/src/domain/proposal/mod.rs) 已实现版本化内存快照、14.8 节的闭集 op 和审核状态契约。每次实际 review/revise/reject/stale/applied 状态变化返回新快照并递增 revision，原快照保持可用；同样的重复决策不增加 revision。Mutation 输入必须给出 `expected_revision`，不匹配返回 `PROPOSAL_REVISION_MISMATCH`。SQLite 历史存储、Apply 协调、用户幂等键及下述 Core/CLI 工作流已实现；组合 accept-all/apply、列表和 HTTP 接入仍待完成。
 
 [`workflow`](../crates/knowmesh-core/src/application/proposal/workflow.rs) 拥有 create/get/edit/review/revalidate/reject 用例。Create 接受 `{ proposal: ProposalInput, dry_run }`，要求先 `sync` 得到与当前文件相符的完整索引，并使用其 base_generation/Schema hash；它通过 Builder 后才保存 draft。Edit 接受 `{ proposal_id, revision: ProposalRevision, dry_run }`，验证完整替换 items，再沿用领域规则重置受影响的审核。Review 接受 `{ proposal_id, review: ReviewInput, dry_run }`，重新校验 stored item 内容及实际 Schema policy；出现未经审核的派生内容变化时要求先 revalidate。
 
@@ -1982,12 +1982,12 @@ knowmesh sync
 knowmesh schema command proposal.create
 knowmesh schema patch add_claim
 knowmesh proposal create --input proposal.json --dry-run
-knowmesh proposal create --input proposal.json
+knowmesh proposal create --input proposal.json --idempotency-key draft-1
 knowmesh proposal get prp_01K...
 knowmesh proposal review --input review.json --dry-run
 knowmesh proposal review --input review.json
 knowmesh proposal apply prp_01K... --expected-revision 2 --dry-run
-knowmesh proposal apply prp_01K... --expected-revision 2 --yes
+knowmesh proposal apply prp_01K... --expected-revision 2 --yes --idempotency-key apply-1
 ```
 
 [`ProposalStore`](../crates/knowmesh-core/src/ports.rs) 以 [`ProposalRecord`](../crates/knowmesh-core/src/application/proposal/record.rs) 保存完整 Proposal 和原 canonical 快照 hash。[SQLite adapter](../crates/knowmesh-sqlite/src/proposal.rs) 在同一 IMMEDIATE 事务内追加 `proposal_revisions`、更新 current header/items 并写入 audit event。新建仅接受 draft revision 1；后续保存必须匹配当前 expected_revision，并恰好增加 1。同 revision、同内容保存为 no-op；并发过期写入、跳号、身份/创建信息改写及未经协调的 applied 状态均被拒绝。Stale 不能仅通过改 state 恢复旧批准，必须先保存重验证后的 pending revision。
@@ -1996,7 +1996,13 @@ knowmesh proposal apply prp_01K... --expected-revision 2 --yes
 
 Migration 0006 不从旧 header/items 猜造丢失的审核信息；旧行保留，无历史快照时读取返回 `PROPOSAL_HISTORY_UNAVAILABLE`。Rebuild 与备份包含全部 revision，不丢弃旧审核。选择独立追加快照表是为了保留可重读的完整历史；代价是每次 revision 重复保存完整 Proposal，current header/items 仅作为当前查询投影，不能代替历史事实。Apply 使用 10.6 节的协调事务，不能在文件提交后单独调用普通保存来伪造完成状态。
 
-当前 Core `apply::execute` 输入为 proposal_id、expected_revision、dry_run、yes。实际执行必须确认且全部项已决；dry-run 只重验证并返回精确 changed_paths，不保存审核、回执或索引。Migration 0007 的 `proposal_applications` 保存每个 Proposal 唯一的完整 ApplyContext/回执、reviewed_revision 和 JSON hash，回执最多 8 MiB。相同已审核 revision 重试返回首次结果，即使其后索引 generation 已变化；不同 revision 不复用该回执。回执与完整历史在真实 rebuild/备份后继续可读。此处按 Proposal 身份提供重复调用语义；用户自定义幂等键和自动 accept-all 组合尚待接入，当前 Proposal descriptors 的 supports_idempotency=false，不把现有重复 Apply 行为表述为已经支持 key。
+当前 Core `apply::execute` 输入为 proposal_id、expected_revision、dry_run、yes；`execute_with_key` 另接受可选 key。实际执行必须确认且全部项已决；dry-run 只重验证并返回精确 changed_paths，不保存审核、回执或索引。Migration 0007 的 `proposal_applications` 保存每个 Proposal 唯一的完整 ApplyContext/回执、reviewed_revision 和 JSON hash，回执最多 8 MiB。相同已审核 revision 重试返回首次结果，即使其后索引 generation 已变化；不同 revision 不复用该回执。回执与完整历史在真实 rebuild/备份后继续可读。
+
+`proposal create/edit/review/revalidate/reject/apply` 均已支持 CLI `--idempotency-key`，对应 descriptors 的 supports_idempotency=true。Key 在当前 workspace 的 DB 内按 operation 区分，保留原字符串，必须非空、至多 256 UTF-8 bytes 且不含控制字符。版本化请求 hash 从结构化 DTO 生成；dry_run 不参与 hash，Apply 的 yes 也不参与，但实际执行仍要求确认。Typed item 在 hash 前验证非有限数等内容，不能因 JSON 将 NaN 编码为 null 而命中另一输入的结果。相同 key/operation 的不同 hash 返回 `IDEMPOTENCY_KEY_REUSED`。
+
+Runtime mutation 的 key、revision、current items 和 audit 在同一个 SQLite transaction 保存。`idempotency_keys.response_json` 保存有版本的历史 revision 引用及可选错误，至多 64 KiB；重放读取该不可变 revision，而不是最新 header。因此创建后再审核，重试创建仍返回最初 draft 结果。Review 因过期基线保存 stale revision 时，其错误也与变更一起保存并重放；未产生持久变更的校验失败不占用 key。损坏/缺失的引用返回 `IDEMPOTENCY_RESULT_INVALID`，不会重新执行。Dry-run 不新建绑定；已有匹配绑定可只读返回原结果，Apply 的此类预览返回空 changed_paths。
+
+Apply 的 key 同时记录在恢复日志上下文中，并与 applied revision/回执一起提交；key 保存失败回滚 DB 变更，恢复后仍绑定原 key。对已经完成的 Apply 使用另一个 key，会原子绑定到同一原始回执，不再次写规范文件。Proposal keys 当前不设到期时间；rebuild/备份保留这些引用。自动 accept-all/apply 组合仍待接入。
 
 每项 decision 为 pending/accepted/rejected，保存原因、reviewed_by/at、explicit/bulk 方式及 human_verified。Relaxed bulk 只接受 pending 项，不覆盖已拒绝项；strict、禁止 accept-all 或要求人工验证的 policy 均拒绝 bulk。Accepted 项若有 blocking warning 则返回 `PROPOSAL_ITEM_BLOCKED`；需要人工确认而未提供时返回 `HUMAN_VERIFICATION_REQUIRED`。所有项均已决且至少一项 accepted 才为 approved；pending 阻止 Apply 状态门禁，全部拒绝则为 rejected。
 

@@ -249,12 +249,102 @@ fn proposal_cli_idempotency_returns_first_results_and_rejects_changed_input() {
         "source_revision_id":null,"compiler_run_id":null,"summary":"Keyed CLI request.",
         "items":[ProposalItem::new(PatchOp::AddAlias,snapshot.nodes[0].metadata.id.to_string(),json!({"alias":"Keyed alias"})).unwrap()]
     }});
-    let args = ["proposal","create","--input","-","--idempotency-key","cli-request"];
+    let args = [
+        "proposal",
+        "create",
+        "--input",
+        "-",
+        "--idempotency-key",
+        "cli-request",
+    ];
     let first = success(call(&workspace.root, &args, Some(input.clone())));
     let replay = success(call(&workspace.root, &args, Some(input.clone())));
     assert_eq!(first["data"], replay["data"]);
     input["proposal"]["summary"] = json!("Changed request.");
     let rejected = call(&workspace.root, &args, Some(input));
     assert!(rejected.stdout.is_empty());
-    assert_eq!(serde_json::from_slice::<Value>(&rejected.stderr).unwrap()["error"]["code"], "IDEMPOTENCY_KEY_REUSED");
+    assert_eq!(
+        serde_json::from_slice::<Value>(&rejected.stderr).unwrap()["error"]["code"],
+        "IDEMPOTENCY_KEY_REUSED"
+    );
+}
+
+#[test]
+fn apply_keys_replay_the_first_result_and_bind_new_keys_to_the_same_application() {
+    let (_temp, workspace) = support::fixture();
+    success(call(&workspace.root, &["sync"], None));
+    let snapshot = CanonicalSnapshot::scan(&workspace).unwrap();
+    let input = json!({"proposal":{
+        "kind":"manual","base_generation":1,"schema_hash":snapshot.schema_hash,
+        "source_revision_id":null,"compiler_run_id":null,"summary":"Keyed Apply request.",
+        "items":[ProposalItem::new(PatchOp::AddAlias,snapshot.nodes[0].metadata.id.to_string(),json!({"alias":"Apply key alias"})).unwrap()]
+    }});
+    let created = success(call(
+        &workspace.root,
+        &["proposal", "create", "--input", "-"],
+        Some(input),
+    ));
+    let id = created["data"]["record"]["proposal"]["id"]
+        .as_str()
+        .unwrap();
+    success(call(
+        &workspace.root,
+        &["proposal", "review", "--input", "-"],
+        Some(
+            json!({"proposal_id":id,"review":{"expected_revision":1,"accept_all":true,"decisions":[]}}),
+        ),
+    ));
+    let first = success(call(
+        &workspace.root,
+        &[
+            "proposal",
+            "apply",
+            id,
+            "--expected-revision",
+            "2",
+            "--yes",
+            "--idempotency-key",
+            "apply-1",
+        ],
+        None,
+    ));
+    for key in ["apply-1", "apply-alias"] {
+        let replay = success(call(
+            &workspace.root,
+            &[
+                "proposal",
+                "apply",
+                id,
+                "--expected-revision",
+                "2",
+                "--yes",
+                "--idempotency-key",
+                key,
+            ],
+            None,
+        ));
+        assert_eq!(replay["data"], first["data"]);
+        let conflict = call(
+            &workspace.root,
+            &[
+                "proposal",
+                "apply",
+                id,
+                "--expected-revision",
+                "1",
+                "--yes",
+                "--idempotency-key",
+                key,
+            ],
+            None,
+        );
+        assert_eq!(
+            serde_json::from_slice::<Value>(&conflict.stderr).unwrap()["error"]["code"],
+            "IDEMPOTENCY_KEY_REUSED"
+        );
+    }
+    assert_eq!(
+        success(call(&workspace.root, &["proposal", "get", id], None))["data"]["proposal"]["revision"],
+        3
+    );
 }

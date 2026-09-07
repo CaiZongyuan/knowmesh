@@ -1,6 +1,7 @@
 pub mod apply;
 mod documents;
 mod evidence;
+pub mod idempotency;
 pub mod payload;
 mod record;
 mod selection;

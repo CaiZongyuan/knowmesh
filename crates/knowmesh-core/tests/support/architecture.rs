@@ -311,7 +311,10 @@ impl<'ast> Visit<'ast> for Guard<'_> {
     fn visit_expr_call(&mut self, call: &'ast ExprCall) {
         if let Expr::Path(path) = call.func.as_ref() {
             let path = self.resolved(&path.path);
-            if let Some(method @ ("proposal_create" | "proposal_save")) = path.rsplit("::").next() {
+            if let Some(
+                method @ ("proposal_create" | "proposal_save" | "proposal_commit_mutation"),
+            ) = path.rsplit("::").next()
+            {
                 self.runtime_write(method);
             }
             if matches!(
@@ -354,7 +357,10 @@ impl<'ast> Visit<'ast> for Guard<'_> {
     }
     fn visit_expr_method_call(&mut self, call: &'ast ExprMethodCall) {
         let method = call.method.to_string();
-        if matches!(method.as_str(), "proposal_create" | "proposal_save") {
+        if matches!(
+            method.as_str(),
+            "proposal_create" | "proposal_save" | "proposal_commit_mutation"
+        ) {
             self.runtime_write(&method);
         }
         if [

@@ -42,6 +42,7 @@
     "crates/knowmesh-sqlite/src/runtime.rs",
     "crates/knowmesh-sqlite/src/proposal.rs",
     "crates/knowmesh-sqlite/src/proposal/apply.rs",
+    "crates/knowmesh-sqlite/src/proposal/idempotency.rs",
     "crates/knowmesh-sqlite/src/rebuild.rs",
     "crates/knowmesh-sqlite/src/impact/preview.rs"
   ],

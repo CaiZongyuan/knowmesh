@@ -238,7 +238,7 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   historical hashes/heads and require valid references; the Builder does not prove
   their Ask-run origin. Full payload contracts and bounds live in SPEC 14.8.
   Ask integration must supply the original run snapshot rather than reconstructing
-  its contents. User-supplied idempotency keys and combined accept-all/apply remain #27.
+  its contents. Combined accept-all/apply remains #27.
 - Accepted-subset previews rerun Builder against current files and actual Schema
   policy. Rejected dependencies, changed generation/content, forged item hashes,
   and reviews missing Builder-derived preconditions cannot yield an accepted preview.
@@ -253,7 +253,7 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - Nine storage fixtures cover concurrent writers, rollback, corrupt history,
   stale approvals, legacy migration, runtime copying, and real atomic rebuild with
   backups. Migration 0006 preserves legacy rows without inventing missing review
-  snapshots. User-supplied idempotency keys remain #27.
+  snapshots. Idempotency references use the same immutable history.
   The storage contract, bounds, and rationale live in SPEC 14.9.
 - Core Apply revalidates persisted approved items and writes their canonical files.
   SQLite holds the revision comparison and file callback in one write transaction,
@@ -268,7 +268,7 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   guard blocks adapters from directly calling the new transaction port.
 - Proposal journals use version 2 and migration 0007 stores Apply receipts. Legacy
   source/initialization journals remain compatible. Contracts, bounds, transaction
-  tradeoffs, and remaining idempotency-key work live in SPEC 10.6/14.9.
+  tradeoffs, and idempotency behavior live in SPEC 10.6/14.9.
 - Core create/edit/review/revalidate/reject workflows check canonical baselines,
   actual Schema policy, expected revisions, and pending journals before runtime
   writes. Dry-runs preserve both index and history. Stale review records a stale
@@ -284,7 +284,17 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   discovery, repair/revalidation, historical reads, confirmation, and actual Apply.
   Invalid JSON does not open an index; runtime reads and rejection do not load a
   broken Schema Pack. Complete request contracts and CLI examples live in SPEC 14.9.
-  Proposal list, explicit idempotency keys and combined accept-all/apply remain pending.
+  Proposal list and combined accept-all/apply remain pending.
+- All six Proposal write commands accept an optional idempotency key. Runtime
+  mutations atomically bind keys to immutable revisions, including errors from
+  persisted stale-review transitions. Apply keys commit with the application receipt
+  and survive file-journal recovery. Additional keys can reference an existing Apply
+  without changing its original result. Dry-run never creates bindings.
+- Seven runtime idempotency fixtures cover original-result replay, input conflicts,
+  rollback, stale errors, rebuild, corrupt references, and nonfinite typed inputs.
+  CLI replay/key-alias tests and a real Apply key-write failure verify the final
+  canonical/SQLite recovery path. The key scope, limits and fingerprint rules live
+  in SPEC 14.9; this does not claim key support for other unfinished command families.
 - Canonical document previews overlay Node/Synthesis Markdown and existing source
   metadata in memory. They reuse projection and link resolution, revalidate the
   complete reference graph, and check that the original file inventory/content
@@ -477,7 +487,8 @@ KM-023 and their owning implementation issues.
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), accepted subset | Commit `2417e1c`: missing `prepare_accepted` helper | `proposal_selection`: 5 tests cover selected dependencies, stale content/revisions/generation, and actual workspace review policy |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), revision storage | Commits `2bbb27f`, `5544a42`: missing Proposal store, then unsafe restoration of stale approvals | `proposal_store`: 9 tests cover atomic history, concurrency, rollback, migration, copying, and rebuild |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), [KM-044 / #24](https://github.com/CaiZongyuan/knowmesh/issues/24), coordinated Apply | Commits `4093cea`, `ab764a6`, `8533304`: missing Apply, uncoordinated projection writes, and stale referenced bytes accepted during recovery | `proposal_apply`: 12 tests cover actual canonical/SQLite Apply and recovery; the architecture suite also covers the transaction port |
-| [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), [KM-051 / #31](https://github.com/CaiZongyuan/knowmesh/issues/31), authoring workflows/CLI | Commits `06db97c`, `4224d89`, `edab1cf`, `1b1e2cc`, `204b0ca`: retained stale diagnostics, missing workflows/commands, broken-Schema rejection, and unguarded runtime ports | Six Core/SQLite workflow tests, four CLI tests, diagnostic repair and runtime boundary fixtures pass; keys, combined accept-all/apply and Proposal list remain pending |
+| [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), [KM-051 / #31](https://github.com/CaiZongyuan/knowmesh/issues/31), authoring workflows/CLI | Commits `06db97c`, `4224d89`, `edab1cf`, `1b1e2cc`, `204b0ca`: retained stale diagnostics, missing workflows/commands, broken-Schema rejection, and unguarded runtime ports | Six Core/SQLite workflow tests, four initial CLI tests, diagnostic repair and runtime boundary fixtures pass; combined accept-all/apply and Proposal list remain pending |
+| [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), idempotency keys | Commits `50fa136`, `12bf86b`, `36f2b38`: missing keyed requests/CLI, then lossy nonfinite input fingerprints; the Apply CLI key test also failed before wiring | Seven runtime key tests, two additional CLI key tests and Apply recovery after key-write failure pass |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), canonical preview | Commit `9d8b7b4`: missing document preview | `cargo +stable test -p knowmesh-core --test canonical_preview --locked`: 6 tests pass, including preview/scan equivalence and rejection of proposed data as a canonical snapshot |
 | [KM-047 / #27](https://github.com/CaiZongyuan/knowmesh/issues/27), controlled summary editing | Commits `1fa51a2`, `f803758`: missing summary editor, accepted reference injection, and stale summary projections | `node_summary`: 8 focused cases; `fast_sync`: 6 cases including v3 Claim-key and v4 summary refresh |
 

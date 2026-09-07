@@ -112,6 +112,34 @@ pub trait IndexStore: ProjectionStore {
 }
 
 pub trait ProposalStore: IndexStore {
+    fn proposal_cached_application(
+        &self,
+        _request: &crate::application::proposal::idempotency::IdempotencyRequest,
+    ) -> AppResult<Option<crate::application::proposal::apply::ApplyReport>> {
+        Err(crate::application::proposal::idempotency::unavailable())
+    }
+    fn proposal_cached_mutation(
+        &self,
+        _request: &crate::application::proposal::idempotency::IdempotencyRequest,
+    ) -> AppResult<Option<crate::application::proposal::idempotency::MutationResult>> {
+        Err(crate::application::proposal::idempotency::unavailable())
+    }
+    fn proposal_commit_mutation(
+        &mut self,
+        mutation: &crate::application::proposal::idempotency::ProposalMutation,
+    ) -> AppResult<crate::application::proposal::idempotency::MutationResult> {
+        if mutation.idempotency.is_some() {
+            return Err(crate::application::proposal::idempotency::unavailable());
+        }
+        match mutation.expected_revision {
+            None => self.proposal_create(&mutation.record)?,
+            Some(revision) => self.proposal_save(revision, &mutation.record)?,
+        }
+        Ok(crate::application::proposal::idempotency::MutationResult {
+            record: mutation.record.clone(),
+            error: mutation.error.clone(),
+        })
+    }
     fn proposal_application(
         &self,
         id: &crate::domain::ProposalId,

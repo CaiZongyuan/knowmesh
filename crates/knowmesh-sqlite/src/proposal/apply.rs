@@ -76,13 +76,24 @@ pub(crate) fn commit(
             "The Apply context belongs to another workspace.",
         ));
     }
+    if let Some(key) = &context.idempotency {
+        super::idempotency::read_apply(&tx, key)?;
+    }
     if let Some(receipt) = receipt(&tx, &context.proposal_id)? {
-        if receipt.context != *context {
+        let mut original = receipt.context.clone();
+        let mut incoming = context.clone();
+        original.idempotency = None;
+        incoming.idempotency = None;
+        if original != incoming {
             return Err(conflict(
                 "PROPOSAL_APPLY_CONTEXT_MISMATCH",
                 "The journal differs from the committed Apply context.",
             ));
         }
+        if let Some(key) = &context.idempotency {
+            super::idempotency::write_apply(&tx, key, &receipt.report, context.requested_at)?;
+        }
+        tx.commit().map_err(database_error)?;
         return Ok(receipt.report);
     }
     let reviewed = load(&tx, &context.proposal_id, None)?;
@@ -155,6 +166,9 @@ pub(crate) fn commit(
         return Err(invalid());
     }
     tx.execute("INSERT INTO proposal_applications(proposal_id,reviewed_revision,receipt_json,content_sha256) VALUES(?1,?2,?3,?4)", params![context.proposal_id.as_str(),context.reviewed_revision,encoded,sha256(encoded.as_bytes())]).map_err(database_error)?;
+    if let Some(key) = &context.idempotency {
+        super::idempotency::write_apply(&tx, key, &report, context.requested_at)?;
+    }
     tx.commit().map_err(database_error)?;
     Ok(report)
 }

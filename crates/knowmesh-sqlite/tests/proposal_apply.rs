@@ -868,3 +868,86 @@ fn applied_receipts_survive_atomic_rebuild_and_replay_after_later_canonical_edit
         expected
     );
 }
+
+#[test]
+fn apply_key_is_committed_with_recovery_after_key_storage_fails() {
+    let (_temp, workspace, mut store, approved, input) = fixture();
+    let mut preview_input = input.clone();
+    preview_input.dry_run = true;
+    preview_input.yes = false;
+    let preview = apply::execute_with_key(
+        &workspace,
+        &mut store,
+        &preview_input,
+        Some("recover-key"),
+        "author",
+        now(),
+    )
+    .unwrap();
+    assert!(preview.dry_run);
+    assert_eq!(
+        store.proposal_get(&input.proposal_id, None).unwrap(),
+        approved
+    );
+    let db = Connection::open(workspace.index_path().unwrap()).unwrap();
+    db.execute_batch("CREATE TRIGGER fail_apply_key BEFORE INSERT ON idempotency_keys WHEN NEW.operation='proposal.apply' BEGIN SELECT RAISE(ABORT,'injected key failure'); END;").unwrap();
+    assert!(
+        apply::execute_with_key(
+            &workspace,
+            &mut store,
+            &input,
+            Some("recover-key"),
+            "author",
+            now()
+        )
+        .is_err()
+    );
+    assert_eq!(
+        store.proposal_get(&input.proposal_id, None).unwrap(),
+        approved
+    );
+    assert!(sync::recovery_status(&workspace).unwrap().recovery_required);
+    db.execute_batch("DROP TRIGGER fail_apply_key;").unwrap();
+    sync::recover(&workspace, &mut store).unwrap();
+    let first = store
+        .proposal_application(&input.proposal_id)
+        .unwrap()
+        .unwrap()
+        .report;
+    let replay = apply::execute_with_key(
+        &workspace,
+        &mut store,
+        &input,
+        Some("recover-key"),
+        "retry",
+        now(),
+    )
+    .unwrap();
+    assert_eq!(
+        serde_json::to_value(replay).unwrap(),
+        serde_json::to_value(first).unwrap()
+    );
+    assert_eq!(
+        store
+            .proposal_get(&input.proposal_id, None)
+            .unwrap()
+            .proposal
+            .state,
+        ProposalState::Applied
+    );
+    let mut other = input;
+    other.expected_revision = 1;
+    assert_eq!(
+        apply::execute_with_key(
+            &workspace,
+            &mut store,
+            &other,
+            Some("recover-key"),
+            "retry",
+            now()
+        )
+        .unwrap_err()
+        .code,
+        "IDEMPOTENCY_KEY_REUSED"
+    );
+}

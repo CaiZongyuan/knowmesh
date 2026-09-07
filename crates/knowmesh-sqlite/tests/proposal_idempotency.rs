@@ -386,7 +386,27 @@ fn malformed_keys_and_corrupt_references_are_rejected_without_repeating_mutation
 #[test]
 fn cached_results_do_not_hide_nonfinite_typed_input() {
     let (_temp, workspace, mut store, mut input) = fixture();
-    workflow::execute_request(&workspace, &mut store, MutationRequest::Create(&input), Some("finite-input"), "author", now()).unwrap();
+    workflow::execute_request(
+        &workspace,
+        &mut store,
+        MutationRequest::Create(&input),
+        Some("finite-input"),
+        "author",
+        now(),
+    )
+    .unwrap();
     input.proposal.items[0].compiler_confidence = Some(f64::NAN);
-    assert_eq!(workflow::execute_request(&workspace, &mut store, MutationRequest::Create(&input), Some("finite-input"), "author", now()).unwrap_err().code, "INVALID_PROPOSAL");
+    assert_eq!(
+        workflow::execute_request(
+            &workspace,
+            &mut store,
+            MutationRequest::Create(&input),
+            Some("finite-input"),
+            "author",
+            now()
+        )
+        .unwrap_err()
+        .code,
+        "INVALID_PROPOSAL"
+    );
 }

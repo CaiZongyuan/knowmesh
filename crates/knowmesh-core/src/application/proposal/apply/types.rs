@@ -50,6 +50,8 @@ pub struct ApplyContext {
     pub sources: Vec<ApplySource>,
     pub actor: String,
     pub requested_at: Timestamp,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotency: Option<crate::application::proposal::idempotency::IdempotencyRequest>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -62,6 +64,15 @@ pub struct ApplySource {
 
 impl ApplyContext {
     pub fn validate(&self) -> AppResult<()> {
+        if let Some(key) = &self.idempotency {
+            key.validate()?;
+            if key.operation != "proposal.apply" {
+                return Err(super::conflict(
+                    "INVALID_PROPOSAL_APPLY_CONTEXT",
+                    "An Apply journal must use the proposal.apply key scope.",
+                ));
+            }
+        }
         if self.version != 1
             || self.reviewed_revision == 0
             || self.reviewed_revision == u32::MAX

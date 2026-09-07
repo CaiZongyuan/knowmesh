@@ -47,8 +47,9 @@ canonical previews are in place. Accepted subsets are revalidated against curren
 files and workspace policy. Controlled summary editing preserves surrounding
 Markdown. SQLite preserves complete review revisions and Apply receipts. Core Apply
 and recovery now commit canonical changes with their review state. Proposal commands
-accept typed JSON files/stdin and use the same Core workflows. Proposal list,
-idempotency keys, combined accept-all/apply, and the full Compiler workflow remain pending.
+accept typed JSON files/stdin and use the same Core workflows. All six Proposal write
+commands support idempotency keys, including Apply recovery. Proposal list,
+combined accept-all/apply, and the full Compiler workflow remain pending.
 Workspace tests also check public operation registration, dependency direction,
 and registered write boundaries;
 coverage and limitations are recorded in the [development guide](docs/development.md).
