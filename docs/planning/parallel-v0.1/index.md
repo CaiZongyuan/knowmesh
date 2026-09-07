@@ -1,33 +1,25 @@
 # KnowMesh v0.1 执行票
 
-> Status: Published。执行计划 [#46](https://github.com/CaiZongyuan/knowmesh/issues/46) 下已发布 56 张执行票和 86 条原生阻塞关系；实时状态以 GitHub 为准。
-> [发布映射](publication.json)记录全部编号；[三个 agent 的启动入口](../../agents/START.md)记录首批工作目录。
+> Status: Single-agent continuous execution。任务验收与 86 条原生依赖保留；实时完成状态以 GitHub 为准。
+> [发布映射](publication.json)记录全部编号；[单 agent 启动入口](../../agents/START.md)说明持续执行。
 > 代码基线：`5247efe`；旧 issue 状态快照：2026-09-07。
-> [执行规格](spec.md)说明取舍；[worktree 指南](../../agents/parallel-development.md)说明派发与集成。
+> [执行规格](spec.md)说明取舍；[执行循环](../../agents/worker-start.md)说明连续开发。
 
 ## 已批准范围
 
-本目录包含 56 张覆盖剩余正式 v0.1 范围的执行票：难 26、中 27、简单 3。每票有验收、真实阻塞关系、旧需求映射、责任边界和所需 SPEC 引用。P 编号是稳定规划 ID；GitHub 编号及实时状态以发布映射和线上票据为准。
+本目录保留 56 张执行票及其验收、原始需求映射和阻塞关系。历史难度仅为工作量提示，不再对应多个 agent 或工作目录。P 编号保持稳定，实时状态以 GitHub 为准。
 
 任务粒度、真实前置依赖和 CLI/Core + 真实 SQLite/临时 workspace 的验收方式已批准。Core-only 规划与预算阶段先通过最高 Core 集成接口验收，公开命令由后续执行器票负责。具体边界在每票内写明。
 
-初始 20 张票没有产品阻塞，但并发上限仍为三个实现者。审批、共享工作流基线、资源和接口协调属于共同开工条件，不重复制造一个功能依赖票。
+同一 agent 一次实现一张已就绪票，完成验证、提交和状态更新后自动继续。已关闭且代码已合入的票不重复执行。
 
-## 首批调度
+## 持续执行
 
-| 档位 | 首批任务 | 独立交付 | 主要协调点 |
-| --- | --- | --- | --- |
-| 难 | [P10 候选抽取](tickets/P10.md) | 固定来源到可验证、可缓存候选 | Compiler 模型调用与后续逐请求预算契约 |
-| 中 | [P04 知识读取](tickets/P04.md) | Node get/list 和 Schema entity discovery | CLI/Operation 注册与读取 port 的追加 |
-| 简单 | [P01 真实材料](tickets/P01.md) | 来源清单、导入/词法基线、待人审标注候选 | 统一材料身份；不代签人工 gold |
-
-这是优先调度建议，不是按档位串行的永久流水线。后续从最新集成基线重新计算就绪集合；P13 Run 准入应尽早进入中档，使 P14 预算可以与 Compiler 规划继续并行。必要时可以同时运行两个难档任务，简单队列为空时不强行补任务。
-
-当前无产品阻塞集合：[P01](tickets/P01.md)、[P02](tickets/P02.md)、[P03](tickets/P03.md)、[P04](tickets/P04.md)、[P05](tickets/P05.md)、[P06](tickets/P06.md)、[P07](tickets/P07.md)、[P09](tickets/P09.md)、[P10](tickets/P10.md)、[P13](tickets/P13.md)、[P22](tickets/P22.md)、[P24](tickets/P24.md)、[P25](tickets/P25.md)、[P26](tickets/P26.md)、[P27](tickets/P27.md)、[P28](tickets/P28.md)、[P32](tickets/P32.md)、[P36](tickets/P36.md)、[P55](tickets/P55.md)、[P56](tickets/P56.md)。
+先恢复未完成的实现、修复或 CI，再按[执行规格](spec.md#execution-order)选择下一张已解除阻塞的票。没有 per-issue worktree、新会话或协调者派发要求。某票外部阻塞时记录原因并继续其他任务；只有全部授权工作完成、用户暂停或所有剩余任务都外部阻塞时结束。
 
 ## 关键依赖
 
-下图仅展示主要集成路径，完整阻塞关系以每票 metadata 和下方清单为准；同列不意味着必须同时开始。
+下图展示功能依赖，不表示多个 agent 并行执行；实际依赖与状态以 GitHub 为准。
 
 ```mermaid
 flowchart LR
@@ -55,7 +47,7 @@ flowchart LR
 
 ## 完整拆分
 
-P 编号标识任务，不表示执行顺序；例如 P54 的最终验收等待后补明确的 P55/P56。发布和派发均以阻塞关系计算顺序。
+P 编号标识任务，不表示执行顺序；例如 P54 的最终验收等待后补明确的 P55/P56。单 agent 按实际阻塞关系选择执行顺序。
 
 1. **[P01 / #47 真实材料溯源清单与导入检索基线](https://github.com/CaiZongyuan/knowmesh/issues/47)**（简单）。Blocked by：无，批准并建立共享基线后可开始。
    交付：为 Virtual Cell dogfooding 建立可追溯的真实材料清单，用当前已实现的导入、同步与词法检索能力复现最小研究资料库。
@@ -276,7 +268,7 @@ P 编号标识任务，不表示执行顺序；例如 P54 的最终验收等待�
 | Server watcher、重建连接排空与重开 | P45 |
 | 外部静态资源、manifest、兼容性与缓存 | P46 |
 
-基础 HTTP 不提前承诺后续业务路由可用。新路由由所属票同时维护 OpenAPI 和已建立的生成客户端；共享生成物在集成时串行再生成。P38 的自由创建编辑器不属于范围，但既有 proposal.create 的 HTTP 契约必须交付。
+基础 HTTP 不提前承诺后续业务路由可用。新增路由由同一 agent 在所属票中同步 OpenAPI 和生成客户端。P38 不包含自由创建编辑器，但包含既有 proposal.create 的 HTTP 契约。
 
 ## 发布与验收
 
@@ -284,4 +276,4 @@ P 编号标识任务，不表示执行顺序；例如 P54 的最终验收等待�
 
 P01 的标注只是候选。P51/P52/P53 开始正式质量评分前，必须取得适用的人工 gold、相关性判断或事实支持评审；若没有，准备脚本和材料仍可推进，质量 gate 保持未验证。记录人工签署与具体材料版本，不把 agent 自评当人工结论。
 
-规划票与执行票已发布，并建立 native blocked-by/sub-issue links；本目录逐票保留发布快照，实时讨论与状态由 GitHub 拥有。只有计划已批准、阻塞项已验证合入且资源可用的票能启动。首批只创建三项对应 worktree，其余按就绪前沿创建。
+执行票已发布，本目录保留出版快照。单 agent 依据线上依赖和状态持续实现、验证、提交及更新结果。完成一票后自动选择下一票，不以 PR 或提交作为停止点。

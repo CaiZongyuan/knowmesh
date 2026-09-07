@@ -1,17 +1,21 @@
 # Issue Tracker
 
-Tracker: GitHub, repository `CaiZongyuan/knowmesh`. Use `gh` for issue and PR operations. Repository identity is also available from `git remote -v`.
+Use GitHub repository `CaiZongyuan/knowmesh` through `gh`. [#46](https://github.com/CaiZongyuan/knowmesh/issues/46) owns the single-agent execution queue; [#1](https://github.com/CaiZongyuan/knowmesh/issues/1) owns final v0.1 acceptance. [publication.json](../planning/parallel-v0.1/publication.json) maps the 56 stable P IDs to GitHub issues. Native sub-issue and blocked-by relationships remain the dependency source.
 
-The published execution parent is [#46](https://github.com/CaiZongyuan/knowmesh/issues/46), with 56 native sub-issues and 86 blocked-by edges. [publication.json](../planning/parallel-v0.1/publication.json) maps P IDs to GitHub URLs. The original 25 open implementation issues plus delivery tracker #1 now link to their execution replacements and remain `tracking-only`.
+## Continuous Execution
 
-Read the complete issue body, comments, labels and blocking relationships before implementation. The original [delivery tracker #1](https://github.com/CaiZongyuan/knowmesh/issues/1) owns final v0.1 acceptance. The [parallel execution plan](../planning/parallel-v0.1/spec.md) was approved on 2026-09-07; P IDs are stable planning identities, mapped to GitHub issues when published.
+Read the current issue body/comments and blockers before working. Resume status:in-progress or status:review work first. Otherwise choose an open, approved execution issue whose blockers are complete and whose required code is in `feat/knowmesh-v0.1`. Ignore tracking-only umbrellas and retired worktree assignments.
 
-After the user approves the breakdown, publish one planning issue and one child issue per approved ticket in dependency order. Use GitHub native sub-issue and blocked-by relationships, and include readable links in each body. Maintain an explicit local-ID-to-GitHub-URL mapping during publication so retries update the created issue rather than duplicating it. Re-read relationships after writing them. If native relationships are unavailable for this repository, retain explicit `Blocked by` links and report the limitation.
+One agent implements and performs sequential Standards/Spec review, commits, verifies required checks and updates the issue. Once acceptance passes, close it, update the relevant tracker checklist and immediately select the next issue. Per-issue PRs, new sessions and a separate coordinator are not prerequisites. Existing PRs may be completed by the same agent. A non-default branch may require explicit issue closure after integration.
 
-The old issues remain the historical scope/evidence record. For this reorganization the user explicitly authorized adding the new execution mapping to existing open issues and the original delivery tracker. Preserve their original bodies and evidence, label them `tracking-only`, and do not close them. Existing closed components remain unchanged. Workers update only their assigned execution issue; the approved new ticket set is the dispatch list, so do not dispatch both a legacy umbrella and its replacement.
+Use [status labels](triage-labels.md) for progress. A closed dependency is insufficient if its code is missing; a ready label is insufficient if required human/model input is missing. Record external blockers precisely, then continue other available work. Keep the original 25 implementation umbrellas and their historical evidence; their execution children are the actual work queue.
 
-Apply labels according to [triage labels](triage-labels.md). `ready-for-agent` means a ticket is self-contained; native blockers and the integration base still determine whether it may start. A blocked ticket is not runnable merely because it has that label.
+## Checkpoint
 
-Use an exact body file for multiline `gh issue create/edit` and `gh pr create/edit` operations. Keep publication drafts outside active implementation worktrees. Never put secrets or raw private source material in issue bodies.
+Record branch/commit, completed acceptance, actual checks, remaining steps and next issue/action before compaction or interruption. Do not report an unrun check as passing, close a blocked issue for convenience, or require the user to redispatch after a normal issue completion. The [execution loop](worker-start.md) defines the stop conditions.
 
-Implementation PRs currently target `feat/knowmesh-v0.1` explicitly. A task is integrated only after the verified change is in that target, not merely when a branch exists or an issue is closed. Explicitly close a delivered execution ticket after integration; do not rely on closing keywords for a non-default PR base. Parent closure and production release are separate actions.
+## CLI Compatibility
+
+Read with explicit fields, for example `gh issue view <number> --json title,body,comments,labels,state,url`. This host's default views and `gh pr edit` may fail on deprecated projectCards. PR body updates can use `gh api repos/CaiZongyuan/knowmesh/pulls/<number> --method PATCH --input <request.json>` with structured JSON.
+
+Use body files or structured JSON for multiline updates. Preserve existing discussions and unrelated fields. Keep secrets and restricted source text out of GitHub records. Production release and protected-branch requirements remain in force; switching to continuous execution does not bypass them.

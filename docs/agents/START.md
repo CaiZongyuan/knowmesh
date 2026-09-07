@@ -1,19 +1,11 @@
-# Start Three Agents
+# Start Continuous Development
 
-The approved execution tracker is [#46](https://github.com/CaiZongyuan/knowmesh/issues/46). Start each agent with its assigned worktree as the working directory. Each worktree has a local `.agent-task/START.md` containing the exact issue, branch, base SHA and checks.
+Use one agent in the primary repository directory on `feat/knowmesh-v0.1`. The execution queue is [#46](https://github.com/CaiZongyuan/knowmesh/issues/46); final product/release acceptance belongs to [#1](https://github.com/CaiZongyuan/knowmesh/issues/1).
 
-| Agent | Task | Working Directory From Repository Root |
-| --- | --- | --- |
-| Hard | [P10 / #56: Compiler candidates](https://github.com/CaiZongyuan/knowmesh/issues/56) | `.worktrees/hard/issue-56-candidate-extraction/` |
-| Medium | [P04 / #50: Node reads](https://github.com/CaiZongyuan/knowmesh/issues/50) | `.worktrees/medium/issue-50-node-reads/` |
-| Easy | [P01 / #47: Material baseline](https://github.com/CaiZongyuan/knowmesh/issues/47) | `.worktrees/easy/issue-47-material-baseline/` |
+Instruction for the agent:
 
-Give each fresh agent this instruction:
+> Read AGENTS.md and docs/agents/worker-start.md. Execute the approved unfinished issues under #46 in dependency order, one at a time. Resume existing work first; implement, verify, review, commit and update GitHub state yourself. After completing an issue, automatically continue to the next unblocked issue. Do not stop at a commit or PR or wait for another agent/coordinator. Checkpoint progress before context compaction and continue after recovery. Stop only when the authorized work is complete, the user pauses, or all remaining work requires unavailable external input.
 
-> Read `.agent-task/START.md` in this worktree and implement its single assigned GitHub issue. The user already approved the scope and test interface. Follow the pinned base, task-specific notes and verification requirements. Hand off a candidate PR to the coordinator, then stop; do not claim another issue or merge your own work.
+The [execution loop](worker-start.md) owns detailed rules. [Tracker instructions](issue-tracker.md) explain state and GitHub compatibility. Existing task acceptance and native blockers remain valid; the [publication map](../planning/parallel-v0.1/publication.json) preserves issue identities.
 
-The root checkout is the coordinator/integration workspace. All implementation PRs target `feat/knowmesh-v0.1`, whose backend baseline is already implemented. `main` is not the starting point for these workers.
-
-Run complete backend checks through `bash scripts/agent-checks.sh`; the shared lock queues concurrent full checks. Each worktree has its own target and test data. Reviewer agents are scheduled by the coordinator after candidate handoff, not spawned by all three workers at once.
-
-The [worker guide](worker-start.md) owns the common process, and the local packet links the specific notes for its task. The [publication map](../planning/parallel-v0.1/publication.json) maps all P IDs to GitHub numbers. A new task always receives a new issue worktree/session after its prerequisites have been integrated.
+Old worktrees are retained for history, diagnostics and privately acquired material. They are not active development lanes. Their assignment packets do not limit the current agent to one issue or require it to stop after a PR.

@@ -4,11 +4,11 @@ The [SPEC](KnowMesh_v0.1_Technical_SPEC.md) defines the full v0.1 target.
 [Tracking issue #1](https://github.com/CaiZongyuan/knowmesh/issues/1) owns the delivery
 checklist. A completed foundation or a green subset of tests is not a v0.1 release.
 
-The [parallel delivery plan](planning/parallel-v0.1/spec.md) and its
+The [single-agent delivery plan](planning/parallel-v0.1/spec.md) and its
 [execution tickets](planning/parallel-v0.1/index.md) define the remaining work from
-the verified Proposal idempotency baseline. For per-issue worktrees, fresh agent
-contexts, shared changes and integration, use the [parallel development protocol](agents/parallel-development.md).
-The plan and its test interfaces were approved on 2026-09-07; the final v0.1 release gates remain in force.
+the verified foundations. One agent follows the [continuous execution loop](agents/worker-start.md),
+updates GitHub state and proceeds to the next unblocked issue without a worktree or PR handoff.
+The user selected this mode on 2026-09-07; approved test interfaces and final v0.1 release gates remain in force.
 
 ## Prerequisites
 

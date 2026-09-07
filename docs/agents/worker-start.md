@@ -1,34 +1,34 @@
-# Assigned Worker
+# Single-Agent Execution Loop
 
-Read your worktree's `.agent-task/START.md` first. The user approved the parallel plan, its test interfaces and the initial P10/P04/P01 assignments on 2026-09-07. Implementing those assigned behaviors is authorized; a skill's request to confirm the same test interface does not require another question.
+The user selected single-agent continuous development on 2026-09-07. This replaces three-worktree dispatch. Use this loop when executing the implementation plan; completing one issue or creating a PR is not a stopping point.
 
-## Start
+## Start Or Resume
 
-1. Verify the recorded branch and base SHA, then read the linked GitHub issue body/comments. The current GitHub issue owns acceptance; the local ticket is its publication snapshot. A blocker must be merged into the recorded integration branch before it is considered satisfied.
-2. Read the task-specific note and only the referenced SPEC sections. Read the owning code and test families before changing them. The root `AGENTS.md` and documentation workflow apply inside the worktree.
-3. Work in this worktree with an independent target directory, temporary workspace/database and model fixtures. Use `CARGO_BUILD_JOBS=2` and `RUST_TEST_THREADS=2`. Do not copy the integration checkout's `.env` or use its knowledge workspace as a fixture.
-4. Change the assigned issue from `status:assigned` to `status:in-progress` when actual implementation begins. Record the agent identity/model if known; do not infer a model name. No other issue is claimed automatically.
+Work in the primary repository checkout on `feat/knowmesh-v0.1`. Read AGENTS.md, [tracker #46](https://github.com/CaiZongyuan/knowmesh/issues/46), and the current issue's body/comments. [publication.json](../planning/parallel-v0.1/publication.json) maps P IDs to GitHub issues. Existing worktrees and private files are recovery material; old one-ticket stop instructions are inactive.
 
-## Implement
+Inspect Git status and commits first. Resume unfinished implementation or outstanding review/CI corrections before selecting new work. Preserve unrelated changes. The accepted CLI/Core/real-SQLite test interfaces remain approved and need no repeated confirmation.
 
-Use the committed `implement` and `tdd` skills for code work at the already approved interface. A documentation/material-only change needs the checks appropriate to its output, not artificial RED tests. The exact new test target and private helper design are implementation choices; adding a different public capability or changing a shared contract requires reporting the scope change to the coordinator.
+## Repeat Until Complete
 
-Make only the declared task's changes. Necessary additive module registration is allowed. The initial reservations are:
+1. **Select.** Read live issue state and native blockers. Choose one approved open execution issue whose prerequisites are verified in the development branch. Prefer the earliest useful product loop and work that unblocks it. Difficulty is a risk estimate, not an assignment lane. Do not implement a tracking-only umbrella as a duplicate task.
+2. **Record.** Set status:in-progress and record the starting commit, acceptance criteria and real prerequisites. Read owning SPEC sections and existing code/tests rather than the entire previous conversation.
+3. **Implement.** Stay within the current issue, reuse established contracts and use TDD for behavioral code at the approved interface. Resolve routine implementation choices directly. Update owning documentation and record significant design decisions. A blocked issue does not prevent other unblocked work.
+4. **Verify And Review.** Run focused tests during implementation and complete checks required by the delivered scope. `bash scripts/agent-checks.sh` runs backend checks. Perform Standards and Spec review yourself as two sequential passes, fix findings and keep the results distinguishable. No separate reviewer agent or coordinator is required.
+5. **Commit And Integrate.** Make an issue-referenced commit, push the development branch and verify required CI. Per-issue PRs are optional. If a PR or branch rule is required, the same agent handles allowed review and integration without handing control back merely because a PR exists. Integrate existing PRs before using their changes as prerequisites; preserve branch protections.
+6. **Close And Continue.** Once acceptance and required checks pass, record commit/PR, actual tests, limitations and newly unblocked work; close the issue and update tracking checklists. Immediately return to step 1. Do not ask whether to continue or require a new worktree/session.
 
-| Task | Owned Capability | Shared Changes |
-| --- | --- | --- |
-| P10 | Compiler candidates, prompt, cache identity and extraction tests | One additive Compiler module export; current parser/model contracts remain usable |
-| P04 | Node reads, Schema entity discovery, SQLite/CLI read wiring and tests | Additive read port, operations/CLI/runtime registration and required architecture policy |
-| P01 | Material inventory, reproducible import/search baseline and unreviewed annotation candidates | One evaluation data/documentation home; no production Rust changes |
+CI waiting is not a human handoff. Poll it, diagnose failures and do useful preparation while waiting. An issue awaiting required CI stays status:review and is not a completed prerequisite. Keep one active implementation at a time.
 
-P10 and P04 may each add independent exports to Core's module listing. Keep those edits narrow; the coordinator resolves the combined ordering at integration. Neither initial task needs to renumber migrations or redesign a shared registry. Before changing existing port semantics, model request behavior, dependency versions or a migration, report the concrete need and wait for a coordinated integration order. Continue independent assigned work while that dependency is resolved.
+A ticket's "stop at" or "Scope and handoff" wording bounds that ticket's feature scope. It does not end the continuous queue: after acceptance, update the issue and select the next one.
 
-## Verify And Handoff
+## State And Recovery
 
-Run relevant tests while implementing. Before handing off a code change, run `bash scripts/agent-checks.sh`; this holds one shared filesystem lock across the full backend checks, so independent agents can queue without a live coordinator. The script is for this Linux development host; the existing CI still verifies all three operating systems. Preserve actual failures and report missing prerequisites.
+Use status:ready, status:in-progress, status:review and status:blocked for the phase; GitHub closed state represents completed acceptance. Remove obsolete status:assigned labels. Use needs-info or ready-for-human for a precise missing external input, then look for another executable issue.
 
-Commit only your task changes, with its GitHub issue reference, and open a PR with explicit base `feat/knowmesh-v0.1`. Supply the pinned base SHA, completed acceptance criteria, test results and any limitations. Set `status:review` when the candidate is ready.
+Before compaction or interruption, checkpoint the current issue: branch/HEAD, work done, checks, unfinished steps and next command. Resume from that record after recovery. Context management preserves continuity and does not require redispatch.
 
-Stop after that handoff. The coordinator schedules the two independent review axes against the committed candidate, resolves findings, validates the latest combined base and merges serially. Workers do not merge their own PRs, close tracking parents, publish a release or start another ticket in the same context. The next task receives a new worktree/session.
+## Completion Boundary
 
-An unexpected external input, unavailable human gold or changed contract is a recorded blocker, not permission to mark the task complete. An unavailable Harness cannot be replaced by a fabricated smoke result.
+Continue the authorized queue until all applicable work and checks are complete, the user explicitly pauses, or every remaining issue depends on external input the agent cannot obtain or perform. A single blocked issue, passing tests, a commit or a PR does not justify stopping while other work is executable.
+
+Human scientific gold/quality judgments, unavailable credentials and explicit production-release authorization remain real prerequisites. Do not manufacture those results or weaken provenance, Proposal, recovery or release gates. If only external blockers remain, report their exact issues and required input. The technical SPEC and tracker #1 still own final product acceptance.

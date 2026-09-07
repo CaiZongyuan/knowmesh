@@ -1,6 +1,8 @@
 # Project Workflow
 
-When `.agent-task/START.md` exists, read it first. It identifies the assigned issue, approved test interface, pinned base, and handoff boundary for this worktree. Work only on that assignment; the coordinator integrates and dispatches subsequent tickets.
+Development uses one agent working continuously through the GitHub issue queue. Follow [the execution loop](docs/agents/worker-start.md): finish and verify one issue, update its state, then automatically select the next unblocked issue. Work in the primary checkout on `feat/knowmesh-v0.1`; a separate worktree, fresh session, per-issue PR, or coordinator handoff is not required.
+
+The same agent performs Standards and Spec review sequentially. Do not spawn implementation or review agents unless the user explicitly changes this mode. Older `.agent-task/START.md` packets and skill clauses requiring parallel reviewers or stopping after one ticket are superseded by this workflow. Preserve unfinished work and resume it from the issue record.
 
 ## Documentation
 
@@ -13,7 +15,7 @@ For documentation work or code changes affecting documented behavior, use [doc-s
 
 ## As Needed
 
-- Issue worktrees and parallel agents: follow [parallel development](docs/agents/parallel-development.md) for the approved base, task context, shared changes, and integration.
+- Continuous issue-driven development: use [the single-agent entry](docs/agents/START.md) and [tracker workflow](docs/agents/issue-tracker.md).
 - Existing documentation site affected: use [doc-site-sync](.agents/skills/doc-site-sync/SKILL.md).
 - Cleanup after behavior is verified: use [code-simplifier](.agents/skills/code-simplifier/SKILL.md), scoped to the current task.
 - Requested maintenance survey: use [find-simplifications](.agents/skills/find-simplifications/SKILL.md).

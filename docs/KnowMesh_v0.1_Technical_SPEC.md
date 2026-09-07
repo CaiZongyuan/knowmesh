@@ -4,7 +4,7 @@
 > 文档版本：0.1.2（产品目标 v0.1）\
 > 日期：2026-09-05  
 > 本次修订：补齐检索评分、任务恢复、分阶段缓存、来源影响分析、研究目标、证据打包与工程门禁；加入固定版本源码参考\
-> 实施规划：2026-09-07 已批准[并行交付方案](planning/parallel-v0.1/spec.md)的任务粒度、依赖和测试边界；产品 v0.1 发布门槛保持不变。\
+> 实施规划：2026-09-07 改为[单 agent 持续交付](planning/parallel-v0.1/spec.md)，保留任务粒度、依赖和测试边界；一票完成后按 GitHub 状态自动继续，产品 v0.1 发布门槛保持不变。\
 > 面向：产品负责人、架构师、Rust/前端/Agent 工程师、测试工程师  
 > 首个验证主题：Virtual Cell / AI4S 科研知识空间
 
@@ -1894,7 +1894,7 @@ Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint�
 
 建议入口检查输入 hash、候选与报告边界、选定 ID、分数和上下文 hash 结构。调用方仍须提供来自当前 catalog 或已校验缓存的报告；这些 DTO/hash 不代替 Proposal 的重新验证。知识阶段缓存还须按 13.6 节绑定 provider/model、实际参数与完整上下文。
 
-当前向量通道返回 `VECTOR_DISABLED` 或 `VECTOR_UNAVAILABLE`，可选向量接入归属 KM-032 / [#18](https://github.com/CaiZongyuan/knowmesh/issues/18)，并行草案由 [P23](planning/parallel-v0.1/tickets/P23.md) 同时覆盖 Search 与实体候选通道。确定性匹配、真实 SQLite 召回和 fake provider fixtures 已实现；Compiler 编排仍待完成，不以这些组件测试声称整个 Compiler 工作流已通过。
+当前向量通道返回 `VECTOR_DISABLED` 或 `VECTOR_UNAVAILABLE`，可选向量接入归属 KM-032 / [#18](https://github.com/CaiZongyuan/knowmesh/issues/18)，执行票 [P23](planning/parallel-v0.1/tickets/P23.md) 同时覆盖 Search 与实体候选通道。确定性匹配、真实 SQLite 召回和 fake provider fixtures 已实现；Compiler 编排仍待完成，不以这些组件测试声称整个 Compiler 工作流已通过。
 
 ### 14.7 去重与冲突
 
@@ -2458,7 +2458,7 @@ Evidence bundle 由 Core 确定性构建，不让模型自行选择引用 ID。�
 | GET | `/api/v1/settings` | `settings.get`；只读配置摘要、模型能力与脱敏状态 |
 | GET | `/api/v1/diagnostics` | `doctor`；只读诊断 |
 
-本表是目标 HTTP 契约，不表示 Adapter 已实现。Operation 身份沿用当前 Core 的 `sync`、`proposal.get` 等命名，不新增同义业务实现。来源内容、知识读取、Proposal、Run 与 Ask 的 HTTP/生成客户端由各自执行票随用户流程交付；基础 Server 不等待所有 endpoint 才验收。执行归属见[并行任务目录](planning/parallel-v0.1/index.md)。
+本表是目标 HTTP 契约，不表示 Adapter 已实现。Operation 身份沿用当前 Core 的 `sync`、`proposal.get` 等命名，不新增同义业务实现。来源内容、知识读取、Proposal、Run 与 Ask 的 HTTP/生成客户端由各自执行票随用户流程交付；基础 Server 不等待所有 endpoint 才验收。执行归属见[任务目录](planning/parallel-v0.1/index.md)。
 
 HTTP compile/ask/resume 在 run 已持久化并被本进程执行器接纳后返回 `202` 与 Run DTO，客户端轮询 `run.get` 取得终态及 output refs；浏览器关闭或断开连接不等于取消。显式 pause/cancel 返回 `200` 和最新 Run DTO，`control_action` 表示请求已登记，不能把尚在运行的任务报告为已停止。CLI 默认前台等待，详见 20.4 节。结果读取、输入 Schema 与状态规则在两个 Adapter 中相同。
 
@@ -3073,7 +3073,7 @@ Playwright 必须覆盖：
 | W Web 用户流程 | 来源、搜索、知识/证据、图谱、审核、Run、Ask/save | 每条流程同时交付所需 HTTP、生成客户端和 UI；支持兼容性、错误与键盘状态 |
 | R v0.1 发布验收 | 独立后端与 Web 均可从发布物安装并完成产品闭环 | 第 25 节全部门槛；三平台/五目标、真实评测、恢复与独立升级证据 |
 
-这些是结果检查点，不是整阶段串行锁。各任务仅等待其实际阻塞项：Ask 不等待完整 CLI 总票，HTTP 基础服务不等待全部 Compiler，Web 的只读流程可先交付，向量能力不阻塞无模型的检索或早期闭环。具体依赖、难度及旧 issue 映射由[执行票目录](planning/parallel-v0.1/index.md)维护。
+这些是结果检查点。单 agent 从实际已解除阻塞的任务中一次选择一票，按闭环优先完成实现、验证、顺序自审、提交与 GitHub 状态更新，然后自动继续下一票。取消按难度分配多个 agent、每票 worktree、新会话以及 PR 后等待协调者的要求。具体循环见[持续执行规则](agents/worker-start.md)，任务依赖和旧 issue 映射见[执行票目录](planning/parallel-v0.1/index.md)。
 
 内部 A0/A1/A2 或单独打包成功均不等于正式 v0.1。首次 v0.1 仍同时交付后端和 Web；任何发布要求的延期都必须明确修改产品范围，而不能仅通过调度表省略。
 
@@ -3081,7 +3081,7 @@ Playwright 必须覆盖：
 
 ## 24. 第一批 GitHub Issues
 
-以下保留首批 KM 编号及历史拆分，便于追溯已经创建的 GitHub issues，不再按编号顺序派发，也不把旧大票整体交给单个 agent。基于当前完成状态的新执行范围、原票映射与阻塞关系见[并行执行草案](planning/parallel-v0.1/index.md)。每张新票包含局部验收和所属文档，完整发布验收仍由第 25 节负责；旧父票不会因发布新任务而自动关闭。
+以下保留首批 KM 编号及历史拆分用于追溯。实际开发由单 agent 按 [P 执行票与原生依赖](planning/parallel-v0.1/index.md)持续推进，完成一票后自动继续。每票包含局部验收和所属文档，完整发布验收仍由第 25 节负责；旧跟踪父票不作为重复实现任务。
 
 ### Epic A — Foundation
 

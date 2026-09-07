@@ -551,5 +551,7 @@
         "P56"
       ]
     }
-  }
+  },
+  "execution_mode": "single-agent-continuous",
+  "execution_branch": "feat/knowmesh-v0.1"
 }
