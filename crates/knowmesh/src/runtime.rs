@@ -4,8 +4,8 @@ use knowmesh_core::{
     canonical::{schema::Schema, workspace::Workspace},
     error::{AppError, AppResult, ErrorType},
     ports::{
-        ImpactPreviewBackend, ImpactStore, IndexStore, ProposalStore, RebuildBackend, SearchStore,
-        SourceReadStore,
+        ImpactPreviewBackend, ImpactStore, IndexStore, NodeReadStore, ProposalStore,
+        RebuildBackend, SearchStore, SourceReadStore,
     },
 };
 use knowmesh_sqlite::SqliteStore;
@@ -15,6 +15,10 @@ pub fn open_store(workspace: &Workspace) -> AppResult<Box<dyn ImpactStore>> {
 }
 
 pub fn open_source_store(workspace: &Workspace) -> AppResult<Box<dyn SourceReadStore>> {
+    Ok(Box::new(configured_store(workspace)?))
+}
+
+pub fn open_node_store(workspace: &Workspace) -> AppResult<Box<dyn NodeReadStore>> {
     Ok(Box::new(configured_store(workspace)?))
 }
 

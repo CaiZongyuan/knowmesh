@@ -266,3 +266,95 @@ fn custom_schema_files_cannot_escape_the_workspace() {
         "PATH_OUTSIDE_WORKSPACE"
     );
 }
+
+#[test]
+fn schema_entity_discovers_effective_type_fields_and_endpoint_constraints() {
+    use knowmesh_core::application::schema::{self, EntityInput};
+    use knowmesh_core::error::ErrorType;
+
+    let temp = tempfile::tempdir().unwrap();
+    initialize(temp.path(), &InitOptions::default()).unwrap();
+    fs::write(
+        temp.path().join("schemas/lab.yaml"),
+        "id: lab\nversion: 1\ndisplay_name: Lab\nextends: [research@1]\nnode_types:\n  Model:\n    label: Model\n    color: '#7C3AED'\n    icon: cpu\n    override: true\n    properties:\n      developer: {type: string}\n      license: {type: string, max_length: 64}\npredicates:\n  evaluated_on:\n    label: evaluated on\n    source_types: [Model, Method]\n    target_types: [Benchmark, Dataset]\n    directed: true\n    inverse: evaluates\n    evidence_required: false\n    override: true\n",
+    )
+    .unwrap();
+    let config_path = temp.path().join("knowmesh.yaml");
+    let mut config: serde_yaml::Value =
+        serde_yaml::from_slice(&fs::read(&config_path).unwrap()).unwrap();
+    config["schema"]["packs"] =
+        serde_yaml::to_value(["builtin:research@1", "schemas/lab.yaml"]).unwrap();
+    fs::write(&config_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+    let workspace = Workspace::load(temp.path()).unwrap();
+    let report = schema::entity(
+        &workspace,
+        &EntityInput {
+            name: "Model".into(),
+        },
+    )
+    .unwrap();
+    let loaded = Schema::load(&workspace).unwrap();
+    assert_eq!(report.schema_hash, loaded.hash);
+    assert_eq!(report.entity.label, "Model");
+    assert_eq!(report.entity.properties.len(), 2);
+    assert!(report.entity.properties.contains_key("developer"));
+    assert!(report.entity.properties.contains_key("license"));
+    let names: Vec<_> = report.predicates.iter().map(|p| p.name.as_str()).collect();
+    assert_eq!(
+        names,
+        vec![
+            "compared_with",
+            "derived_from",
+            "evaluated_on",
+            "extends",
+            "predicts",
+            "proposes",
+            "targets",
+            "uses"
+        ]
+    );
+    let role_of = |predicate: &str| {
+        let found = report
+            .predicates
+            .iter()
+            .find(|p| p.name == predicate)
+            .unwrap();
+        (found.source, found.target)
+    };
+    assert_eq!(role_of("derived_from"), (true, true));
+    assert_eq!(role_of("predicts"), (true, false));
+    assert_eq!(role_of("targets"), (true, false));
+    let evaluated = report
+        .predicates
+        .iter()
+        .find(|p| p.name == "evaluated_on")
+        .unwrap();
+    assert!(evaluated.source);
+    assert!(!evaluated.target);
+    assert!(!evaluated.evidence_required);
+    assert_eq!(evaluated.inverse.as_deref(), Some("evaluates"));
+    let uses = report.predicates.iter().find(|p| p.name == "uses").unwrap();
+    assert!(uses.source);
+    assert!(uses.target);
+    let compared = report
+        .predicates
+        .iter()
+        .find(|p| p.name == "compared_with")
+        .unwrap();
+    assert!(!compared.directed);
+    let missing = schema::entity(
+        &workspace,
+        &EntityInput {
+            name: "Creature".into(),
+        },
+    )
+    .unwrap_err();
+    assert_eq!(missing.error_type, ErrorType::NotFound);
+    assert_eq!(missing.code, "SCHEMA_ENTITY_NOT_FOUND");
+    assert_eq!(
+        schema::entity(&workspace, &EntityInput { name: "".into() })
+            .unwrap_err()
+            .code,
+        "INVALID_ARGUMENT"
+    );
+}
