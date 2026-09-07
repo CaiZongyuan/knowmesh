@@ -1,0 +1,555 @@
+{
+  "version": 1,
+  "repository": "CaiZongyuan/knowmesh",
+  "source_ref": "aaacf722f790c292c0cbfbf5f407d82fbf9608be",
+  "plan": {
+    "number": 46,
+    "id": 5368981149,
+    "url": "https://github.com/CaiZongyuan/knowmesh/issues/46"
+  },
+  "native_edges": 86,
+  "legacy_updated": [
+    1,
+    2,
+    10,
+    13,
+    14,
+    18,
+    19,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45
+  ],
+  "issues": {
+    "P01": {
+      "number": 47,
+      "id": 5368981341,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/47",
+      "difficulty": "easy",
+      "blocked_by": []
+    },
+    "P02": {
+      "number": 48,
+      "id": 5368981574,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/48",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P03": {
+      "number": 49,
+      "id": 5368981758,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/49",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P04": {
+      "number": 50,
+      "id": 5368981926,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/50",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P05": {
+      "number": 51,
+      "id": 5368982089,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/51",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P06": {
+      "number": 52,
+      "id": 5368996007,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/52",
+      "difficulty": "easy",
+      "blocked_by": []
+    },
+    "P07": {
+      "number": 53,
+      "id": 5368996205,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/53",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P08": {
+      "number": 54,
+      "id": 5368996401,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/54",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P07"
+      ]
+    },
+    "P09": {
+      "number": 55,
+      "id": 5368996590,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/55",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P10": {
+      "number": 56,
+      "id": 5368996773,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/56",
+      "difficulty": "hard",
+      "blocked_by": []
+    },
+    "P11": {
+      "number": 57,
+      "id": 5368996944,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/57",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P10"
+      ]
+    },
+    "P12": {
+      "number": 58,
+      "id": 5368997136,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/58",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P11"
+      ]
+    },
+    "P13": {
+      "number": 59,
+      "id": 5368997327,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/59",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P14": {
+      "number": 60,
+      "id": 5368997516,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/60",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P13"
+      ]
+    },
+    "P15": {
+      "number": 61,
+      "id": 5368997739,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/61",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P12",
+        "P14"
+      ]
+    },
+    "P16": {
+      "number": 62,
+      "id": 5368997922,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/62",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P15"
+      ]
+    },
+    "P17": {
+      "number": 63,
+      "id": 5368999308,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/63",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P16"
+      ]
+    },
+    "P18": {
+      "number": 64,
+      "id": 5368999531,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/64",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P17"
+      ]
+    },
+    "P19": {
+      "number": 65,
+      "id": 5369000645,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/65",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P05"
+      ]
+    },
+    "P20": {
+      "number": 66,
+      "id": 5369001883,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/66",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P19",
+        "P17",
+        "P07"
+      ]
+    },
+    "P21": {
+      "number": 67,
+      "id": 5369002099,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/67",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P20"
+      ]
+    },
+    "P22": {
+      "number": 68,
+      "id": 5369002289,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/68",
+      "difficulty": "hard",
+      "blocked_by": []
+    },
+    "P23": {
+      "number": 69,
+      "id": 5369002623,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/69",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P22",
+        "P09"
+      ]
+    },
+    "P24": {
+      "number": 70,
+      "id": 5369002981,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/70",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P25": {
+      "number": 71,
+      "id": 5369003171,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/71",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P26": {
+      "number": 72,
+      "id": 5369003370,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/72",
+      "difficulty": "hard",
+      "blocked_by": []
+    },
+    "P27": {
+      "number": 73,
+      "id": 5369003599,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/73",
+      "difficulty": "hard",
+      "blocked_by": []
+    },
+    "P28": {
+      "number": 74,
+      "id": 5369003923,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/74",
+      "difficulty": "medium",
+      "blocked_by": []
+    },
+    "P29": {
+      "number": 75,
+      "id": 5369004101,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/75",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P28"
+      ]
+    },
+    "P30": {
+      "number": 76,
+      "id": 5369004270,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/76",
+      "difficulty": "easy",
+      "blocked_by": [
+        "P28",
+        "P08",
+        "P15",
+        "P21",
+        "P26",
+        "P04"
+      ]
+    },
+    "P31": {
+      "number": 77,
+      "id": 5369004578,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/77",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P29",
+        "P30",
+        "P17"
+      ]
+    },
+    "P32": {
+      "number": 78,
+      "id": 5369004790,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/78",
+      "difficulty": "hard",
+      "blocked_by": []
+    },
+    "P33": {
+      "number": 79,
+      "id": 5369005036,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/79",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P32"
+      ]
+    },
+    "P34": {
+      "number": 80,
+      "id": 5369005260,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/80",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P33",
+        "P04",
+        "P05"
+      ]
+    },
+    "P35": {
+      "number": 81,
+      "id": 5369005603,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/81",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P33",
+        "P09"
+      ]
+    },
+    "P36": {
+      "number": 82,
+      "id": 5369005776,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/82",
+      "difficulty": "hard",
+      "blocked_by": []
+    },
+    "P55": {
+      "number": 83,
+      "id": 5369005975,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/83",
+      "difficulty": "hard",
+      "blocked_by": []
+    },
+    "P37": {
+      "number": 84,
+      "id": 5369006146,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/84",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P35",
+        "P36",
+        "P55"
+      ]
+    },
+    "P38": {
+      "number": 85,
+      "id": 5369006453,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/85",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P02",
+        "P03",
+        "P34",
+        "P35"
+      ]
+    },
+    "P39": {
+      "number": 86,
+      "id": 5369006625,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/86",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P08",
+        "P34"
+      ]
+    },
+    "P40": {
+      "number": 87,
+      "id": 5369006805,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/87",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P39"
+      ]
+    },
+    "P41": {
+      "number": 88,
+      "id": 5369007006,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/88",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P17",
+        "P32"
+      ]
+    },
+    "P42": {
+      "number": 89,
+      "id": 5369007282,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/89",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P41",
+        "P35",
+        "P37"
+      ]
+    },
+    "P43": {
+      "number": 90,
+      "id": 5369008363,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/90",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P21",
+        "P38",
+        "P39",
+        "P41",
+        "P06"
+      ]
+    },
+    "P44": {
+      "number": 91,
+      "id": 5369008559,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/91",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P33"
+      ]
+    },
+    "P45": {
+      "number": 92,
+      "id": 5369008760,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/92",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P32"
+      ]
+    },
+    "P46": {
+      "number": 93,
+      "id": 5369009829,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/93",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P32"
+      ]
+    },
+    "P47": {
+      "number": 94,
+      "id": 5369009996,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/94",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P28"
+      ]
+    },
+    "P48": {
+      "number": 95,
+      "id": 5369010155,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/95",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P47"
+      ]
+    },
+    "P49": {
+      "number": 96,
+      "id": 5369010310,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/96",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P33",
+        "P46"
+      ]
+    },
+    "P50": {
+      "number": 97,
+      "id": 5369010463,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/97",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P48",
+        "P49"
+      ]
+    },
+    "P51": {
+      "number": 98,
+      "id": 5369010644,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/98",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P01",
+        "P15"
+      ]
+    },
+    "P52": {
+      "number": 99,
+      "id": 5369011943,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/99",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P01",
+        "P23",
+        "P08",
+        "P04"
+      ]
+    },
+    "P53": {
+      "number": 100,
+      "id": 5369012241,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/100",
+      "difficulty": "medium",
+      "blocked_by": [
+        "P01",
+        "P21",
+        "P18"
+      ]
+    },
+    "P56": {
+      "number": 101,
+      "id": 5369012463,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/101",
+      "difficulty": "hard",
+      "blocked_by": []
+    },
+    "P54": {
+      "number": 102,
+      "id": 5369012614,
+      "url": "https://github.com/CaiZongyuan/knowmesh/issues/102",
+      "difficulty": "hard",
+      "blocked_by": [
+        "P24",
+        "P25",
+        "P26",
+        "P27",
+        "P31",
+        "P40",
+        "P42",
+        "P43",
+        "P44",
+        "P45",
+        "P50",
+        "P51",
+        "P52",
+        "P53",
+        "P55",
+        "P56"
+      ]
+    }
+  }
+}

@@ -2,6 +2,7 @@
 
 > Status: Approved。用户已于 2026-09-07 批准任务拆分、依赖、测试接口和首批三个 worktree。
 > 已验证代码基线：`5247efeff835fa487f481ab96756b646ab8b6d40`。
+> GitHub 执行计划：[#46](https://github.com/CaiZongyuan/knowmesh/issues/46)，56 张执行票；编号见[发布映射](publication.json)。
 > 本文拥有交付顺序与工作分配决策；[技术 SPEC](../../KnowMesh_v0.1_Technical_SPEC.md)拥有产品契约。
 
 ## Problem Statement
