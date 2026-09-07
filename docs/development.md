@@ -110,14 +110,21 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   candidate IDs instead of silently selecting one; detail returns canonical
   metadata, the rendered summary, and bounded recorded relations with a total
   count. `node list` applies type/tag/status filters before stable keyset
-  pagination with bounded summaries; cursors bind workspace, filters, and index
+  pagination with bounded summaries. Type filters must match an effective Schema
+  type exactly: unknown or wrongly cased names return `SCHEMA_ENTITY_NOT_FOUND`,
+  and empty names return `INVALID_ARGUMENT`, both with `param: node_type`.
+  A defined type with no nodes or an unknown tag returns an empty page.
+  Cursors bind workspace, filters, and index
   generation/hash, and counts share one read snapshot with the page. Both fast-sync
   first, and `--no-sync` reads the existing index while reporting
   `index_complete: false` instead of describing stale state as current.
 - `schema entity <type>` exposes one effective composed type — merged label, color,
   icon, and inherited/overridden properties — plus the predicates where the type
   appears as source or target, with direction, endpoint role, inverse, and
-  evidence requirement. Unknown types fail with `SCHEMA_ENTITY_NOT_FOUND`.
+  evidence requirement. Each predicate includes its complete effective
+  `source_types` and `target_types` sets after inheritance and overrides;
+  `source` and `target` indicate the requested type's roles in those sets.
+  Unknown types fail with `SCHEMA_ENTITY_NOT_FOUND`.
 - Core parses and renders Node and Synthesis Markdown. Unchanged documents keep
   their exact bytes; edited claims only replace their managed content. CommonMark
   source spans distinguish markers/wiki links from code examples; lossless YAML

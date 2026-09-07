@@ -157,6 +157,36 @@ fn node_reads_are_discoverable_filtered_paginated_and_ambiguity_aware_via_cli() 
 }
 
 #[test]
+fn node_list_validates_schema_types_and_preserves_empty_results() {
+    let (_temp, root) = fixture_workspace();
+    for no_sync in [false, true] {
+        for node_type in ["UndefinedType", "model", ""] {
+            let mut args = vec!["node", "list", "--type", node_type];
+            if no_sync {
+                args.push("--no-sync");
+            }
+            let (code, invalid) = error(&root, &args);
+            let (expected_exit, expected_type, expected_code) = if node_type.is_empty() {
+                (2, "validation", "INVALID_ARGUMENT")
+            } else {
+                (3, "not_found", "SCHEMA_ENTITY_NOT_FOUND")
+            };
+            assert_eq!(code, Some(expected_exit));
+            assert_eq!(invalid["error"]["type"], expected_type);
+            assert_eq!(invalid["error"]["code"], expected_code);
+            assert_eq!(invalid["error"]["param"], "node_type");
+        }
+    }
+    for filter in [["--type", "Benchmark"], ["--tag", "absent-tag"]] {
+        let empty = json(&root, &["node", "list", filter[0], filter[1]]);
+        assert_eq!(empty["data"]["total"], 0);
+        assert_eq!(empty["data"]["items"], serde_json::json!([]));
+        assert!(empty["data"]["next_cursor"].is_null());
+        assert_eq!(empty["data"]["index_complete"], true);
+    }
+}
+
+#[test]
 fn node_list_reports_no_sync_staleness_and_external_edits_accurately() {
     let (_temp, root) = fixture_workspace();
     json(&root, &["node", "list"]);
@@ -217,6 +247,99 @@ fn schema_entity_discovers_types_without_model_or_web_and_reports_schema_errors(
 }
 
 #[test]
+fn schema_entity_exposes_inherited_and_overridden_endpoint_type_sets() {
+    let (_temp, root) = fixture_workspace();
+    let builtin = json(&root, &["schema", "entity", "Model"]);
+    let evaluated = builtin["data"]["predicates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|predicate| predicate["name"] == "evaluated_on")
+        .unwrap();
+    assert_eq!(
+        evaluated["source_types"],
+        serde_json::json!(["Method", "Model"])
+    );
+    assert_eq!(
+        evaluated["target_types"],
+        serde_json::json!(["Benchmark", "Dataset"])
+    );
+
+    fs::write(
+        root.join("schemas/lab.yaml"),
+        r##"id: lab
+version: 1
+display_name: Lab
+extends: [research@1]
+node_types:
+  LabResult:
+    label: Lab Result
+    color: '#112233'
+    icon: flask-conical
+predicates:
+  evaluated_on:
+    label: evaluated on
+    source_types: [Model]
+    target_types: [LabResult]
+    directed: true
+    inverse: evaluates
+    evidence_required: false
+    override: true
+"##,
+    )
+    .unwrap();
+    let config_path = root.join("knowmesh.yaml");
+    let mut config: serde_yaml::Value =
+        serde_yaml::from_slice(&fs::read(&config_path).unwrap()).unwrap();
+    config["schema"]["packs"] = serde_yaml::to_value(["schemas/lab.yaml"]).unwrap();
+    fs::write(&config_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+
+    let effective = json(&root, &["schema", "entity", "Model"]);
+    assert_ne!(
+        effective["data"]["schema_hash"],
+        builtin["data"]["schema_hash"]
+    );
+    let predicates = effective["data"]["predicates"].as_array().unwrap();
+    let evaluated = predicates
+        .iter()
+        .find(|predicate| predicate["name"] == "evaluated_on")
+        .unwrap();
+    assert_eq!(evaluated["source_types"], serde_json::json!(["Model"]));
+    assert_eq!(evaluated["target_types"], serde_json::json!(["LabResult"]));
+    assert_eq!(evaluated["source"], true);
+    assert_eq!(evaluated["target"], false);
+    assert_eq!(evaluated["evidence_required"], false);
+    let inherited = predicates
+        .iter()
+        .find(|predicate| predicate["name"] == "compared_with")
+        .unwrap();
+    assert_eq!(
+        inherited["source_types"],
+        serde_json::json!(["Method", "Model"])
+    );
+    assert_eq!(
+        inherited["target_types"],
+        serde_json::json!(["Method", "Model"])
+    );
+    assert_eq!(inherited["directed"], false);
+
+    let target = json(&root, &["schema", "entity", "LabResult"]);
+    assert_eq!(target["data"]["predicates"].as_array().unwrap().len(), 1);
+    assert_eq!(target["data"]["predicates"][0]["source"], false);
+    assert_eq!(target["data"]["predicates"][0]["target"], true);
+    assert_eq!(
+        target["data"]["predicates"][0]["source_types"],
+        serde_json::json!(["Model"])
+    );
+    assert_eq!(
+        target["data"]["predicates"][0]["target_types"],
+        serde_json::json!(["LabResult"])
+    );
+    let empty = json(&root, &["node", "list", "--type", "LabResult"]);
+    assert_eq!(empty["data"]["total"], 0);
+}
+
+#[test]
 fn node_and_entity_operations_have_complete_read_descriptors() {
     let (_temp, root) = fixture_workspace();
     for operation in ["node.get", "node.list", "schema.entity"] {
@@ -227,6 +350,20 @@ fn node_and_entity_operations_have_complete_read_descriptors() {
         assert_eq!(descriptor["data"]["policy"], "public");
         assert!(descriptor["data"]["input_schema"].is_object());
         assert!(descriptor["data"]["output_schema"].is_object());
+        if operation == "schema.entity" {
+            let predicate = &descriptor["data"]["output_schema"]["$defs"]["EntityPredicate"];
+            for endpoint in ["source_types", "target_types"] {
+                assert_eq!(predicate["properties"][endpoint]["type"], "array");
+                assert_eq!(predicate["properties"][endpoint]["items"]["type"], "string");
+                assert_eq!(predicate["properties"][endpoint]["uniqueItems"], true);
+                assert!(
+                    predicate["required"]
+                        .as_array()
+                        .unwrap()
+                        .contains(&Value::String(endpoint.into()))
+                );
+            }
+        }
     }
     let list = json(&root, &["schema", "list"]);
     let names: Vec<_> = list["data"]

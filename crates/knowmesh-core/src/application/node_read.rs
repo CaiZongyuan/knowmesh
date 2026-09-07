@@ -6,7 +6,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canonical::{snapshot::NodeProjection, workspace::Workspace},
+    canonical::{schema::Schema, snapshot::NodeProjection, workspace::Workspace},
     domain::{EvidenceStatus, LifecycleStatus, NodeId, RelationId, Timestamp},
     error::{AppError, AppResult, ErrorType},
     ports::NodeReadStore,
@@ -189,6 +189,27 @@ pub fn list(
             "The lifecycle status filter must be active, superseded, or retracted.",
         )
         .with_param("status"));
+    }
+    if let Some(node_type) = &input.node_type {
+        if node_type.trim().is_empty() {
+            return Err(AppError::new(
+                ErrorType::Validation,
+                "INVALID_ARGUMENT",
+                "An entity type name is required.",
+            )
+            .with_param("node_type"));
+        }
+        if !Schema::load(workspace)?.node_types.contains_key(node_type) {
+            return Err(AppError::new(
+                ErrorType::NotFound,
+                "SCHEMA_ENTITY_NOT_FOUND",
+                "The entity type is not defined in the effective schema.",
+            )
+            .with_param("node_type")
+            .with_hint(
+                "Run `knowmesh schema pack <pack-id>` to inspect the configured schema packs.",
+            ));
+        }
     }
     let fingerprint = cursor::fingerprint(workspace, input)?;
     let position = input

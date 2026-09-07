@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -51,6 +53,8 @@ pub struct EntityPredicate {
     pub directed: bool,
     pub inverse: Option<String>,
     pub evidence_required: bool,
+    pub source_types: BTreeSet<String>,
+    pub target_types: BTreeSet<String>,
     pub source: bool,
     pub target: bool,
 }
@@ -94,6 +98,8 @@ pub fn entity(workspace: &Workspace, input: &EntityInput) -> AppResult<EntityRep
             directed: predicate.directed,
             inverse: predicate.inverse.clone(),
             evidence_required: predicate.evidence_required,
+            source_types: predicate.source_types.clone(),
+            target_types: predicate.target_types.clone(),
             source: predicate.source_types.contains(&input.name),
             target: predicate.target_types.contains(&input.name),
         })

@@ -70,6 +70,11 @@ fn node_pages_are_bounded_filtered_and_bound_to_workspace_query_and_generation()
         1
     );
     input.node_type = Some("model".into());
+    let invalid_type = node_read::list(&workspace, &mut store, &input).unwrap_err();
+    assert_eq!(invalid_type.error_type, ErrorType::NotFound);
+    assert_eq!(invalid_type.code, "SCHEMA_ENTITY_NOT_FOUND");
+    assert_eq!(invalid_type.param.as_deref(), Some("node_type"));
+    input.node_type = Some("Benchmark".into());
     assert_eq!(
         node_read::list(&workspace, &mut store, &input)
             .unwrap()
