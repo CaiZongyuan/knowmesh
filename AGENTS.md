@@ -1,5 +1,7 @@
 # Project Workflow
 
+When `.agent-task/START.md` exists, read it first. It identifies the assigned issue, approved test interface, pinned base, and handoff boundary for this worktree. Work only on that assignment; the coordinator integrates and dispatches subsequent tickets.
+
 ## Documentation
 
 For documentation work or code changes affecting documented behavior, use [doc-standards](.agents/skills/doc-standards/SKILL.md).
@@ -11,6 +13,7 @@ For documentation work or code changes affecting documented behavior, use [doc-s
 
 ## As Needed
 
+- Issue worktrees and parallel agents: follow [parallel development](docs/agents/parallel-development.md) for the approved base, task context, shared changes, and integration.
 - Existing documentation site affected: use [doc-site-sync](.agents/skills/doc-site-sync/SKILL.md).
 - Cleanup after behavior is verified: use [code-simplifier](.agents/skills/code-simplifier/SKILL.md), scoped to the current task.
 - Requested maintenance survey: use [find-simplifications](.agents/skills/find-simplifications/SKILL.md).

@@ -4,6 +4,7 @@
 > 文档版本：0.1.2（产品目标 v0.1）\
 > 日期：2026-09-05  
 > 本次修订：补齐检索评分、任务恢复、分阶段缓存、来源影响分析、研究目标、证据打包与工程门禁；加入固定版本源码参考\
+> 实施规划：2026-09-07 已批准[并行交付方案](planning/parallel-v0.1/spec.md)的任务粒度、依赖和测试边界；产品 v0.1 发布门槛保持不变。\
 > 面向：产品负责人、架构师、Rust/前端/Agent 工程师、测试工程师  
 > 首个验证主题：Virtual Cell / AI4S 科研知识空间
 
@@ -1228,12 +1229,14 @@ knowmesh
 ├── evidence
 │   └── get <evidence-id>
 ├── proposal
-│   ├── create
+│   ├── create --input <file|->
 │   ├── list
-│   ├── show <proposal-id>
-│   ├── review <proposal-id>
-│   ├── apply <proposal-id>
-│   └── reject <proposal-id>
+│   ├── get <proposal-id> [--revision <n>]
+│   ├── review --input <file|->
+│   ├── edit --input <file|->
+│   ├── revalidate <proposal-id> --expected-revision <n>
+│   ├── apply <proposal-id> --expected-revision <n>
+│   └── reject <proposal-id> --expected-revision <n>
 ├── synthesis
 │   ├── propose <run-id>
 │   ├── list
@@ -1242,7 +1245,8 @@ knowmesh
 │   ├── list
 │   ├── command <operation-name>
 │   ├── entity <entity-name>
-│   └── pack <pack-id>
+│   ├── pack <pack-id>
+│   └── patch <operation-name>
 ├── skills
 │   ├── list
 │   ├── read <skill-name>
@@ -1846,7 +1850,7 @@ Provider identity 包含 provider/model 和脱敏配置 hash，反映 endpoint�
 
 建议入口检查输入 hash、候选与报告边界、选定 ID、分数和上下文 hash 结构。调用方仍须提供来自当前 catalog 或已校验缓存的报告；这些 DTO/hash 不代替 Proposal 的重新验证。知识阶段缓存还须按 13.6 节绑定 provider/model、实际参数与完整上下文。
 
-当前向量通道返回 `VECTOR_DISABLED` 或 `VECTOR_UNAVAILABLE`，可选向量实现由 KM-031 接入。确定性匹配、真实 SQLite 召回和 fake provider fixtures 已实现；Compiler 编排与 Proposal 接入仍随 KM-047/KM-048 完成，不以这些组件测试声称整个 Compiler/Apply 已通过。
+当前向量通道返回 `VECTOR_DISABLED` 或 `VECTOR_UNAVAILABLE`，可选向量接入归属 KM-032 / [#18](https://github.com/CaiZongyuan/knowmesh/issues/18)，并行草案由 [P23](planning/parallel-v0.1/tickets/P23.md) 同时覆盖 Search 与实体候选通道。确定性匹配、真实 SQLite 召回和 fake provider fixtures 已实现；Compiler 编排仍待完成，不以这些组件测试声称整个 Compiler 工作流已通过。
 
 ### 14.7 去重与冲突
 
@@ -2366,10 +2370,12 @@ Evidence bundle 由 Core 确定性构建，不让模型自行选择引用 ID。�
 | GET | `/health` | liveness，不触发模型/DB 重建 |
 | GET | `/api/v1/capabilities` | server version、API contract version 与当前 workspace 能力；Web 兼容性握手 |
 | GET | `/api/v1/status` | workspace status |
-| POST | `/api/v1/sync` | `workspace.sync` |
+| POST | `/api/v1/sync` | `sync` |
 | GET | `/api/v1/sources` | `source.list` |
 | POST | `/api/v1/sources` | `source.add`；remote path 禁止 |
 | GET | `/api/v1/sources/{id}` | `source.get` |
+| GET | `/api/v1/sources/{id}/content` | `source.content`；当前 revision |
+| GET | `/api/v1/source-revisions/{id}/content` | `source.content`；固定历史 revision |
 | GET | `/api/v1/sources/{id}/impact` | `source.impact`；revision/filter/cursor 为 query 参数 |
 | DELETE | `/api/v1/sources/{id}` | `source.remove` |
 | POST | `/api/v1/sources/{id}/compile` | `source.compile` |
@@ -2384,14 +2390,18 @@ Evidence bundle 由 Core 确定性构建，不让模型自行选择引用 ID。�
 | GET | `/api/v1/nodes/{id}` | `node.get` |
 | GET | `/api/v1/nodes/{id}/claims` | `claim.list` |
 | GET | `/api/v1/claims/{id}` | `claim.get` |
+| GET | `/api/v1/relations` | `relation.list` |
+| GET | `/api/v1/relations/{id}` | `relation.get` |
 | GET | `/api/v1/evidence/{id}` | `evidence.get` |
 | POST | `/api/v1/graph/neighbors` | `graph.neighbors` |
 | POST | `/api/v1/graph/paths` | `graph.path` |
 | POST | `/api/v1/graph/subgraph` | `graph.subgraph` |
 | GET | `/api/v1/proposals` | `proposal.list` |
 | POST | `/api/v1/proposals` | `proposal.create` |
-| GET | `/api/v1/proposals/{id}` | `proposal.show` |
+| GET | `/api/v1/proposals/{id}` | `proposal.get`；可选 revision |
+| PATCH | `/api/v1/proposals/{id}` | `proposal.edit` |
 | PATCH | `/api/v1/proposals/{id}/review` | `proposal.review` |
+| POST | `/api/v1/proposals/{id}/revalidate` | `proposal.revalidate` |
 | POST | `/api/v1/proposals/{id}/apply` | `proposal.apply` |
 | POST | `/api/v1/proposals/{id}/reject` | `proposal.reject` |
 | POST | `/api/v1/syntheses/propose` | `synthesis.propose` |
@@ -2399,6 +2409,12 @@ Evidence bundle 由 Core 确定性构建，不让模型自行选择引用 ID。�
 | GET | `/api/v1/syntheses/{id}` | `synthesis.get` |
 | GET | `/api/v1/schema/commands/{name}` | operation schema |
 | GET | `/api/v1/schema/packs/{id}` | schema pack |
+| GET | `/api/v1/schema/entities/{name}` | `schema.entity` |
+| GET | `/api/v1/schema/patches/{name}` | `schema.patch` |
+| GET | `/api/v1/settings` | `settings.get`；只读配置摘要、模型能力与脱敏状态 |
+| GET | `/api/v1/diagnostics` | `doctor`；只读诊断 |
+
+本表是目标 HTTP 契约，不表示 Adapter 已实现。Operation 身份沿用当前 Core 的 `sync`、`proposal.get` 等命名，不新增同义业务实现。来源内容、知识读取、Proposal、Run 与 Ask 的 HTTP/生成客户端由各自执行票随用户流程交付；基础 Server 不等待所有 endpoint 才验收。执行归属见[并行任务目录](planning/parallel-v0.1/index.md)。
 
 HTTP compile/ask/resume 在 run 已持久化并被本进程执行器接纳后返回 `202` 与 Run DTO，客户端轮询 `run.get` 取得终态及 output refs；浏览器关闭或断开连接不等于取消。显式 pause/cancel 返回 `200` 和最新 Run DTO，`control_action` 表示请求已登记，不能把尚在运行的任务报告为已停止。CLI 默认前台等待，详见 20.4 节。结果读取、输入 Schema 与状态规则在两个 Adapter 中相同。
 
@@ -2479,6 +2495,8 @@ Sigma.js 基于 WebGL，面向数千节点图可视化并建立在 Graphology �
 /settings/models
 /diagnostics
 ```
+
+`/settings`、`/settings/schema`、`/settings/models` 在 v0.1 提供只读配置摘要、Schema、模型能力及脱敏的配置状态；`/diagnostics` 展示 Core Doctor 的只读结果。配置仍由已有文件/环境变量方式维护，页面不返回秘密值、不隐含新增配置或密钥写入能力。
 
 ### 19.4 主界面信息架构
 
@@ -3001,24 +3019,25 @@ Playwright 必须覆盖：
 
 ### 23.1 v0.1 里程碑
 
-| Milestone | 结果 | 依赖 | Exit Criteria |
-|---|---|---|---|
-| M0 Foundation | 仓库、CI、ADR、domain IDs/errors | 无 | 三平台 hello/version；契约测试起跑 |
-| M1 Canonical | Workspace、Schema、Source/Node parser/writer | M0 | round-trip 与 invariant fixtures 通过 |
-| M2 SQLite | migrations、projection、sync/rebuild/doctor | M1 | 删除 DB 可无损重建 |
-| M3 Retrieval | FTS、中文 fallback、graph、optional vector | M2 | retrieval/perf baseline 达标 |
-| M4 Compiler | parser、model adapter、evidence verify、Proposal、可恢复 Run、refresh | M1–M3 | 标注集 locator validity 100%；中断/恢复与缓存失效 fixtures 通过 |
-| M5 CLI/Skills | 完整 command contract、embedded skills、loader | M2–M4 | Claude/Codex shell smoke tasks 通过 |
-| M6 HTTP/Web | OpenAPI client、Graph/Wiki/Search/Proposal UI | M3–M5 | Playwright 核心流通过 |
-| M7 Ask/Synthesis | evidence bundle、依赖快照与保存闭环 | M3–M5 | CLI dogfooding 及证据预算/冲突 fixtures 通过；Web 调用同一用例 |
-| M8a Backend Release | 后端原生/npm 包、embedded Skills、docs、bench | M1–M5、M7 | headless 分发验收通过，无 Web 构建依赖 |
-| M8b Web Release | 独立静态资源包、manifest、兼容性与安装文档 | M6–M7、M8a | 可选 Web 安装及独立升级验收通过 |
+以下为基于 `5247efe` 的已批准实施安排。原按组件分层的 M0-M8 表不再作为新任务依赖图；已完成基础能力及证据见[开发文档](development.md)，无需重新实现。
+
+| Milestone | 用户可验证结果 | 完成边界 |
+|---|---|---|
+| A0 材料与知识检查 | 真实材料可复现导入；搜索后可读取 Node/Claim/Relation/Evidence | 材料来源和标注状态明确；人工 gold 审核另行记录 |
+| A1 可审核编译 | source add → compile → review → Apply → search/evidence | 使用固定 revision、真实证据校验和可恢复 Run；失败/重试不重复发布 |
+| A2 回答与知识保存 | Ask → 带证据/冲突/gap 的回答 → Synthesis Proposal → Apply → 再检索 | 复制原 Ask 依赖快照；人工评价支持性；旧证据和综述可追踪 |
+| W Web 用户流程 | 来源、搜索、知识/证据、图谱、审核、Run、Ask/save | 每条流程同时交付所需 HTTP、生成客户端和 UI；支持兼容性、错误与键盘状态 |
+| R v0.1 发布验收 | 独立后端与 Web 均可从发布物安装并完成产品闭环 | 第 25 节全部门槛；三平台/五目标、真实评测、恢复与独立升级证据 |
+
+这些是结果检查点，不是整阶段串行锁。各任务仅等待其实际阻塞项：Ask 不等待完整 CLI 总票，HTTP 基础服务不等待全部 Compiler，Web 的只读流程可先交付，向量能力不阻塞无模型的检索或早期闭环。具体依赖、难度及旧 issue 映射由[执行票目录](planning/parallel-v0.1/index.md)维护。
+
+内部 A0/A1/A2 或单独打包成功均不等于正式 v0.1。首次 v0.1 仍同时交付后端和 Web；任何发布要求的延期都必须明确修改产品范围，而不能仅通过调度表省略。
 
 ---
 
 ## 24. 第一批 GitHub Issues
 
-以下编号是建议顺序，可直接转为 Issue。每项都必须包含测试与文档，不另开“最后补测试”的总 Issue。
+以下保留首批 KM 编号及历史拆分，便于追溯已经创建的 GitHub issues，不再按编号顺序派发，也不把旧大票整体交给单个 agent。基于当前完成状态的新执行范围、原票映射与阻塞关系见[并行执行草案](planning/parallel-v0.1/index.md)。每张新票包含局部验收和所属文档，完整发布验收仍由第 25 节负责；旧父票不会因发布新任务而自动关闭。
 
 ### Epic A — Foundation
 
@@ -3858,7 +3877,7 @@ knowmesh compile source src_01K... \
   --idempotency-key "compile-rev_01K...-compiler-v1" \
   --format json
 
-knowmesh proposal show prp_01K... --format json
+knowmesh proposal get prp_01K... --format json
 
 knowmesh proposal apply prp_01K... \
   --accept-all \

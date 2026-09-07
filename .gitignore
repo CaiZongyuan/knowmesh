@@ -6,3 +6,5 @@ dist/
 playwright-report/
 test-results/
 .knowmesh/
+.worktrees/
+.agent-task/
