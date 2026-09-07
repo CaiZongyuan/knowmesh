@@ -1,0 +1,383 @@
+{
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "path": "fixtures/state-v1.md",
+      "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "license": "CC-BY-4.0",
+      "kind": "derived text excerpts, not original bytes"
+    },
+    {
+      "path": "fixtures/perturb-seq-2022.md",
+      "sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "license": "CC-BY-4.0",
+      "kind": "derived text excerpts, not original bytes"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "ex-state-v1-01",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "model overview",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-4"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 401,
+      "char_end": 2034,
+      "text_sha256": "074cca7dccc5949bd9aecd607424a3be5732babd4037ee39750409430d5566ae",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-state-v1-02",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "perturbation generalization",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-6"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 2061,
+      "char_end": 3709,
+      "text_sha256": "895924a8fbd3713e30c2942a376849574de7b6f646b26fed017058642e358c4e",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-state-v1-03",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "existing model comparison",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-7"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 3736,
+      "char_end": 4683,
+      "text_sha256": "8afee5a599058f1e62a1454c7fa9e0ea2d36639ecec2139a17b6249f6665cdcf",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-state-v1-04",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "destructive measurement and heterogeneity",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-9"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 4710,
+      "char_end": 6980,
+      "text_sha256": "26cccc22f06435907aeacf02739d48c003bcd4e18d03b465dc994944568f8590",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-state-v1-05",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "technical noise",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-10"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 7008,
+      "char_end": 8233,
+      "text_sha256": "a3e0da572f231a7419887a5666ebc2582eb0e92e26a4cacd8a70a19234b32e08",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-state-v1-06",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "architecture",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-17"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 8261,
+      "char_end": 9442,
+      "text_sha256": "1e177a5c9c5a75266349b60e38817b8301e82f3faa44c977ea0ecf30a7c9f5d2",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-state-v1-07",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "training data scales",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-18"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 9470,
+      "char_end": 10412,
+      "text_sha256": "3bec0a16f11de462d397d8b3c340d19453d62f7db238e0c71e7d1c52c770eedc",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-state-v1-08",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "performance claims",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-19"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 10440,
+      "char_end": 11329,
+      "text_sha256": "44aa1be91dd3cf22ecffc0365e44f55515a3dd323bf0caf203601182d566996f",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-state-v1-09",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "optimal transport connection",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-20"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 11357,
+      "char_end": 12173,
+      "text_sha256": "ce81debd575dfbbbc59a7f415bca5fd4f8b3aa3058d4c02d62c1d615c87e4d83",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-state-v1-10",
+      "status": "unreviewed",
+      "material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "topic": "state transition and embedding",
+      "original_locator": {
+        "format": "HTML id",
+        "value": "p-21"
+      },
+      "fixture": "fixtures/state-v1.md",
+      "char_start": 12201,
+      "char_end": 13345,
+      "text_sha256": "616ed3d21fc7dc070c52e5d8eae68d119a25ec493cad15509710cd851f55050d",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-01",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "genotype phenotype mapping",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P6"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 432,
+      "char_end": 871,
+      "text_sha256": "b5eeb7eb35239a621e6d3b7a21e5712ad21404f8b57b612890b03d958d73191d",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-02",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "forward and reverse genetics",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P7"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 905,
+      "char_end": 1948,
+      "text_sha256": "3fabdfc9b4876b8f88a81e76c9e1954acc6c083e078e51fa835b8c6ba169eb40",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-03",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "screen limitations",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P8"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 1982,
+      "char_end": 2741,
+      "text_sha256": "d27368b1954fa427ea6fbdfd241021483c1df55fb08509544fcba3a7564908c1",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-04",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "single-cell CRISPR readout",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P9"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 2775,
+      "char_end": 3821,
+      "text_sha256": "ab385ae61dadf275a043cd26a9ffb73b46880e80de5f0c34c6c37ba95eb9756a",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-05",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "genome-scale motivation",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P10"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 3856,
+      "char_end": 4755,
+      "text_sha256": "21136e1d5a78bb562a355eb925f94fc0f758e5038430ceeec686cd1a9ab4097a",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-06",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "study scope",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P11"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 4790,
+      "char_end": 5709,
+      "text_sha256": "1f4566ba9bea79ee983aeacbf5f5a1b7ce11dcc40265e1cc0b24d950d0ddf12f",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-07",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "Perturb-seq mechanism",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P12"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 5744,
+      "char_end": 6312,
+      "text_sha256": "a9add65431dbc697fdaa033c7ed443a7449a890168b8ee1674babfb9915eff24",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-08",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "CRISPRi selection",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P13"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 6347,
+      "char_end": 7400,
+      "text_sha256": "5f949431b6d10f1db0cac0cea7a351231da3cc340cb725370967b3239c53ad75",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-09",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "guide library design",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P14"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 7435,
+      "char_end": 7896,
+      "text_sha256": "74944b50467939e30f1e992d83167ec0f815a2c5f5f8b05f08877f9b106df8b0",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    },
+    {
+      "id": "ex-perturb-seq-2022-10",
+      "status": "unreviewed",
+      "material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "topic": "screen design and cell contexts",
+      "original_locator": {
+        "format": "JATS p/@id",
+        "value": "P15"
+      },
+      "fixture": "fixtures/perturb-seq-2022.md",
+      "char_start": 7931,
+      "char_end": 8811,
+      "text_sha256": "887ea30dba556905abad3855c522871b2f8dcf1907dc55dc668a72f6cdce3bb5",
+      "normalization": "DOM itertext, entity decoding, whitespace collapsed with single spaces",
+      "gold": null,
+      "review_record": null
+    }
+  ]
+}
