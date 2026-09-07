@@ -2,6 +2,7 @@
 
 pub mod application;
 pub mod canonical;
+pub mod compiler;
 pub mod domain;
 pub mod error;
 pub mod ingest;

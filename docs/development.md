@@ -170,8 +170,8 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
 - `parse_cached` and `chunk_cached` validate original revision bytes, parser identity,
   extraction quality, and chunk settings around cache use. Valid caches avoid repeated
   parsing; structurally corrupt entries are recomputed. Source/cache contracts live
-  in SPEC 13.5/13.6. Model execution, durable Run recovery, and vector mapping remain
-  under their owning issues; these helpers do not implement that complete workflow.
+  in SPEC 13.5/13.6. Durable Run recovery and vector mapping remain under their
+  owning issues; these helpers do not implement that complete workflow.
 - Core model generation validates Schemars input/output contracts without external
   Schema retrieval, limits JSON repair and transient retries, and accounts for a
   shared request/token/deadline budget. Refusal, truncation, filtering, and tool
@@ -182,6 +182,12 @@ are defined in [SPEC section 22.9](KnowMesh_v0.1_Technical_SPEC.md#229-架构门
   parameter names are configurable. Tests cover profile identity, secret rotation,
   malformed responses, rate limits, deadlines, and unknown-usage estimates. Details
   and remaining Run/cost integration are specified in SPEC 14.4.
+- Core Compiler candidate extraction connects real source bytes, parsing, chunking,
+  file caching, and bounded model generation. `candidate_extraction` fixtures cover
+  input isolation, closed outputs, semantic rejection, deterministic temporary
+  references, aggregate limits, cumulative budgets, safe diagnostics, and cache
+  reuse/invalidation. The candidate contract and downstream Evidence/Proposal/Run
+  boundaries live in SPEC 14.3/14.4; this adds no public compile command.
 - Core Evidence verification checks immutable parse identity and extraction quality,
   matches exact Unicode spans, and repairs only unique quotes within a bounded
   page/section/paragraph scope. Whitespace-only normalization retains original

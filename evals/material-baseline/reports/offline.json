@@ -1,0 +1,1436 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-07T02:57:24.955685+00:00",
+  "inventory_sha256": "ce6b3bcf5040eb31defafd1502883fed13f49692cd6cdf2c88e2b15a404fc98c",
+  "binary_sha256": "ba087d72fabd5749c05d08c1e8a2783624d08422e201516d41fb295bc6c5beeb",
+  "scope": "Source metadata lexical baseline; no scientific quality judgment",
+  "commands": [
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "version"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "api_contract_version": "1.0.0",
+          "version": "0.1.0"
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "version",
+          "trace_id": "run_01M1WWS50K1D3SGCJ56GX3Y57Z",
+          "duration_ms": 10
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "init",
+        "$WORKSPACE"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "created_paths": [
+            "schemas/base.yaml",
+            "purpose.md",
+            "schemas/research.yaml",
+            "knowmesh.yaml",
+            ".gitignore"
+          ],
+          "dry_run": false,
+          "root": "/tmp/knowmesh-p01-j_thujl7/workspace",
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "init",
+          "trace_id": "run_01M1WWS512H0K5F7RPPFKS8YV9",
+          "duration_ms": 123,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/state-v1.md",
+        "--title",
+        "Predicting cellular responses to perturbation across diverse contexts with State",
+        "--tag",
+        "STATE",
+        "--tag",
+        "虚拟细胞",
+        "--tag",
+        "扰动预测"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [
+            "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWS5765H6BGQ6E8HHT3Y76/revisions/rev_01M1WWS576CXCZ7S2AR1HXHCWP/original.md",
+            "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWS5765H6BGQ6E8HHT3Y76/source.yaml"
+          ],
+          "deduplicated": false,
+          "dry_run": false,
+          "projection": {
+            "changed": true,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 2,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 1,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 13352,
+            "captured_at": "2026-09-07T02:57:25.734636013Z",
+            "id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+            "mime_type": "text/markdown",
+            "path": "revisions/rev_01M1WWS576CXCZ7S2AR1HXHCWP/original.md",
+            "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:57:25.734636013Z",
+            "current_revision_id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+            "id": "src_01M1WWS5765H6BGQ6E8HHT3Y76",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 13352,
+                "captured_at": "2026-09-07T02:57:25.734636013Z",
+                "id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+                "mime_type": "text/markdown",
+                "path": "revisions/rev_01M1WWS576CXCZ7S2AR1HXHCWP/original.md",
+                "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6"
+              }
+            ],
+            "slug": "predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state",
+            "storage": "managed",
+            "tags": [
+              "STATE",
+              "虚拟细胞",
+              "扰动预测"
+            ],
+            "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+            "updated_at": "2026-09-07T02:57:25.734636013Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWS5525D4QZ3FW4SHTS6MA",
+          "duration_ms": 139,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "sync"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "dry_run": false,
+          "fast_path": false,
+          "files": [
+            {
+              "byte_size": 1081,
+              "format_version": 1,
+              "kind": "workspace",
+              "mtime_ns": 1788749845640547942,
+              "path": "knowmesh.yaml",
+              "public_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8",
+              "sha256": "a7979c882fbd38f396ff85b053dca311d8ab4f1a89d171124514a21bb513c70d"
+            },
+            {
+              "byte_size": 304,
+              "format_version": 1,
+              "kind": "purpose",
+              "mtime_ns": 1788749845629051906,
+              "path": "purpose.md",
+              "public_id": null,
+              "sha256": "ad6033126dd27a82a91bd92c7443cd3299de4df2e62b6eb624d236731b5a8093"
+            },
+            {
+              "byte_size": 430,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749845625219893,
+              "path": "schemas/base.yaml",
+              "public_id": null,
+              "sha256": "bbf7e5456ab7848127d74ec070374f7104f270321f45067ccc726bf92f8f6a62"
+            },
+            {
+              "byte_size": 3357,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749845632883917,
+              "path": "schemas/research.yaml",
+              "public_id": null,
+              "sha256": "3e2ef27691929ad313ea3d2f0fb12a418b8672c685951cbd20ec3bb0bd89caba"
+            },
+            {
+              "byte_size": 13352,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749845759340317,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWS5765H6BGQ6E8HHT3Y76/revisions/rev_01M1WWS576CXCZ7S2AR1HXHCWP/original.md",
+              "public_id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+              "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6"
+            },
+            {
+              "byte_size": 761,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749845763172329,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWS5765H6BGQ6E8HHT3Y76/source.yaml",
+              "public_id": "src_01M1WWS5765H6BGQ6E8HHT3Y76",
+              "sha256": "f604660729d72a0f9c728290691858b9eddeb12dfb8d38fd6b0b214793076fee"
+            }
+          ],
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 2,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 1,
+            "synthesis_count": 0
+          },
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "sync",
+          "trace_id": "run_01M1WWS59KSZEJCR6GDGZZJC42",
+          "duration_ms": 42,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "get",
+        "src_01M1WWS5765H6BGQ6E8HHT3Y76"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "generation": 2,
+          "index_complete": true,
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:57:25.734636013Z",
+            "current_revision_id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+            "id": "src_01M1WWS5765H6BGQ6E8HHT3Y76",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 13352,
+                "captured_at": "2026-09-07T02:57:25.734636013Z",
+                "id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+                "mime_type": "text/markdown",
+                "path": "revisions/rev_01M1WWS576CXCZ7S2AR1HXHCWP/original.md",
+                "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6"
+              }
+            ],
+            "slug": "predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state",
+            "storage": "managed",
+            "tags": [
+              "STATE",
+              "虚拟细胞",
+              "扰动预测"
+            ],
+            "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+            "updated_at": "2026-09-07T02:57:25.734636013Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.get",
+          "trace_id": "run_01M1WWS5B3KE2G0B9GSWYP9BV8",
+          "duration_ms": 48,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "content",
+        "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+        "--raw"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6",
+      "stdout_bytes": 13352
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/state-v1.md",
+        "--title",
+        "Predicting cellular responses to perturbation across diverse contexts with State",
+        "--tag",
+        "STATE",
+        "--tag",
+        "虚拟细胞",
+        "--tag",
+        "扰动预测",
+        "--source-id",
+        "src_01M1WWS5765H6BGQ6E8HHT3Y76"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [],
+          "deduplicated": true,
+          "dry_run": false,
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 2,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 1,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 13352,
+            "captured_at": "2026-09-07T02:57:25.734636013Z",
+            "id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+            "mime_type": "text/markdown",
+            "path": "revisions/rev_01M1WWS576CXCZ7S2AR1HXHCWP/original.md",
+            "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:57:25.734636013Z",
+            "current_revision_id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+            "id": "src_01M1WWS5765H6BGQ6E8HHT3Y76",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 13352,
+                "captured_at": "2026-09-07T02:57:25.734636013Z",
+                "id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+                "mime_type": "text/markdown",
+                "path": "revisions/rev_01M1WWS576CXCZ7S2AR1HXHCWP/original.md",
+                "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6"
+              }
+            ],
+            "slug": "predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state",
+            "storage": "managed",
+            "tags": [
+              "STATE",
+              "虚拟细胞",
+              "扰动预测"
+            ],
+            "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+            "updated_at": "2026-09-07T02:57:25.734636013Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWS5E09V9ZTMCHP386E53T",
+          "duration_ms": 49,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "State",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 2,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWS5765H6BGQ6E8HHT3Y76",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+                "unit_id": "source:src_01M1WWS5765H6BGQ6E8HHT3Y76"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "State",
+            "original": "State"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWS5FSCAS5KFYVKWFZWDPW",
+          "duration_ms": 41,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "扰动预测",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 2,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWS5765H6BGQ6E8HHT3Y76",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+                "unit_id": "source:src_01M1WWS5765H6BGQ6E8HHT3Y76"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "扰动预测",
+            "original": "扰动预测"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWS5H9P0K1DP3W4TDND0TB",
+          "duration_ms": 43,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "Therapeutic discovery",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 2,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "Therapeutic discovery",
+            "original": "Therapeutic discovery"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWS5JT55M0C5PX6A83A2XV",
+          "duration_ms": 47,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/perturb-seq-2022.md",
+        "--title",
+        "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+        "--tag",
+        "Perturb-seq",
+        "--tag",
+        "基因扰动"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [
+            "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWS5NY5ET1G7WMBFFT6C1T/revisions/rev_01M1WWS5NYH7XAP715GZ4CW7P1/original.md",
+            "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWS5NY5ET1G7WMBFFT6C1T/source.yaml"
+          ],
+          "deduplicated": false,
+          "dry_run": false,
+          "projection": {
+            "changed": true,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 3,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 2,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 8842,
+            "captured_at": "2026-09-07T02:57:26.206339145Z",
+            "id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+            "mime_type": "text/markdown",
+            "path": "revisions/rev_01M1WWS5NYH7XAP715GZ4CW7P1/original.md",
+            "sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:57:26.206339145Z",
+            "current_revision_id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+            "id": "src_01M1WWS5NY5ET1G7WMBFFT6C1T",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 8842,
+                "captured_at": "2026-09-07T02:57:26.206339145Z",
+                "id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+                "mime_type": "text/markdown",
+                "path": "revisions/rev_01M1WWS5NYH7XAP715GZ4CW7P1/original.md",
+                "sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f"
+              }
+            ],
+            "slug": "mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb",
+            "storage": "managed",
+            "tags": [
+              "Perturb-seq",
+              "基因扰动"
+            ],
+            "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+            "updated_at": "2026-09-07T02:57:26.206339145Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWS5ME1QZT7873S3YM3Z13",
+          "duration_ms": 138,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "sync"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "dry_run": false,
+          "fast_path": false,
+          "files": [
+            {
+              "byte_size": 1081,
+              "format_version": 1,
+              "kind": "workspace",
+              "mtime_ns": 1788749845640547942,
+              "path": "knowmesh.yaml",
+              "public_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8",
+              "sha256": "a7979c882fbd38f396ff85b053dca311d8ab4f1a89d171124514a21bb513c70d"
+            },
+            {
+              "byte_size": 304,
+              "format_version": 1,
+              "kind": "purpose",
+              "mtime_ns": 1788749845629051906,
+              "path": "purpose.md",
+              "public_id": null,
+              "sha256": "ad6033126dd27a82a91bd92c7443cd3299de4df2e62b6eb624d236731b5a8093"
+            },
+            {
+              "byte_size": 430,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749845625219893,
+              "path": "schemas/base.yaml",
+              "public_id": null,
+              "sha256": "bbf7e5456ab7848127d74ec070374f7104f270321f45067ccc726bf92f8f6a62"
+            },
+            {
+              "byte_size": 3357,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749845632883917,
+              "path": "schemas/research.yaml",
+              "public_id": null,
+              "sha256": "3e2ef27691929ad313ea3d2f0fb12a418b8672c685951cbd20ec3bb0bd89caba"
+            },
+            {
+              "byte_size": 8842,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749846235701586,
+              "path": "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWS5NY5ET1G7WMBFFT6C1T/revisions/rev_01M1WWS5NYH7XAP715GZ4CW7P1/original.md",
+              "public_id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+              "sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f"
+            },
+            {
+              "byte_size": 755,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749846242173845,
+              "path": "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWS5NY5ET1G7WMBFFT6C1T/source.yaml",
+              "public_id": "src_01M1WWS5NY5ET1G7WMBFFT6C1T",
+              "sha256": "c6939450bbe3a643433d136cf20785f2f596af15a04ac54a1eb301de5b72e3ea"
+            },
+            {
+              "byte_size": 13352,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749845759340317,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWS5765H6BGQ6E8HHT3Y76/revisions/rev_01M1WWS576CXCZ7S2AR1HXHCWP/original.md",
+              "public_id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+              "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6"
+            },
+            {
+              "byte_size": 761,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749845763172329,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWS5765H6BGQ6E8HHT3Y76/source.yaml",
+              "public_id": "src_01M1WWS5765H6BGQ6E8HHT3Y76",
+              "sha256": "f604660729d72a0f9c728290691858b9eddeb12dfb8d38fd6b0b214793076fee"
+            }
+          ],
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 3,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 2,
+            "synthesis_count": 0
+          },
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "sync",
+          "trace_id": "run_01M1WWS5RZ00315VG324HTR25K",
+          "duration_ms": 50,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "get",
+        "src_01M1WWS5NY5ET1G7WMBFFT6C1T"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "generation": 3,
+          "index_complete": true,
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:57:26.206339145Z",
+            "current_revision_id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+            "id": "src_01M1WWS5NY5ET1G7WMBFFT6C1T",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 8842,
+                "captured_at": "2026-09-07T02:57:26.206339145Z",
+                "id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+                "mime_type": "text/markdown",
+                "path": "revisions/rev_01M1WWS5NYH7XAP715GZ4CW7P1/original.md",
+                "sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f"
+              }
+            ],
+            "slug": "mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb",
+            "storage": "managed",
+            "tags": [
+              "Perturb-seq",
+              "基因扰动"
+            ],
+            "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+            "updated_at": "2026-09-07T02:57:26.206339145Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.get",
+          "trace_id": "run_01M1WWS5TQ9H4WB50J9Y5P59MG",
+          "duration_ms": 43,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "content",
+        "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+        "--raw"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f",
+      "stdout_bytes": 8842
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/perturb-seq-2022.md",
+        "--title",
+        "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+        "--tag",
+        "Perturb-seq",
+        "--tag",
+        "基因扰动",
+        "--source-id",
+        "src_01M1WWS5NY5ET1G7WMBFFT6C1T"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [],
+          "deduplicated": true,
+          "dry_run": false,
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 3,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 2,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 8842,
+            "captured_at": "2026-09-07T02:57:26.206339145Z",
+            "id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+            "mime_type": "text/markdown",
+            "path": "revisions/rev_01M1WWS5NYH7XAP715GZ4CW7P1/original.md",
+            "sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:57:26.206339145Z",
+            "current_revision_id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+            "id": "src_01M1WWS5NY5ET1G7WMBFFT6C1T",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 8842,
+                "captured_at": "2026-09-07T02:57:26.206339145Z",
+                "id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+                "mime_type": "text/markdown",
+                "path": "revisions/rev_01M1WWS5NYH7XAP715GZ4CW7P1/original.md",
+                "sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f"
+              }
+            ],
+            "slug": "mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb",
+            "storage": "managed",
+            "tags": [
+              "Perturb-seq",
+              "基因扰动"
+            ],
+            "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+            "updated_at": "2026-09-07T02:57:26.206339145Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWS5XEQQX7V12NHHCDTP2V",
+          "duration_ms": 58,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "Perturb",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 3,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWS5NY5ET1G7WMBFFT6C1T",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+                "unit_id": "source:src_01M1WWS5NY5ET1G7WMBFFT6C1T"
+              },
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.012903225806451613,
+                      "rank": 2,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 0.4372759856630824,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 0.4372759856630824,
+                  "raw_rrf": 0.012903225806451613
+                },
+                "preview": "",
+                "record_id": "src_01M1WWS5765H6BGQ6E8HHT3Y76",
+                "record_type": "source",
+                "score": 0.4372759856630824,
+                "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+                "unit_id": "source:src_01M1WWS5765H6BGQ6E8HHT3Y76"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "Perturb",
+            "original": "Perturb"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWS5ZFS1WJJT5E1Q15EARP",
+          "duration_ms": 50,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "基因扰动",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 3,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWS5NY5ET1G7WMBFFT6C1T",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+                "unit_id": "source:src_01M1WWS5NY5ET1G7WMBFFT6C1T"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "基因扰动",
+            "original": "基因扰动"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWS617N72A7R3QAWEENWDE",
+          "duration_ms": 45,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "CRISPRi",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 3,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "CRISPRi",
+            "original": "CRISPRi"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWS62TCY3WA2572JYT2RS9",
+          "duration_ms": 47,
+          "workspace_id": "ws_01M1WWS51DKYDM5ZRDRMVKGCM8"
+        }
+      }
+    }
+  ],
+  "materials": [
+    {
+      "id": "state-v1-excerpts",
+      "expected_sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6",
+      "acquisition_url": "https://www.biorxiv.org/content/10.1101/2025.06.26.661135v1.full",
+      "status": "passed",
+      "parent_material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "acquisition": "local",
+      "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6",
+      "bytes": 13352,
+      "source_id": "src_01M1WWS5765H6BGQ6E8HHT3Y76",
+      "revision_id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+      "repeat_deduplicated": true,
+      "repeat_revision_id": "rev_01M1WWS576CXCZ7S2AR1HXHCWP",
+      "searches": [
+        {
+          "query": "State",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": true,
+          "source_ids": [
+            "src_01M1WWS5765H6BGQ6E8HHT3Y76"
+          ]
+        },
+        {
+          "query": "扰动预测",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": false,
+          "source_ids": [
+            "src_01M1WWS5765H6BGQ6E8HHT3Y76"
+          ]
+        },
+        {
+          "query": "Therapeutic discovery",
+          "kind": "body-gap",
+          "matched_source": false,
+          "query_in_raw_utf8": true,
+          "source_ids": []
+        }
+      ]
+    },
+    {
+      "id": "perturb-seq-2022-excerpts",
+      "expected_sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f",
+      "acquisition_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9380471/fullTextXML",
+      "status": "passed",
+      "parent_material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "acquisition": "local",
+      "sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f",
+      "bytes": 8842,
+      "source_id": "src_01M1WWS5NY5ET1G7WMBFFT6C1T",
+      "revision_id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+      "repeat_deduplicated": true,
+      "repeat_revision_id": "rev_01M1WWS5NYH7XAP715GZ4CW7P1",
+      "searches": [
+        {
+          "query": "Perturb",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": true,
+          "source_ids": [
+            "src_01M1WWS5NY5ET1G7WMBFFT6C1T",
+            "src_01M1WWS5765H6BGQ6E8HHT3Y76"
+          ]
+        },
+        {
+          "query": "基因扰动",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": false,
+          "source_ids": [
+            "src_01M1WWS5NY5ET1G7WMBFFT6C1T"
+          ]
+        },
+        {
+          "query": "CRISPRi",
+          "kind": "body-gap",
+          "matched_source": false,
+          "query_in_raw_utf8": true,
+          "source_ids": []
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "version": {
+    "api_contract_version": "1.0.0",
+    "version": "0.1.0"
+  }
+}
