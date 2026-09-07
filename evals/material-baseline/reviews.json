@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "status": "awaiting-human-review",
+  "records": [],
+  "record_fields": ["candidate_id", "material_sha256", "reviewer", "reviewed_at", "decision", "locator_check", "gold_annotation", "relevance_judgment", "factual_support_judgment", "notes"],
+  "allowed_decisions": ["approved", "rejected", "needs-revision"],
+  "policy": "Only a named human reviewer may approve scientific gold, relevance or factual support. Mechanical hash/locator checks and agent/model outputs are not human approval. Preserve review history when revising a candidate or source snapshot."
+}

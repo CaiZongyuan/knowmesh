@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "Generated offline subset; not the six-original baseline",
+  "materials": [
+    {
+      "id": "state-v1-excerpts",
+      "parent_material_id": "state-v1",
+      "original_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "filename": "state-v1.md",
+      "sha256": "e10d8a581cafdb74bcb51fd1bef252c2ef7eaf07a10172ab9a034c0e59a4d5c6",
+      "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+      "acquisition_url": "https://www.biorxiv.org/content/10.1101/2025.06.26.661135v1.full",
+      "tags": [
+        "STATE",
+        "虚拟细胞",
+        "扰动预测"
+      ],
+      "queries": [
+        {
+          "query": "State",
+          "kind": "metadata"
+        },
+        {
+          "query": "扰动预测",
+          "kind": "metadata"
+        },
+        {
+          "query": "Therapeutic discovery",
+          "kind": "body-gap"
+        }
+      ]
+    },
+    {
+      "id": "perturb-seq-2022-excerpts",
+      "parent_material_id": "perturb-seq-2022",
+      "original_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "filename": "perturb-seq-2022.md",
+      "sha256": "2f45bcbf9227182b03633b7162f3b64d01579b17caa0f94b2552e38d2985f93f",
+      "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+      "acquisition_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9380471/fullTextXML",
+      "tags": [
+        "Perturb-seq",
+        "基因扰动"
+      ],
+      "queries": [
+        {
+          "query": "Perturb",
+          "kind": "metadata"
+        },
+        {
+          "query": "基因扰动",
+          "kind": "metadata"
+        },
+        {
+          "query": "CRISPRi",
+          "kind": "body-gap"
+        }
+      ]
+    }
+  ]
+}

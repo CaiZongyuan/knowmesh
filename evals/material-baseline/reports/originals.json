@@ -1,0 +1,4319 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-07T02:54:08.832954+00:00",
+  "inventory_sha256": "4d10525236f0ceda3798b392c30326496d30f77d01ab9e98371967b968ab649f",
+  "binary_sha256": "0d9a5c81509b95955102232403f2acab8caab38d1c075f43f8f8f4677117bcd0",
+  "scope": "Source metadata lexical baseline; no scientific quality judgment",
+  "commands": [
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "version"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "api_contract_version": "1.0.0",
+          "version": "0.1.0"
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "version",
+          "trace_id": "run_01M1WWK59XB1MHDKCSHVRGVTSX",
+          "duration_ms": 6
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "init",
+        "$WORKSPACE"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "created_paths": [
+            "schemas/base.yaml",
+            "purpose.md",
+            "schemas/research.yaml",
+            "knowmesh.yaml",
+            ".gitignore"
+          ],
+          "dry_run": false,
+          "root": "/tmp/knowmesh-p01-8wynvork/workspace",
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "init",
+          "trace_id": "run_01M1WWK5A628B112EYZXXBNQ9D",
+          "duration_ms": 85,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/state.html",
+        "--title",
+        "Predicting cellular responses to perturbation across diverse contexts with State",
+        "--tag",
+        "STATE",
+        "--tag",
+        "虚拟细胞",
+        "--tag",
+        "扰动预测"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [
+            "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+            "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/source.yaml"
+          ],
+          "deduplicated": false,
+          "dry_run": false,
+          "projection": {
+            "changed": true,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 2,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 1,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 712709,
+            "captured_at": "2026-09-07T02:54:09.375282765Z",
+            "id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+            "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:09.375282765Z",
+            "current_revision_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+            "id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 712709,
+                "captured_at": "2026-09-07T02:54:09.375282765Z",
+                "id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+                "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+              }
+            ],
+            "slug": "predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state",
+            "storage": "managed",
+            "tags": [
+              "STATE",
+              "虚拟细胞",
+              "扰动预测"
+            ],
+            "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+            "updated_at": "2026-09-07T02:54:09.375282765Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK5D0GHXCMYF20CYB6869",
+          "duration_ms": 206,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "sync"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "dry_run": false,
+          "fast_path": false,
+          "files": [
+            {
+              "byte_size": 1081,
+              "format_version": 1,
+              "kind": "workspace",
+              "mtime_ns": 1788749649290997858,
+              "path": "knowmesh.yaml",
+              "public_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM",
+              "sha256": "f13194f9c58b20cf60edd06ba5e1f76087e72a5d03a66b9a30a28ce71147dfa4"
+            },
+            {
+              "byte_size": 304,
+              "format_version": 1,
+              "kind": "purpose",
+              "mtime_ns": 1788749649280094207,
+              "path": "purpose.md",
+              "public_id": null,
+              "sha256": "ad6033126dd27a82a91bd92c7443cd3299de4df2e62b6eb624d236731b5a8093"
+            },
+            {
+              "byte_size": 430,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649276373060,
+              "path": "schemas/base.yaml",
+              "public_id": null,
+              "sha256": "bbf7e5456ab7848127d74ec070374f7104f270321f45067ccc726bf92f8f6a62"
+            },
+            {
+              "byte_size": 3357,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649282857800,
+              "path": "schemas/research.yaml",
+              "public_id": null,
+              "sha256": "3e2ef27691929ad313ea3d2f0fb12a418b8672c685951cbd20ec3bb0bd89caba"
+            },
+            {
+              "byte_size": 712709,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649427214793,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+              "public_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+              "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+            },
+            {
+              "byte_size": 760,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649447857816,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/source.yaml",
+              "public_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+              "sha256": "7d69e38748bf3f30f7fe765fdeb68579ca2258f05711fd20faca68cc254936b8"
+            }
+          ],
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 2,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 1,
+            "synthesis_count": 0
+          },
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "sync",
+          "trace_id": "run_01M1WWK5KJHBKMB43J9NQZAYH5",
+          "duration_ms": 50,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "get",
+        "src_01M1WWK5EZ1GBHJNS6F838E5RY"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "generation": 2,
+          "index_complete": true,
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:09.375282765Z",
+            "current_revision_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+            "id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 712709,
+                "captured_at": "2026-09-07T02:54:09.375282765Z",
+                "id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+                "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+              }
+            ],
+            "slug": "predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state",
+            "storage": "managed",
+            "tags": [
+              "STATE",
+              "虚拟细胞",
+              "扰动预测"
+            ],
+            "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+            "updated_at": "2026-09-07T02:54:09.375282765Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.get",
+          "trace_id": "run_01M1WWK5N8TCXXWTT8K10JPCV1",
+          "duration_ms": 20,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "content",
+        "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+        "--raw"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "stdout_bytes": 712709
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/state.html",
+        "--title",
+        "Predicting cellular responses to perturbation across diverse contexts with State",
+        "--tag",
+        "STATE",
+        "--tag",
+        "虚拟细胞",
+        "--tag",
+        "扰动预测",
+        "--source-id",
+        "src_01M1WWK5EZ1GBHJNS6F838E5RY"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [],
+          "deduplicated": true,
+          "dry_run": false,
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 2,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 1,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 712709,
+            "captured_at": "2026-09-07T02:54:09.375282765Z",
+            "id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+            "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:09.375282765Z",
+            "current_revision_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+            "id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 712709,
+                "captured_at": "2026-09-07T02:54:09.375282765Z",
+                "id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+                "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+              }
+            ],
+            "slug": "predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state",
+            "storage": "managed",
+            "tags": [
+              "STATE",
+              "虚拟细胞",
+              "扰动预测"
+            ],
+            "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+            "updated_at": "2026-09-07T02:54:09.375282765Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK5Q1ZJS63R29P9T2QFQY",
+          "duration_ms": 68,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "State",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 2,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+                "unit_id": "source:src_01M1WWK5EZ1GBHJNS6F838E5RY"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "State",
+            "original": "State"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK5SH8VY3J5VVR7CNK2RF",
+          "duration_ms": 22,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "扰动预测",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 2,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+                "unit_id": "source:src_01M1WWK5EZ1GBHJNS6F838E5RY"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "扰动预测",
+            "original": "扰动预测"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK5TG9K3AZ02GN2YDJR99",
+          "duration_ms": 24,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "maximum mean discrepancy",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 2,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "maximum mean discrepancy",
+            "original": "maximum mean discrepancy"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK5VGD47M4WPPN8HAV3CY",
+          "duration_ms": 20,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/scgpt.html",
+        "--title",
+        "scGPT: toward building a foundation model for single-cell multi-omics using generative AI",
+        "--tag",
+        "scGPT",
+        "--tag",
+        "单细胞"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [
+            "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+            "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/source.yaml"
+          ],
+          "deduplicated": false,
+          "dry_run": false,
+          "projection": {
+            "changed": true,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 3,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 2,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 411588,
+            "captured_at": "2026-09-07T02:54:09.856835700Z",
+            "id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+            "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:09.856835700Z",
+            "current_revision_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+            "id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 411588,
+                "captured_at": "2026-09-07T02:54:09.856835700Z",
+                "id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+                "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+              }
+            ],
+            "slug": "scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener",
+            "storage": "managed",
+            "tags": [
+              "scGPT",
+              "单细胞"
+            ],
+            "title": "scGPT: toward building a foundation model for single-cell multi-omics using generative AI",
+            "updated_at": "2026-09-07T02:54:09.856835700Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK5W9RQ4EP46NP65XHB4R",
+          "duration_ms": 192,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "sync"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "dry_run": false,
+          "fast_path": false,
+          "files": [
+            {
+              "byte_size": 1081,
+              "format_version": 1,
+              "kind": "workspace",
+              "mtime_ns": 1788749649290997858,
+              "path": "knowmesh.yaml",
+              "public_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM",
+              "sha256": "f13194f9c58b20cf60edd06ba5e1f76087e72a5d03a66b9a30a28ce71147dfa4"
+            },
+            {
+              "byte_size": 304,
+              "format_version": 1,
+              "kind": "purpose",
+              "mtime_ns": 1788749649280094207,
+              "path": "purpose.md",
+              "public_id": null,
+              "sha256": "ad6033126dd27a82a91bd92c7443cd3299de4df2e62b6eb624d236731b5a8093"
+            },
+            {
+              "byte_size": 430,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649276373060,
+              "path": "schemas/base.yaml",
+              "public_id": null,
+              "sha256": "bbf7e5456ab7848127d74ec070374f7104f270321f45067ccc726bf92f8f6a62"
+            },
+            {
+              "byte_size": 3357,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649282857800,
+              "path": "schemas/research.yaml",
+              "public_id": null,
+              "sha256": "3e2ef27691929ad313ea3d2f0fb12a418b8672c685951cbd20ec3bb0bd89caba"
+            },
+            {
+              "byte_size": 712709,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649427214793,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+              "public_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+              "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+            },
+            {
+              "byte_size": 760,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649447857816,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/source.yaml",
+              "public_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+              "sha256": "7d69e38748bf3f30f7fe765fdeb68579ca2258f05711fd20faca68cc254936b8"
+            },
+            {
+              "byte_size": 411588,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649891524826,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+              "public_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+              "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+            },
+            {
+              "byte_size": 753,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649902524827,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/source.yaml",
+              "public_id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+              "sha256": "dd036924f171e7e2d9d051c40ad66c838aad8ae9dce84536383d924a538b7e73"
+            }
+          ],
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 3,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 2,
+            "synthesis_count": 0
+          },
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "sync",
+          "trace_id": "run_01M1WWK62DVBCE7HSQEAHJMSNS",
+          "duration_ms": 61,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "get",
+        "src_01M1WWK5Y0XN5JX9Y4F75PG3E3"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "generation": 3,
+          "index_complete": true,
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:09.856835700Z",
+            "current_revision_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+            "id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 411588,
+                "captured_at": "2026-09-07T02:54:09.856835700Z",
+                "id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+                "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+              }
+            ],
+            "slug": "scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener",
+            "storage": "managed",
+            "tags": [
+              "scGPT",
+              "单细胞"
+            ],
+            "title": "scGPT: toward building a foundation model for single-cell multi-omics using generative AI",
+            "updated_at": "2026-09-07T02:54:09.856835700Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.get",
+          "trace_id": "run_01M1WWK64DBY130A0BQS6PZ4T5",
+          "duration_ms": 19,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "content",
+        "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+        "--raw"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e",
+      "stdout_bytes": 411588
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/scgpt.html",
+        "--title",
+        "scGPT: toward building a foundation model for single-cell multi-omics using generative AI",
+        "--tag",
+        "scGPT",
+        "--tag",
+        "单细胞",
+        "--source-id",
+        "src_01M1WWK5Y0XN5JX9Y4F75PG3E3"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [],
+          "deduplicated": true,
+          "dry_run": false,
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 3,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 2,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 411588,
+            "captured_at": "2026-09-07T02:54:09.856835700Z",
+            "id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+            "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:09.856835700Z",
+            "current_revision_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+            "id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 411588,
+                "captured_at": "2026-09-07T02:54:09.856835700Z",
+                "id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+                "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+              }
+            ],
+            "slug": "scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener",
+            "storage": "managed",
+            "tags": [
+              "scGPT",
+              "单细胞"
+            ],
+            "title": "scGPT: toward building a foundation model for single-cell multi-omics using generative AI",
+            "updated_at": "2026-09-07T02:54:09.856835700Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK6631YENY7PJW29XKSRQ",
+          "duration_ms": 73,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "scGPT",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 3,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.02,
+                    "total": 0.02
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.02,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+                "record_type": "source",
+                "score": 1.02,
+                "title": "scGPT: toward building a foundation model for single-cell multi-omics using generative AI",
+                "unit_id": "source:src_01M1WWK5Y0XN5JX9Y4F75PG3E3"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "scGPT",
+            "original": "scGPT"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK68JC5TH2GX80AFAWSZ9",
+          "duration_ms": 21,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "单细胞",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 3,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "scGPT: toward building a foundation model for single-cell multi-omics using generative AI",
+                "unit_id": "source:src_01M1WWK5Y0XN5JX9Y4F75PG3E3"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "单细胞",
+            "original": "单细胞"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK69ETAPTRCM857A7B6TY",
+          "duration_ms": 21,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "CELLxGENE",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 3,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "CELLxGENE",
+            "original": "CELLxGENE"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK6A895NB8M262VMM8CVA",
+          "duration_ms": 20,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/geneformer.html",
+        "--title",
+        "Transfer learning enables predictions in network biology",
+        "--tag",
+        "Geneformer",
+        "--tag",
+        "基因网络"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [
+            "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+            "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/source.yaml"
+          ],
+          "deduplicated": false,
+          "dry_run": false,
+          "projection": {
+            "changed": true,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 4,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 3,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 714569,
+            "captured_at": "2026-09-07T02:54:10.355073521Z",
+            "id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+            "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:10.355073521Z",
+            "current_revision_id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+            "id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 714569,
+                "captured_at": "2026-09-07T02:54:10.355073521Z",
+                "id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+                "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e"
+              }
+            ],
+            "slug": "transfer-learning-enables-predictions-in-network-biology",
+            "storage": "managed",
+            "tags": [
+              "Geneformer",
+              "基因网络"
+            ],
+            "title": "Transfer learning enables predictions in network biology",
+            "updated_at": "2026-09-07T02:54:10.355073521Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK6B1KAS4V7BXHVH12M83",
+          "duration_ms": 274,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "sync"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "dry_run": false,
+          "fast_path": false,
+          "files": [
+            {
+              "byte_size": 1081,
+              "format_version": 1,
+              "kind": "workspace",
+              "mtime_ns": 1788749649290997858,
+              "path": "knowmesh.yaml",
+              "public_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM",
+              "sha256": "f13194f9c58b20cf60edd06ba5e1f76087e72a5d03a66b9a30a28ce71147dfa4"
+            },
+            {
+              "byte_size": 304,
+              "format_version": 1,
+              "kind": "purpose",
+              "mtime_ns": 1788749649280094207,
+              "path": "purpose.md",
+              "public_id": null,
+              "sha256": "ad6033126dd27a82a91bd92c7443cd3299de4df2e62b6eb624d236731b5a8093"
+            },
+            {
+              "byte_size": 430,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649276373060,
+              "path": "schemas/base.yaml",
+              "public_id": null,
+              "sha256": "bbf7e5456ab7848127d74ec070374f7104f270321f45067ccc726bf92f8f6a62"
+            },
+            {
+              "byte_size": 3357,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649282857800,
+              "path": "schemas/research.yaml",
+              "public_id": null,
+              "sha256": "3e2ef27691929ad313ea3d2f0fb12a418b8672c685951cbd20ec3bb0bd89caba"
+            },
+            {
+              "byte_size": 712709,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649427214793,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+              "public_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+              "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+            },
+            {
+              "byte_size": 760,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649447857816,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/source.yaml",
+              "public_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+              "sha256": "7d69e38748bf3f30f7fe765fdeb68579ca2258f05711fd20faca68cc254936b8"
+            },
+            {
+              "byte_size": 411588,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649891524826,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+              "public_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+              "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+            },
+            {
+              "byte_size": 753,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649902524827,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/source.yaml",
+              "public_id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+              "sha256": "dd036924f171e7e2d9d051c40ad66c838aad8ae9dce84536383d924a538b7e73"
+            },
+            {
+              "byte_size": 714569,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749650404858210,
+              "path": "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+              "public_id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+              "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e"
+            },
+            {
+              "byte_size": 702,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749650423191545,
+              "path": "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/source.yaml",
+              "public_id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+              "sha256": "f933daa5a5e58b01663df15334d1c34e0404a7e450de26056580a855b2460aa7"
+            }
+          ],
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 4,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 3,
+            "synthesis_count": 0
+          },
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "sync",
+          "trace_id": "run_01M1WWK6KPAY1FKVTJ5MN01B7A",
+          "duration_ms": 95,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "get",
+        "src_01M1WWK6DKFPQJNYT3GCAE1ZMV"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "generation": 4,
+          "index_complete": true,
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:10.355073521Z",
+            "current_revision_id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+            "id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 714569,
+                "captured_at": "2026-09-07T02:54:10.355073521Z",
+                "id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+                "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e"
+              }
+            ],
+            "slug": "transfer-learning-enables-predictions-in-network-biology",
+            "storage": "managed",
+            "tags": [
+              "Geneformer",
+              "基因网络"
+            ],
+            "title": "Transfer learning enables predictions in network biology",
+            "updated_at": "2026-09-07T02:54:10.355073521Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.get",
+          "trace_id": "run_01M1WWK6PTPER39JTTKB03RQR9",
+          "duration_ms": 24,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "content",
+        "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+        "--raw"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e",
+      "stdout_bytes": 714569
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/geneformer.html",
+        "--title",
+        "Transfer learning enables predictions in network biology",
+        "--tag",
+        "Geneformer",
+        "--tag",
+        "基因网络",
+        "--source-id",
+        "src_01M1WWK6DKFPQJNYT3GCAE1ZMV"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [],
+          "deduplicated": true,
+          "dry_run": false,
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 4,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 3,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 714569,
+            "captured_at": "2026-09-07T02:54:10.355073521Z",
+            "id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+            "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:10.355073521Z",
+            "current_revision_id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+            "id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 714569,
+                "captured_at": "2026-09-07T02:54:10.355073521Z",
+                "id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+                "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e"
+              }
+            ],
+            "slug": "transfer-learning-enables-predictions-in-network-biology",
+            "storage": "managed",
+            "tags": [
+              "Geneformer",
+              "基因网络"
+            ],
+            "title": "Transfer learning enables predictions in network biology",
+            "updated_at": "2026-09-07T02:54:10.355073521Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK6RPDWRPGY6ANY5YCGCM",
+          "duration_ms": 103,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "Geneformer",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 4,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Transfer learning enables predictions in network biology",
+                "unit_id": "source:src_01M1WWK6DKFPQJNYT3GCAE1ZMV"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "Geneformer",
+            "original": "Geneformer"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK6W7WXG956C466Q7FKJV",
+          "duration_ms": 20,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "基因网络",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 4,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Transfer learning enables predictions in network biology",
+                "unit_id": "source:src_01M1WWK6DKFPQJNYT3GCAE1ZMV"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "基因网络",
+            "original": "基因网络"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK6X5BVZ8TPPA9EY4BDEZ",
+          "duration_ms": 21,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "cardiomyocytes",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 4,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "cardiomyocytes",
+            "original": "cardiomyocytes"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK6Y1MPP9NE28YNP58PTH",
+          "duration_ms": 22,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/tahoe-100m.html",
+        "--title",
+        "Tahoe-100M: A Giga-Scale Single-Cell Perturbation Atlas for Context-Dependent Gene Function and Cellular Modeling",
+        "--tag",
+        "Tahoe-100M",
+        "--tag",
+        "药物扰动"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [
+            "sources/tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen--src_01M1WWK72041JH8N15A9JER9RP/revisions/rev_01M1WWK720AG0WM2G5068RZWT3/original.html",
+            "sources/tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen--src_01M1WWK72041JH8N15A9JER9RP/source.yaml"
+          ],
+          "deduplicated": false,
+          "dry_run": false,
+          "projection": {
+            "changed": true,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 5,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 4,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 401756,
+            "captured_at": "2026-09-07T02:54:11.008547667Z",
+            "id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK720AG0WM2G5068RZWT3/original.html",
+            "sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:11.008547667Z",
+            "current_revision_id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+            "id": "src_01M1WWK72041JH8N15A9JER9RP",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 401756,
+                "captured_at": "2026-09-07T02:54:11.008547667Z",
+                "id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK720AG0WM2G5068RZWT3/original.html",
+                "sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7"
+              }
+            ],
+            "slug": "tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen",
+            "storage": "managed",
+            "tags": [
+              "Tahoe-100M",
+              "药物扰动"
+            ],
+            "title": "Tahoe-100M: A Giga-Scale Single-Cell Perturbation Atlas for Context-Dependent Gene Function and Cellular Modeling",
+            "updated_at": "2026-09-07T02:54:11.008547667Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK6YYXAP4117B2FQ1MC5B",
+          "duration_ms": 285,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "sync"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "dry_run": false,
+          "fast_path": false,
+          "files": [
+            {
+              "byte_size": 1081,
+              "format_version": 1,
+              "kind": "workspace",
+              "mtime_ns": 1788749649290997858,
+              "path": "knowmesh.yaml",
+              "public_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM",
+              "sha256": "f13194f9c58b20cf60edd06ba5e1f76087e72a5d03a66b9a30a28ce71147dfa4"
+            },
+            {
+              "byte_size": 304,
+              "format_version": 1,
+              "kind": "purpose",
+              "mtime_ns": 1788749649280094207,
+              "path": "purpose.md",
+              "public_id": null,
+              "sha256": "ad6033126dd27a82a91bd92c7443cd3299de4df2e62b6eb624d236731b5a8093"
+            },
+            {
+              "byte_size": 430,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649276373060,
+              "path": "schemas/base.yaml",
+              "public_id": null,
+              "sha256": "bbf7e5456ab7848127d74ec070374f7104f270321f45067ccc726bf92f8f6a62"
+            },
+            {
+              "byte_size": 3357,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649282857800,
+              "path": "schemas/research.yaml",
+              "public_id": null,
+              "sha256": "3e2ef27691929ad313ea3d2f0fb12a418b8672c685951cbd20ec3bb0bd89caba"
+            },
+            {
+              "byte_size": 712709,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649427214793,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+              "public_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+              "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+            },
+            {
+              "byte_size": 760,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649447857816,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/source.yaml",
+              "public_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+              "sha256": "7d69e38748bf3f30f7fe765fdeb68579ca2258f05711fd20faca68cc254936b8"
+            },
+            {
+              "byte_size": 411588,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649891524826,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+              "public_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+              "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+            },
+            {
+              "byte_size": 753,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649902524827,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/source.yaml",
+              "public_id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+              "sha256": "dd036924f171e7e2d9d051c40ad66c838aad8ae9dce84536383d924a538b7e73"
+            },
+            {
+              "byte_size": 401756,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749651061746271,
+              "path": "sources/tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen--src_01M1WWK72041JH8N15A9JER9RP/revisions/rev_01M1WWK720AG0WM2G5068RZWT3/original.html",
+              "public_id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+              "sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7"
+            },
+            {
+              "byte_size": 785,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749651072191608,
+              "path": "sources/tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen--src_01M1WWK72041JH8N15A9JER9RP/source.yaml",
+              "public_id": "src_01M1WWK72041JH8N15A9JER9RP",
+              "sha256": "50d1364173460c70c82fb57145517d27bc83d7f842b231b405834887e98d96f1"
+            },
+            {
+              "byte_size": 714569,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749650404858210,
+              "path": "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+              "public_id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+              "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e"
+            },
+            {
+              "byte_size": 702,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749650423191545,
+              "path": "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/source.yaml",
+              "public_id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+              "sha256": "f933daa5a5e58b01663df15334d1c34e0404a7e450de26056580a855b2460aa7"
+            }
+          ],
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 5,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 4,
+            "synthesis_count": 0
+          },
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "sync",
+          "trace_id": "run_01M1WWK77ZFMM4YRKG24GB4FS2",
+          "duration_ms": 113,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "get",
+        "src_01M1WWK72041JH8N15A9JER9RP"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "generation": 5,
+          "index_complete": true,
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:11.008547667Z",
+            "current_revision_id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+            "id": "src_01M1WWK72041JH8N15A9JER9RP",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 401756,
+                "captured_at": "2026-09-07T02:54:11.008547667Z",
+                "id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK720AG0WM2G5068RZWT3/original.html",
+                "sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7"
+              }
+            ],
+            "slug": "tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen",
+            "storage": "managed",
+            "tags": [
+              "Tahoe-100M",
+              "药物扰动"
+            ],
+            "title": "Tahoe-100M: A Giga-Scale Single-Cell Perturbation Atlas for Context-Dependent Gene Function and Cellular Modeling",
+            "updated_at": "2026-09-07T02:54:11.008547667Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.get",
+          "trace_id": "run_01M1WWK7BN41HPBDTTXWQKHJ5D",
+          "duration_ms": 24,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "content",
+        "rev_01M1WWK720AG0WM2G5068RZWT3",
+        "--raw"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7",
+      "stdout_bytes": 401756
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/tahoe-100m.html",
+        "--title",
+        "Tahoe-100M: A Giga-Scale Single-Cell Perturbation Atlas for Context-Dependent Gene Function and Cellular Modeling",
+        "--tag",
+        "Tahoe-100M",
+        "--tag",
+        "药物扰动",
+        "--source-id",
+        "src_01M1WWK72041JH8N15A9JER9RP"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [],
+          "deduplicated": true,
+          "dry_run": false,
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 5,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 4,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 401756,
+            "captured_at": "2026-09-07T02:54:11.008547667Z",
+            "id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK720AG0WM2G5068RZWT3/original.html",
+            "sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:11.008547667Z",
+            "current_revision_id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+            "id": "src_01M1WWK72041JH8N15A9JER9RP",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 401756,
+                "captured_at": "2026-09-07T02:54:11.008547667Z",
+                "id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK720AG0WM2G5068RZWT3/original.html",
+                "sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7"
+              }
+            ],
+            "slug": "tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen",
+            "storage": "managed",
+            "tags": [
+              "Tahoe-100M",
+              "药物扰动"
+            ],
+            "title": "Tahoe-100M: A Giga-Scale Single-Cell Perturbation Atlas for Context-Dependent Gene Function and Cellular Modeling",
+            "updated_at": "2026-09-07T02:54:11.008547667Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK7DD550899SXB1S7QZSB",
+          "duration_ms": 117,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "Tahoe",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 5,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.02,
+                    "total": 0.02
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.02,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK72041JH8N15A9JER9RP",
+                "record_type": "source",
+                "score": 1.02,
+                "title": "Tahoe-100M: A Giga-Scale Single-Cell Perturbation Atlas for Context-Dependent Gene Function and Cellular Modeling",
+                "unit_id": "source:src_01M1WWK72041JH8N15A9JER9RP"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "Tahoe",
+            "original": "Tahoe"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK7H9S75F8G8DH7G9ENVN",
+          "duration_ms": 19,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "药物扰动",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 5,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK72041JH8N15A9JER9RP",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Tahoe-100M: A Giga-Scale Single-Cell Perturbation Atlas for Context-Dependent Gene Function and Cellular Modeling",
+                "unit_id": "source:src_01M1WWK72041JH8N15A9JER9RP"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "药物扰动",
+            "original": "药物扰动"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK7J4NX953WM8EDPMPG7X",
+          "duration_ms": 19,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "Mosaic",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 5,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "Mosaic",
+            "original": "Mosaic"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK7JWNCPH8FM08QE7NB72",
+          "duration_ms": 21,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/perturb-seq.txt",
+        "--title",
+        "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+        "--tag",
+        "Perturb-seq",
+        "--tag",
+        "基因扰动"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [
+            "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWK7Q6S6756EHEWKWXZZ7H/revisions/rev_01M1WWK7Q6HK46XQYQ07M3G8N5/original.txt",
+            "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWK7Q6S6756EHEWKWXZZ7H/source.yaml"
+          ],
+          "deduplicated": false,
+          "dry_run": false,
+          "projection": {
+            "changed": true,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 6,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 5,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 304532,
+            "captured_at": "2026-09-07T02:54:11.686481148Z",
+            "id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+            "mime_type": "text/plain",
+            "path": "revisions/rev_01M1WWK7Q6HK46XQYQ07M3G8N5/original.txt",
+            "sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:11.686481148Z",
+            "current_revision_id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+            "id": "src_01M1WWK7Q6S6756EHEWKWXZZ7H",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 304532,
+                "captured_at": "2026-09-07T02:54:11.686481148Z",
+                "id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+                "mime_type": "text/plain",
+                "path": "revisions/rev_01M1WWK7Q6HK46XQYQ07M3G8N5/original.txt",
+                "sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4"
+              }
+            ],
+            "slug": "mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb",
+            "storage": "managed",
+            "tags": [
+              "Perturb-seq",
+              "基因扰动"
+            ],
+            "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+            "updated_at": "2026-09-07T02:54:11.686481148Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK7KP60KZTY44EKP2YQP9",
+          "duration_ms": 309,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "sync"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "dry_run": false,
+          "fast_path": false,
+          "files": [
+            {
+              "byte_size": 1081,
+              "format_version": 1,
+              "kind": "workspace",
+              "mtime_ns": 1788749649290997858,
+              "path": "knowmesh.yaml",
+              "public_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM",
+              "sha256": "f13194f9c58b20cf60edd06ba5e1f76087e72a5d03a66b9a30a28ce71147dfa4"
+            },
+            {
+              "byte_size": 304,
+              "format_version": 1,
+              "kind": "purpose",
+              "mtime_ns": 1788749649280094207,
+              "path": "purpose.md",
+              "public_id": null,
+              "sha256": "ad6033126dd27a82a91bd92c7443cd3299de4df2e62b6eb624d236731b5a8093"
+            },
+            {
+              "byte_size": 430,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649276373060,
+              "path": "schemas/base.yaml",
+              "public_id": null,
+              "sha256": "bbf7e5456ab7848127d74ec070374f7104f270321f45067ccc726bf92f8f6a62"
+            },
+            {
+              "byte_size": 3357,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649282857800,
+              "path": "schemas/research.yaml",
+              "public_id": null,
+              "sha256": "3e2ef27691929ad313ea3d2f0fb12a418b8672c685951cbd20ec3bb0bd89caba"
+            },
+            {
+              "byte_size": 304532,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749651732191672,
+              "path": "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWK7Q6S6756EHEWKWXZZ7H/revisions/rev_01M1WWK7Q6HK46XQYQ07M3G8N5/original.txt",
+              "public_id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+              "sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4"
+            },
+            {
+              "byte_size": 755,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749651739525006,
+              "path": "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWK7Q6S6756EHEWKWXZZ7H/source.yaml",
+              "public_id": "src_01M1WWK7Q6S6756EHEWKWXZZ7H",
+              "sha256": "76b445347853642dcccdcc5b5f58a1cee44603b7b84c6386780b8fc4dafc0648"
+            },
+            {
+              "byte_size": 712709,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649427214793,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+              "public_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+              "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+            },
+            {
+              "byte_size": 760,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649447857816,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/source.yaml",
+              "public_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+              "sha256": "7d69e38748bf3f30f7fe765fdeb68579ca2258f05711fd20faca68cc254936b8"
+            },
+            {
+              "byte_size": 411588,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649891524826,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+              "public_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+              "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+            },
+            {
+              "byte_size": 753,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649902524827,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/source.yaml",
+              "public_id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+              "sha256": "dd036924f171e7e2d9d051c40ad66c838aad8ae9dce84536383d924a538b7e73"
+            },
+            {
+              "byte_size": 401756,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749651061746271,
+              "path": "sources/tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen--src_01M1WWK72041JH8N15A9JER9RP/revisions/rev_01M1WWK720AG0WM2G5068RZWT3/original.html",
+              "public_id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+              "sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7"
+            },
+            {
+              "byte_size": 785,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749651072191608,
+              "path": "sources/tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen--src_01M1WWK72041JH8N15A9JER9RP/source.yaml",
+              "public_id": "src_01M1WWK72041JH8N15A9JER9RP",
+              "sha256": "50d1364173460c70c82fb57145517d27bc83d7f842b231b405834887e98d96f1"
+            },
+            {
+              "byte_size": 714569,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749650404858210,
+              "path": "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+              "public_id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+              "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e"
+            },
+            {
+              "byte_size": 702,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749650423191545,
+              "path": "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/source.yaml",
+              "public_id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+              "sha256": "f933daa5a5e58b01663df15334d1c34e0404a7e450de26056580a855b2460aa7"
+            }
+          ],
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 6,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 5,
+            "synthesis_count": 0
+          },
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "sync",
+          "trace_id": "run_01M1WWK7XG9VSHTVBJRGD887JV",
+          "duration_ms": 117,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "get",
+        "src_01M1WWK7Q6S6756EHEWKWXZZ7H"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "generation": 6,
+          "index_complete": true,
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:11.686481148Z",
+            "current_revision_id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+            "id": "src_01M1WWK7Q6S6756EHEWKWXZZ7H",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 304532,
+                "captured_at": "2026-09-07T02:54:11.686481148Z",
+                "id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+                "mime_type": "text/plain",
+                "path": "revisions/rev_01M1WWK7Q6HK46XQYQ07M3G8N5/original.txt",
+                "sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4"
+              }
+            ],
+            "slug": "mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb",
+            "storage": "managed",
+            "tags": [
+              "Perturb-seq",
+              "基因扰动"
+            ],
+            "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+            "updated_at": "2026-09-07T02:54:11.686481148Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.get",
+          "trace_id": "run_01M1WWK818VC8RFCSAGYEDAZ2H",
+          "duration_ms": 22,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "content",
+        "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+        "--raw"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "stdout_bytes": 304532
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/perturb-seq.txt",
+        "--title",
+        "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+        "--tag",
+        "Perturb-seq",
+        "--tag",
+        "基因扰动",
+        "--source-id",
+        "src_01M1WWK7Q6S6756EHEWKWXZZ7H"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [],
+          "deduplicated": true,
+          "dry_run": false,
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 6,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 5,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 304532,
+            "captured_at": "2026-09-07T02:54:11.686481148Z",
+            "id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+            "mime_type": "text/plain",
+            "path": "revisions/rev_01M1WWK7Q6HK46XQYQ07M3G8N5/original.txt",
+            "sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:11.686481148Z",
+            "current_revision_id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+            "id": "src_01M1WWK7Q6S6756EHEWKWXZZ7H",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 304532,
+                "captured_at": "2026-09-07T02:54:11.686481148Z",
+                "id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+                "mime_type": "text/plain",
+                "path": "revisions/rev_01M1WWK7Q6HK46XQYQ07M3G8N5/original.txt",
+                "sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4"
+              }
+            ],
+            "slug": "mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb",
+            "storage": "managed",
+            "tags": [
+              "Perturb-seq",
+              "基因扰动"
+            ],
+            "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+            "updated_at": "2026-09-07T02:54:11.686481148Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK82Y3EMTVMHS6Z1J01WB",
+          "duration_ms": 126,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "Perturb",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 6,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK7Q6S6756EHEWKWXZZ7H",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+                "unit_id": "source:src_01M1WWK7Q6S6756EHEWKWXZZ7H"
+              },
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.012903225806451613,
+                      "rank": 2,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 0.4372759856630824,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 0.4372759856630824,
+                  "raw_rrf": 0.012903225806451613
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+                "record_type": "source",
+                "score": 0.4372759856630824,
+                "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+                "unit_id": "source:src_01M1WWK5EZ1GBHJNS6F838E5RY"
+              },
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.012698412698412698,
+                      "rank": 3,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 0.43033509700176364,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 0.43033509700176364,
+                  "raw_rrf": 0.012698412698412698
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK72041JH8N15A9JER9RP",
+                "record_type": "source",
+                "score": 0.43033509700176364,
+                "title": "Tahoe-100M: A Giga-Scale Single-Cell Perturbation Atlas for Context-Dependent Gene Function and Cellular Modeling",
+                "unit_id": "source:src_01M1WWK72041JH8N15A9JER9RP"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "Perturb",
+            "original": "Perturb"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK87419Q9PKP47QGHD33Q",
+          "duration_ms": 25,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "基因扰动",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 6,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK7Q6S6756EHEWKWXZZ7H",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq",
+                "unit_id": "source:src_01M1WWK7Q6S6756EHEWKWXZZ7H"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "基因扰动",
+            "original": "基因扰动"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK885HEV5Q8ST5JQXCYRP",
+          "duration_ms": 20,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "aneuploidy",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 6,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "aneuploidy",
+            "original": "aneuploidy"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK88Z5YJRYVGFF659331N",
+          "duration_ms": 20,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/virtual-cell-challenge.html",
+        "--title",
+        "Virtual Cell Challenge",
+        "--tag",
+        "Virtual Cell Challenge",
+        "--tag",
+        "虚拟细胞挑战"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [
+            "sources/virtual-cell-challenge--src_01M1WWK8DEH059S6WVDSM47T38/revisions/rev_01M1WWK8DE27HDV1GBF3J3E76F/original.html",
+            "sources/virtual-cell-challenge--src_01M1WWK8DEH059S6WVDSM47T38/source.yaml"
+          ],
+          "deduplicated": false,
+          "dry_run": false,
+          "projection": {
+            "changed": true,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 7,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 6,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 42774,
+            "captured_at": "2026-09-07T02:54:12.398082924Z",
+            "id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK8DE27HDV1GBF3J3E76F/original.html",
+            "sha256": "f4beaec17c9095be6ef84370d31fbebd8d6b6dd407a1fbcc5b7d3bfece37c61b"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:12.398082924Z",
+            "current_revision_id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+            "id": "src_01M1WWK8DEH059S6WVDSM47T38",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 42774,
+                "captured_at": "2026-09-07T02:54:12.398082924Z",
+                "id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK8DE27HDV1GBF3J3E76F/original.html",
+                "sha256": "f4beaec17c9095be6ef84370d31fbebd8d6b6dd407a1fbcc5b7d3bfece37c61b"
+              }
+            ],
+            "slug": "virtual-cell-challenge",
+            "storage": "managed",
+            "tags": [
+              "Virtual Cell Challenge",
+              "虚拟细胞挑战"
+            ],
+            "title": "Virtual Cell Challenge",
+            "updated_at": "2026-09-07T02:54:12.398082924Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK89QAF8JNR9YQ9C8HPJS",
+          "duration_ms": 297,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "sync"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "dry_run": false,
+          "fast_path": false,
+          "files": [
+            {
+              "byte_size": 1081,
+              "format_version": 1,
+              "kind": "workspace",
+              "mtime_ns": 1788749649290997858,
+              "path": "knowmesh.yaml",
+              "public_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM",
+              "sha256": "f13194f9c58b20cf60edd06ba5e1f76087e72a5d03a66b9a30a28ce71147dfa4"
+            },
+            {
+              "byte_size": 304,
+              "format_version": 1,
+              "kind": "purpose",
+              "mtime_ns": 1788749649280094207,
+              "path": "purpose.md",
+              "public_id": null,
+              "sha256": "ad6033126dd27a82a91bd92c7443cd3299de4df2e62b6eb624d236731b5a8093"
+            },
+            {
+              "byte_size": 430,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649276373060,
+              "path": "schemas/base.yaml",
+              "public_id": null,
+              "sha256": "bbf7e5456ab7848127d74ec070374f7104f270321f45067ccc726bf92f8f6a62"
+            },
+            {
+              "byte_size": 3357,
+              "format_version": 1,
+              "kind": "schema",
+              "mtime_ns": 1788749649282857800,
+              "path": "schemas/research.yaml",
+              "public_id": null,
+              "sha256": "3e2ef27691929ad313ea3d2f0fb12a418b8672c685951cbd20ec3bb0bd89caba"
+            },
+            {
+              "byte_size": 304532,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749651732191672,
+              "path": "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWK7Q6S6756EHEWKWXZZ7H/revisions/rev_01M1WWK7Q6HK46XQYQ07M3G8N5/original.txt",
+              "public_id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+              "sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4"
+            },
+            {
+              "byte_size": 755,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749651739525006,
+              "path": "sources/mapping-information-rich-genotype-phenotype-landscapes-with-genome-scale-perturb--src_01M1WWK7Q6S6756EHEWKWXZZ7H/source.yaml",
+              "public_id": "src_01M1WWK7Q6S6756EHEWKWXZZ7H",
+              "sha256": "76b445347853642dcccdcc5b5f58a1cee44603b7b84c6386780b8fc4dafc0648"
+            },
+            {
+              "byte_size": 712709,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649427214793,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/revisions/rev_01M1WWK5EZ425NZ2WYT1S9J63J/original.html",
+              "public_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+              "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555"
+            },
+            {
+              "byte_size": 760,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649447857816,
+              "path": "sources/predicting-cellular-responses-to-perturbation-across-diverse-contexts-with-state--src_01M1WWK5EZ1GBHJNS6F838E5RY/source.yaml",
+              "public_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+              "sha256": "7d69e38748bf3f30f7fe765fdeb68579ca2258f05711fd20faca68cc254936b8"
+            },
+            {
+              "byte_size": 411588,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749649891524826,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/revisions/rev_01M1WWK5Y0F9MS59GZX1BY7XFN/original.html",
+              "public_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+              "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e"
+            },
+            {
+              "byte_size": 753,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749649902524827,
+              "path": "sources/scgpt-toward-building-a-foundation-model-for-single-cell-multi-omics-using-gener--src_01M1WWK5Y0XN5JX9Y4F75PG3E3/source.yaml",
+              "public_id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+              "sha256": "dd036924f171e7e2d9d051c40ad66c838aad8ae9dce84536383d924a538b7e73"
+            },
+            {
+              "byte_size": 401756,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749651061746271,
+              "path": "sources/tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen--src_01M1WWK72041JH8N15A9JER9RP/revisions/rev_01M1WWK720AG0WM2G5068RZWT3/original.html",
+              "public_id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+              "sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7"
+            },
+            {
+              "byte_size": 785,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749651072191608,
+              "path": "sources/tahoe-100m-a-giga-scale-single-cell-perturbation-atlas-for-context-dependent-gen--src_01M1WWK72041JH8N15A9JER9RP/source.yaml",
+              "public_id": "src_01M1WWK72041JH8N15A9JER9RP",
+              "sha256": "50d1364173460c70c82fb57145517d27bc83d7f842b231b405834887e98d96f1"
+            },
+            {
+              "byte_size": 714569,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749650404858210,
+              "path": "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/revisions/rev_01M1WWK6DKTV31Z637SSF3CHV7/original.html",
+              "public_id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+              "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e"
+            },
+            {
+              "byte_size": 702,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749650423191545,
+              "path": "sources/transfer-learning-enables-predictions-in-network-biology--src_01M1WWK6DKFPQJNYT3GCAE1ZMV/source.yaml",
+              "public_id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+              "sha256": "f933daa5a5e58b01663df15334d1c34e0404a7e450de26056580a855b2460aa7"
+            },
+            {
+              "byte_size": 42774,
+              "format_version": 1,
+              "kind": "source_blob",
+              "mtime_ns": 1788749652439858409,
+              "path": "sources/virtual-cell-challenge--src_01M1WWK8DEH059S6WVDSM47T38/revisions/rev_01M1WWK8DE27HDV1GBF3J3E76F/original.html",
+              "public_id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+              "sha256": "f4beaec17c9095be6ef84370d31fbebd8d6b6dd407a1fbcc5b7d3bfece37c61b"
+            },
+            {
+              "byte_size": 651,
+              "format_version": 1,
+              "kind": "source",
+              "mtime_ns": 1788749652447191742,
+              "path": "sources/virtual-cell-challenge--src_01M1WWK8DEH059S6WVDSM47T38/source.yaml",
+              "public_id": "src_01M1WWK8DEH059S6WVDSM47T38",
+              "sha256": "15177228b92cad21d1a430dc289bdf7942194a119429be189bb3efa8abb63c64"
+            }
+          ],
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 7,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 6,
+            "synthesis_count": 0
+          },
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "sync",
+          "trace_id": "run_01M1WWK8K45YZYTGMKQ433E50X",
+          "duration_ms": 122,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "get",
+        "src_01M1WWK8DEH059S6WVDSM47T38"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "generation": 7,
+          "index_complete": true,
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:12.398082924Z",
+            "current_revision_id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+            "id": "src_01M1WWK8DEH059S6WVDSM47T38",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 42774,
+                "captured_at": "2026-09-07T02:54:12.398082924Z",
+                "id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK8DE27HDV1GBF3J3E76F/original.html",
+                "sha256": "f4beaec17c9095be6ef84370d31fbebd8d6b6dd407a1fbcc5b7d3bfece37c61b"
+              }
+            ],
+            "slug": "virtual-cell-challenge",
+            "storage": "managed",
+            "tags": [
+              "Virtual Cell Challenge",
+              "虚拟细胞挑战"
+            ],
+            "title": "Virtual Cell Challenge",
+            "updated_at": "2026-09-07T02:54:12.398082924Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.get",
+          "trace_id": "run_01M1WWK8Q2XZ1MCYVRCXH687VN",
+          "duration_ms": 20,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "content",
+        "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+        "--raw"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "f4beaec17c9095be6ef84370d31fbebd8d6b6dd407a1fbcc5b7d3bfece37c61b",
+      "stdout_bytes": 42774
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "source",
+        "add",
+        "$INPUTS/virtual-cell-challenge.html",
+        "--title",
+        "Virtual Cell Challenge",
+        "--tag",
+        "Virtual Cell Challenge",
+        "--tag",
+        "虚拟细胞挑战",
+        "--source-id",
+        "src_01M1WWK8DEH059S6WVDSM47T38"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "changed_paths": [],
+          "deduplicated": true,
+          "dry_run": false,
+          "projection": {
+            "changed": false,
+            "claim_count": 0,
+            "evidence_count": 0,
+            "generation": 7,
+            "node_count": 0,
+            "relation_count": 0,
+            "source_count": 6,
+            "synthesis_count": 0
+          },
+          "revision": {
+            "byte_size": 42774,
+            "captured_at": "2026-09-07T02:54:12.398082924Z",
+            "id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+            "mime_type": "text/html",
+            "path": "revisions/rev_01M1WWK8DE27HDV1GBF3J3E76F/original.html",
+            "sha256": "f4beaec17c9095be6ef84370d31fbebd8d6b6dd407a1fbcc5b7d3bfece37c61b"
+          },
+          "source": {
+            "authors": [],
+            "created_at": "2026-09-07T02:54:12.398082924Z",
+            "current_revision_id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+            "id": "src_01M1WWK8DEH059S6WVDSM47T38",
+            "identifiers": {},
+            "kind": "document",
+            "represented_nodes": [],
+            "revisions": [
+              {
+                "byte_size": 42774,
+                "captured_at": "2026-09-07T02:54:12.398082924Z",
+                "id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+                "mime_type": "text/html",
+                "path": "revisions/rev_01M1WWK8DE27HDV1GBF3J3E76F/original.html",
+                "sha256": "f4beaec17c9095be6ef84370d31fbebd8d6b6dd407a1fbcc5b7d3bfece37c61b"
+              }
+            ],
+            "slug": "virtual-cell-challenge",
+            "storage": "managed",
+            "tags": [
+              "Virtual Cell Challenge",
+              "虚拟细胞挑战"
+            ],
+            "title": "Virtual Cell Challenge",
+            "updated_at": "2026-09-07T02:54:12.398082924Z",
+            "version": 1
+          }
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "source.add",
+          "trace_id": "run_01M1WWK8RFDR704N2A237K4XXS",
+          "duration_ms": 129,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "Virtual Cell Challenge",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 7,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.02,
+                    "total": 0.02
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.02,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK8DEH059S6WVDSM47T38",
+                "record_type": "source",
+                "score": 1.02,
+                "title": "Virtual Cell Challenge",
+                "unit_id": "source:src_01M1WWK8DEH059S6WVDSM47T38"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "Virtual Cell Challenge",
+            "original": "Virtual Cell Challenge"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK8WM88EWWYXHQRCS49ZH",
+          "duration_ms": 23,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "虚拟细胞挑战",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 7,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [
+              {
+                "aliases": [],
+                "exact_id_tier": false,
+                "explain": {
+                  "boosts": {
+                    "exact_alias": 0.0,
+                    "exact_name": 0.0,
+                    "title_prefix": 0.0,
+                    "total": 0.0
+                  },
+                  "channels": [
+                    {
+                      "channel": "word",
+                      "contribution": 0.01639344262295082,
+                      "rank": 1,
+                      "weight": 1.0
+                    },
+                    {
+                      "channel": "trigram",
+                      "contribution": 0.013114754098360656,
+                      "rank": 1,
+                      "weight": 0.8
+                    }
+                  ],
+                  "degraded_channels": [
+                    {
+                      "channel": "vector",
+                      "unavailable_reason": "VECTOR_DISABLED",
+                      "weight": 1.0
+                    }
+                  ],
+                  "exact_id_tier": false,
+                  "final_score": 1.0,
+                  "normalization_bound": 0.029508196721311476,
+                  "normalized_score": 1.0,
+                  "raw_rrf": 0.029508196721311476
+                },
+                "preview": "",
+                "record_id": "src_01M1WWK8DEH059S6WVDSM47T38",
+                "record_type": "source",
+                "score": 1.0,
+                "title": "Virtual Cell Challenge",
+                "unit_id": "source:src_01M1WWK8DEH059S6WVDSM47T38"
+              }
+            ],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "虚拟细胞挑战",
+            "original": "虚拟细胞挑战"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK8XF6DW20NADMQCS44N2",
+          "duration_ms": 22,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    },
+    {
+      "argv": [
+        "$BINARY",
+        "--workspace",
+        "$WORKSPACE",
+        "search",
+        "differential expression",
+        "--record-type",
+        "source",
+        "--limit",
+        "100",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": {
+            "graph_paths": false,
+            "short_text": false,
+            "trigram_fts": true,
+            "vector": false,
+            "word_fts": true
+          },
+          "channels": [
+            {
+              "channel": "word",
+              "unavailable_reason": null,
+              "weight": 1.0
+            },
+            {
+              "channel": "trigram",
+              "unavailable_reason": null,
+              "weight": 0.8
+            },
+            {
+              "channel": "vector",
+              "unavailable_reason": "VECTOR_DISABLED",
+              "weight": 1.0
+            }
+          ],
+          "generation": 7,
+          "groups": {
+            "chunks": [],
+            "claims": [],
+            "knowledge": [],
+            "sources": [],
+            "syntheses": []
+          },
+          "index_complete": true,
+          "next_cursor": null,
+          "query": {
+            "normalized": "differential expression",
+            "original": "differential expression"
+          },
+          "resolved_entities": [],
+          "warnings": []
+        },
+        "meta": {
+          "schema_version": "1",
+          "command": "knowledge.search",
+          "trace_id": "run_01M1WWK8Y8HYHY2BEVCFT4GC7M",
+          "duration_ms": 18,
+          "workspace_id": "ws_01M1WWK5AEAFVZZDH5366JP1MM"
+        }
+      }
+    }
+  ],
+  "materials": [
+    {
+      "id": "state-v1",
+      "expected_sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "acquisition_url": "https://www.biorxiv.org/content/10.1101/2025.06.26.661135v1.full",
+      "status": "passed",
+      "acquisition": "local",
+      "sha256": "9a05d42aaf0e41fbfde0bc7062b7cc8764b8ae8602871833b0bb5eff957d6555",
+      "bytes": 712709,
+      "source_id": "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+      "revision_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+      "repeat_deduplicated": true,
+      "repeat_revision_id": "rev_01M1WWK5EZ425NZ2WYT1S9J63J",
+      "searches": [
+        {
+          "query": "State",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": true,
+          "source_ids": [
+            "src_01M1WWK5EZ1GBHJNS6F838E5RY"
+          ]
+        },
+        {
+          "query": "扰动预测",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": false,
+          "source_ids": [
+            "src_01M1WWK5EZ1GBHJNS6F838E5RY"
+          ]
+        },
+        {
+          "query": "maximum mean discrepancy",
+          "kind": "body-gap",
+          "matched_source": false,
+          "query_in_raw_utf8": true,
+          "source_ids": []
+        }
+      ]
+    },
+    {
+      "id": "scgpt-2024",
+      "expected_sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e",
+      "acquisition_url": "https://www.nature.com/articles/s41592-024-02201-0",
+      "status": "passed",
+      "acquisition": "local",
+      "sha256": "4c95564fbba7d1c6cc70881854c1243af9265896684b28925c7b88029cee4d5e",
+      "bytes": 411588,
+      "source_id": "src_01M1WWK5Y0XN5JX9Y4F75PG3E3",
+      "revision_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+      "repeat_deduplicated": true,
+      "repeat_revision_id": "rev_01M1WWK5Y0F9MS59GZX1BY7XFN",
+      "searches": [
+        {
+          "query": "scGPT",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": true,
+          "source_ids": [
+            "src_01M1WWK5Y0XN5JX9Y4F75PG3E3"
+          ]
+        },
+        {
+          "query": "单细胞",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": false,
+          "source_ids": [
+            "src_01M1WWK5Y0XN5JX9Y4F75PG3E3"
+          ]
+        },
+        {
+          "query": "CELLxGENE",
+          "kind": "body-gap",
+          "matched_source": false,
+          "query_in_raw_utf8": true,
+          "source_ids": []
+        }
+      ]
+    },
+    {
+      "id": "geneformer-2023",
+      "expected_sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e",
+      "acquisition_url": "https://www.nature.com/articles/s41586-023-06139-9",
+      "status": "passed",
+      "acquisition": "local",
+      "sha256": "2127303f30102c91bd53226da6476b144711a09bbca0ea5f393f1c6f8ce2ad5e",
+      "bytes": 714569,
+      "source_id": "src_01M1WWK6DKFPQJNYT3GCAE1ZMV",
+      "revision_id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+      "repeat_deduplicated": true,
+      "repeat_revision_id": "rev_01M1WWK6DKTV31Z637SSF3CHV7",
+      "searches": [
+        {
+          "query": "Geneformer",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": true,
+          "source_ids": [
+            "src_01M1WWK6DKFPQJNYT3GCAE1ZMV"
+          ]
+        },
+        {
+          "query": "基因网络",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": false,
+          "source_ids": [
+            "src_01M1WWK6DKFPQJNYT3GCAE1ZMV"
+          ]
+        },
+        {
+          "query": "cardiomyocytes",
+          "kind": "body-gap",
+          "matched_source": false,
+          "query_in_raw_utf8": true,
+          "source_ids": []
+        }
+      ]
+    },
+    {
+      "id": "tahoe-100m-v1",
+      "expected_sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7",
+      "acquisition_url": "https://www.biorxiv.org/content/10.1101/2025.02.20.639398v1.full",
+      "status": "passed",
+      "acquisition": "local",
+      "sha256": "ef47c10f4cac51b07703513d532d83fdc4b1daf1cfc2f82c48ffedc56f059bb7",
+      "bytes": 401756,
+      "source_id": "src_01M1WWK72041JH8N15A9JER9RP",
+      "revision_id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+      "repeat_deduplicated": true,
+      "repeat_revision_id": "rev_01M1WWK720AG0WM2G5068RZWT3",
+      "searches": [
+        {
+          "query": "Tahoe",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": true,
+          "source_ids": [
+            "src_01M1WWK72041JH8N15A9JER9RP"
+          ]
+        },
+        {
+          "query": "药物扰动",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": false,
+          "source_ids": [
+            "src_01M1WWK72041JH8N15A9JER9RP"
+          ]
+        },
+        {
+          "query": "Mosaic",
+          "kind": "body-gap",
+          "matched_source": false,
+          "query_in_raw_utf8": true,
+          "source_ids": []
+        }
+      ]
+    },
+    {
+      "id": "perturb-seq-2022",
+      "expected_sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "acquisition_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9380471/fullTextXML",
+      "status": "passed",
+      "acquisition": "local",
+      "sha256": "459c2519163bbbf7a6984da4c33dd7c726a8b159e7f3bd2f4c851123693377e4",
+      "bytes": 304532,
+      "source_id": "src_01M1WWK7Q6S6756EHEWKWXZZ7H",
+      "revision_id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+      "repeat_deduplicated": true,
+      "repeat_revision_id": "rev_01M1WWK7Q6HK46XQYQ07M3G8N5",
+      "searches": [
+        {
+          "query": "Perturb",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": true,
+          "source_ids": [
+            "src_01M1WWK7Q6S6756EHEWKWXZZ7H",
+            "src_01M1WWK5EZ1GBHJNS6F838E5RY",
+            "src_01M1WWK72041JH8N15A9JER9RP"
+          ]
+        },
+        {
+          "query": "基因扰动",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": false,
+          "source_ids": [
+            "src_01M1WWK7Q6S6756EHEWKWXZZ7H"
+          ]
+        },
+        {
+          "query": "aneuploidy",
+          "kind": "body-gap",
+          "matched_source": false,
+          "query_in_raw_utf8": true,
+          "source_ids": []
+        }
+      ]
+    },
+    {
+      "id": "virtual-cell-challenge-20260907",
+      "expected_sha256": "f4beaec17c9095be6ef84370d31fbebd8d6b6dd407a1fbcc5b7d3bfece37c61b",
+      "acquisition_url": "https://virtualcellchallenge.org",
+      "status": "passed",
+      "acquisition": "local",
+      "sha256": "f4beaec17c9095be6ef84370d31fbebd8d6b6dd407a1fbcc5b7d3bfece37c61b",
+      "bytes": 42774,
+      "source_id": "src_01M1WWK8DEH059S6WVDSM47T38",
+      "revision_id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+      "repeat_deduplicated": true,
+      "repeat_revision_id": "rev_01M1WWK8DE27HDV1GBF3J3E76F",
+      "searches": [
+        {
+          "query": "Virtual Cell Challenge",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": true,
+          "source_ids": [
+            "src_01M1WWK8DEH059S6WVDSM47T38"
+          ]
+        },
+        {
+          "query": "虚拟细胞挑战",
+          "kind": "metadata",
+          "matched_source": true,
+          "query_in_raw_utf8": false,
+          "source_ids": [
+            "src_01M1WWK8DEH059S6WVDSM47T38"
+          ]
+        },
+        {
+          "query": "differential expression",
+          "kind": "unavailable-content",
+          "matched_source": false,
+          "query_in_raw_utf8": false,
+          "source_ids": []
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "version": {
+    "api_contract_version": "1.0.0",
+    "version": "0.1.0"
+  }
+}
